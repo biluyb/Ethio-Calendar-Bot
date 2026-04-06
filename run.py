@@ -1,0 +1,37 @@
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters
+
+from app.config import BOT_TOKEN
+from app.handlers import start, handle, lang, bot_info 
+from app.handlers import notify_admin
+
+
+async def error_handler(update, context):
+    print(f"GLOBAL ERROR: {context.error}")
+    error_msg = f"Global Error:\n{context.error}"
+    print(error_msg)
+
+    await notify_admin(context, error_msg)
+
+def main():
+
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+
+    # COMMANDS
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("lang", lang))
+    app.add_handler(CommandHandler("info", bot_info))
+    from app.handlers import users, users_callback
+    app.add_handler(CommandHandler("users", users))
+    app.add_handler(CallbackQueryHandler(users_callback, pattern="^users_pg_"))
+
+    # TEXT HANDLER
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+    app.add_error_handler(error_handler)
+
+    print("✅ Bot running...")
+    app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
