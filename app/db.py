@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import psycopg2
+import socket
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta, timezone
 
@@ -22,8 +23,20 @@ def get_connection():
     if DATABASE_URL:
         if _pool is None:
             from psycopg2.pool import ThreadedConnectionPool
-            # Pool: min 5 connections, max 20 (adjustable for scale)
-            _pool = ThreadedConnectionPool(5, 20, DATABASE_URL, sslmode="require")
+            # Attempt to resolve hostname to IPv4 to bypass Render's IPv6 issues
+            try:
+                # Example: postgresql://user:pass@host:port/db
+                from urllib.parse import urlparse
+                result = urlparse(DATABASE_URL)
+                ipv4_host = socket.gethostbyname(result.hostname)
+                # Replace hostname with IP in the URL to force IPv4
+                final_url = DATABASE_URL.replace(result.hostname, ipv4_host)
+            except Exception as e:
+                print(f"IPv4 Resolution failed, using original URL: {e}")
+                final_url = DATABASE_URL
+                
+            # Pool: min 5 connections, max 20
+            _pool = ThreadedConnectionPool(5, 20, final_url, sslmode="require")
         return _pool.getconn()
     else:
         # SQLite
