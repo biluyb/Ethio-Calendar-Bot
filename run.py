@@ -1,3 +1,4 @@
+import os
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 
 from app.config import BOT_TOKEN, ADMIN_IDS
@@ -13,6 +14,10 @@ async def error_handler(update, context):
         await notify_admin(context, report)
 
 from app.db import init_db, add_admin_db
+
+# Webhook Config
+PORT = int(os.getenv("PORT", 8080))
+WEBHOOK_URL = os.getenv("WEBHOOK_URL") # Provided by Render/Koyeb
 
 def main():
     # Initialize Database
@@ -48,9 +53,19 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
     app.add_error_handler(error_handler)
 
-    print("✅ Bot running...")
-    # Start the bot
-    app.run_polling()
+    print(f"✅ Bot starting (Mode: {'Webhook' if WEBHOOK_URL else 'Polling'})...")
+    
+    if WEBHOOK_URL:
+        # Webhook Mode (Production)
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            url_path=BOT_TOKEN,
+            webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
+        )
+    else:
+        # Polling Mode (Local)
+        app.run_polling()
 
 
 if __name__ == "__main__":
