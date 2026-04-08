@@ -25,6 +25,7 @@ def main():
     app = (
         ApplicationBuilder()
         .token(BOT_TOKEN)
+        .concurrent_updates(True)
         .connect_timeout(30)
         .read_timeout(30)
         .build()
@@ -48,8 +49,8 @@ def main():
     app.add_error_handler(error_handler)
 
     print("✅ Bot running...")
-    # concurrent_updates=True allows handling 1000+ users simultaneously
-    app.run_polling(concurrent_updates=True)
+    # Start the bot
+    app.run_polling()
 
 
 if __name__ == "__main__":
