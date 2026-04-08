@@ -14,7 +14,7 @@ A Python-based Telegram bot for converting dates between the Ethiopian and Grego
 
 ## Usage
 
-The bot can be found on Telegram at @pagumebot. Users can start the bot using the /start command, select their preferred language, and then choose a conversion method from the menu. Dates should be entered in the DD/MM/YYYY format.
+The bot can be found on Telegram at @pagumebot or use the link https://t.me/pagumebot. Users can start the bot using the /start command, select their preferred language, and then choose a conversion method from the menu. Dates should be entered in the DD/MM/YYYY format.
 
 ## Implementation Details
 
