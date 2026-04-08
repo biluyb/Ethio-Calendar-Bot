@@ -264,13 +264,13 @@ def menu(lang):
         return ReplyKeyboardMarkup([
             ["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"],
             ["📆 ዛሬ", "🎂 የዕድሜ ስሌት"],
-            ["🌐 ቋንቋ", "ℹ️ መረጃ"]
+            ["🌐 ቋንቋ", "ℹ️ ስለ ቦቱ"]
         ], resize_keyboard=True)
     else:
         return ReplyKeyboardMarkup([
             ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
             ["📆 Today", "🎂 Age Calculator"],
-            ["🌐 Language", "ℹ️ Info"]
+            ["🌐 Language", "ℹ️ About"]
         ], resize_keyboard=True)
         
 # ================== START ==================
@@ -433,7 +433,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        if text in ["ℹ️ Info","ℹ️ መረጃ"]:
+        if text in ["ℹ️ About","ℹ️ ስለ ቦቱ"]:
             return await bot_info(update, context)
 
         if text in ["🎂 Age Calculator","🎂 የዕድሜ ስሌት"]:
