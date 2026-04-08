@@ -14,13 +14,29 @@ def get_eth_now():
 DATABASE_URL = os.getenv("DATABASE_URL")
 DB_FILE = "bot.db"
 
+# Connection Pooling for PostgreSQL
+_pool = None
+
 def get_connection():
+    global _pool
     if DATABASE_URL:
-        # PostgreSQL
-        return psycopg2.connect(DATABASE_URL, sslmode="require")
+        if _pool is None:
+            from psycopg2.pool import ThreadedConnectionPool
+            # Pool: min 5 connections, max 20 (adjustable for scale)
+            _pool = ThreadedConnectionPool(5, 20, DATABASE_URL, sslmode="require")
+        return _pool.getconn()
     else:
         # SQLite
-        return sqlite3.connect(DB_FILE)
+        conn = sqlite3.connect(DB_FILE)
+        # Enable WAL mode for high concurrency
+        conn.execute("PRAGMA journal_mode=WAL")
+        return conn
+
+def release_connection(conn):
+    if DATABASE_URL and _pool:
+        _pool.putconn(conn)
+    else:
+        conn.close()
 
 # ================== INIT ==================
 
@@ -105,14 +121,14 @@ def init_db():
         print(f"Migration error: {e}")
 
     conn.commit()
-    conn.close()
+    release_connection(conn)
 
 def get_all_users():
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM users ORDER BY last_active_at DESC")
     rows = c.fetchall()
-    conn.close()
+    release_connection(conn)
     return rows
 
 def search_users(query, sort_by="last_active_at"):
@@ -130,7 +146,7 @@ def search_users(query, sort_by="last_active_at"):
     else:
         c.execute(f"SELECT * FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ? ORDER BY {order_clause}", (q, q))
     rows = c.fetchall()
-    conn.close()
+    release_connection(conn)
     return rows
 
 # ================== USER ==================
@@ -154,7 +170,7 @@ def register_user(uid, username):
             c.execute("UPDATE users SET username=?, last_active_at=? WHERE id=?", (username, now, uid))
 
     conn.commit()
-    conn.close()
+    release_connection(conn)
 
 def get_lang(uid):
     conn = get_connection()
@@ -166,7 +182,7 @@ def get_lang(uid):
         c.execute("SELECT lang FROM users WHERE id=?", (uid,))
     
     row = c.fetchone()
-    conn.close()
+    release_connection(conn)
     return row[0] if row and row[0] else "en"
 
 def set_lang(uid, lang):
@@ -179,7 +195,7 @@ def set_lang(uid, lang):
         c.execute("UPDATE users SET lang=? WHERE id=?", (lang, uid))
 
     conn.commit()
-    conn.close()
+    release_connection(conn)
 
     
 def get_user(update):
@@ -196,7 +212,7 @@ def is_admin_db(uid):
     else:
         c.execute("SELECT id FROM admins WHERE id=?", (uid,))
     res = c.fetchone()
-    conn.close()
+    release_connection(conn)
     return True if res else False
 
 def get_admins_db():
@@ -204,7 +220,7 @@ def get_admins_db():
     c = conn.cursor()
     c.execute("SELECT id FROM admins")
     rows = c.fetchall()
-    conn.close()
+    release_connection(conn)
     return [r[0] for r in rows]
 
 def add_admin_db(uid):
@@ -219,7 +235,7 @@ def add_admin_db(uid):
         conn.commit()
     except Exception:
         pass # Already exists
-    conn.close()
+    release_connection(conn)
 
 def remove_admin_db(uid):
     conn = get_connection()
@@ -229,4 +245,4 @@ def remove_admin_db(uid):
     else:
         c.execute("DELETE FROM admins WHERE id=?", (uid,))
     conn.commit()
-    conn.close()
+    release_connection(conn)

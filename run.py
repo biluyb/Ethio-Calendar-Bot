@@ -48,7 +48,8 @@ def main():
     app.add_error_handler(error_handler)
 
     print("✅ Bot running...")
-    app.run_polling()
+    # concurrent_updates=True allows handling 1000+ users simultaneously
+    app.run_polling(concurrent_updates=True)
 
 
 if __name__ == "__main__":
