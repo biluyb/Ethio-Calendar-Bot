@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 from datetime import datetime, timedelta, date
 import calendar
 
-from app.db import register_user, set_lang, get_lang, save_history, get_history
+from app.db import register_user, set_lang, get_lang
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
 from app.config import ADMIN_ID
@@ -87,13 +87,13 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
     q_part = query[:20] # Limit query length in callback
     
     if page > 0:
-        buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u_{page-1}_{sort_by}_{q_part}"))
+        buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{q_part}"))
     if page < total_pages - 1:
-        buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"u_{page+1}_{sort_by}_{q_part}"))
+        buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{q_part}"))
         
     sort_buttons = [
-        InlineKeyboardButton("🔥 Activity", callback_data=f"u_0_last_active_at_{q_part}"),
-        InlineKeyboardButton("🆕 Newest", callback_data=f"u_0_joined_at_{q_part}")
+        InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:last_active_at:{q_part}"),
+        InlineKeyboardButton("🆕 Newest", callback_data=f"u:0:joined_at:{q_part}")
     ]
     
     keyboard = []
@@ -132,8 +132,8 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
         
     data = query_obj.data  
-    # data format: u_{page}_{sort}_{query}
-    parts = data.split("_", 3)
+    # data format: u:{page}:{sort}:{query}
+    parts = data.split(":", 3)
     page = int(parts[1])
     sort_by = parts[2]
     search_term = parts[3] if len(parts) > 3 else ""
@@ -141,19 +141,57 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await send_users_page(update, search_term, page, sort_by=sort_by)
     await query_obj.answer()
 
+
+async def age_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    uid = update.effective_user.id
+    lang = get_lang(uid)
+    
+    data = query.data
+    mode = data.replace("age_mode_", "")
+    
+    context.user_data["mode"] = f"age_calc_{mode}"
+    
+    if mode == "gc":
+        msg = "Enter your birthdate in Gregorian \n(DD/MM/YYYY):\n\nExample: 21/12/2012" if lang == "en" else "የትውልድ ቀንዎን በፈረንጅ አቆጣጠር ያስገቡ \n(ቀን/ወር/ዓመት)፦\n\nለምሳሌ: 21/12/2012"
+    else:
+        msg = "Enter your birthdate in Ethiopian \n(DD/MM/YYYY):\n\nExample: 21/12/2012" if lang == "en" else "የትውልድ ቀንዎን በኢትዮጵያ አቆጣጠር ያስገቡ \n(ቀን/ወር/ዓመት)፦\n\nለምሳሌ: 21/12/2012"
+        
+    await query.message.reply_text(msg)
+    await query.answer()
+
+def calculate_age(birth_date, current_date):
+    years = current_date.year - birth_date.year
+    months = current_date.month - birth_date.month
+    days = current_date.day - birth_date.day
+    
+    if days < 0:
+        months -= 1
+        # Get days in the previous month
+        prev_month = (current_date.month - 2) % 12 + 1
+        prev_year = current_date.year if current_date.month > 1 else current_date.year - 1
+        _, days_in_prev = calendar.monthrange(prev_year, prev_month)
+        days += days_in_prev
+        
+    if months < 0:
+        years -= 1
+        months += 12
+        
+    return years, months, days
+
 # ================== KEYBOARD ==================
 
 def menu(lang):
     if lang == "am":
         return ReplyKeyboardMarkup([
             ["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"],
-            ["📆 ዛሬ", "📜 ታሪክ"],
+            ["📆 ዛሬ", "🎂 የዕድሜ ስሌት"],
             ["🌐 ቋንቋ", "ℹ️ መረጃ"]
         ], resize_keyboard=True)
     else:
         return ReplyKeyboardMarkup([
             ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
-            ["📆 Today", "📜 History"],
+            ["📆 Today", "🎂 Age Calculator"],
             ["🌐 Language", "ℹ️ Info"]
         ], resize_keyboard=True)
         
@@ -183,35 +221,39 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # ================== TODAY ==================
 
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    await update.message.chat.send_action(action="typing")
-    
-    lang = get_lang(uid)
-    register_user(uid, update.effective_user.username or update.effective_user.full_name)
+    try:
+        uid = update.effective_user.id
+        await update.message.chat.send_action(action="typing")
+        
+        lang = get_lang(uid)
+        username = update.effective_user.username or update.effective_user.full_name or str(uid)
+        register_user(uid, username)
 
-    now = datetime.now()
+        now = datetime.now()
 
-    # Gregorian
-    g_day = now.day
-    g_month = now.month
-    g_year = now.year
+        # Gregorian
+        g_day = now.day
+        g_month = now.month
+        g_year = now.year
 
-    g_day_name = EN_DAYS[now.weekday()]
-    g_month_name = EN_MONTHS[g_month - 1]
+        g_day_name = EN_DAYS[now.weekday()]
+        g_month_name = EN_MONTHS[g_month - 1]
 
-    # Ethiopian
-    e_day, e_month, e_year = greg_to_eth(g_day, g_month, g_year)
-    e_day_name = AM_DAYS[now.weekday()]
-    e_month_name = AM_MONTHS[e_month - 1]
+        # Ethiopian
+        e_day, e_month, e_year = greg_to_eth(g_day, g_month, g_year)
+        e_day_name = AM_DAYS[now.weekday()]
+        e_month_name = AM_MONTHS[e_month - 1]
 
-    if lang == "en":
-        msg = f"Today \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
-        msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
-    elif lang == "am":
-        msg = f"ዛሬ \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
-        msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
+        if lang == "en":
+            msg = f"Today \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
+            msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
+        elif lang == "am":
+            msg = f"ዛሬ \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
+            msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
 
-    await update.message.reply_text(msg, reply_markup=menu(lang))
+        await update.message.reply_text(msg, reply_markup=menu(lang))
+    except Exception as e:
+        await send_error(update, context, e, "today")
 
 # ================== LANGUAGE ==================
 
@@ -262,26 +304,6 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ================== HISTORY ==================
 
-async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        uid = update.effective_user.id
-        await update.message.chat.send_action(action="typing")
-        
-        lang = get_lang(uid)
-        register_user(uid, update.effective_user.username or update.effective_user.full_name)
-
-        hist = get_history(uid)
-
-        if not hist:
-            msg = "ምንም ታሪክ የለም" if lang=="am" else "No history"
-        else:
-            msg = "\n".join(hist[-10:])
-
-        await update.message.reply_text(msg, reply_markup=menu(lang))
-        
-
-    except Exception as e:
-        await send_error(update, context, e, "history")
 
 # ================== HANDLE ==================
 
@@ -336,23 +358,31 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if text in ["ℹ️ Info","ℹ️ መረጃ"]:
             return await info(update, context)
 
-        if text in ["📜 History","📜 ታሪክ"]:
-            return await history(update, context)
+        if text in ["🎂 Age Calculator","🎂 የዕድሜ ስሌት"]:
+            lang = get_lang(uid)
+            msg = "Choose birthdate calendar:" if lang == "en" else "የልደት ቀን መቁጠሪያ ይምረጡ፦"
+            keyboard = [
+                [InlineKeyboardButton("🇺🇸 Gregorian", callback_data="age_mode_gc"), 
+                 InlineKeyboardButton("🇪🇹 Ethiopian", callback_data="age_mode_et")]
+            ]
+            return await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
 
         # ---------- MODES ----------
         if text in ["📅 Gregorian ➜ Ethiopian","📅 ከፈረንጅ ወደ ኢትዮጵያ"]:
             context.user_data["mode"] = "g2e"
-            msg = "Enter date DD/MM/YYYY \n\n example: 21/12/2022" if lang=="en" else "ቀን/ወር/ዓመት ያስገቡ\n\n ለምሳሌ: 21/12/2012"
+            msg = "Enter date DD/MM/YYYY\n\nExample: 21/12/2022" if lang == "en" else "ቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
             return await update.message.reply_text(msg)
 
         if text in ["📆 Ethiopian ➜ Gregorian","📆 ከኢትዮጵያ ወደ ፈረንጅ"]:
             context.user_data["mode"] = "e2g"
-            msg = "Enter date DD/MM/YYYY \n\n example: 21/12/2022" if lang=="en" else "ቀን/ወር/ዓመት ያስገቡ \n\n ለምሳሌ: 21/12/2012"
+            msg = "Enter date DD/MM/YYYY\n\nExample: 21/12/2022" if lang == "en" else "ቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
             return await update.message.reply_text(msg)
 
         # ---------- PROCESS INPUT ----------
         if "mode" not in context.user_data:
             return
+
+        mode = context.user_data["mode"]
 
         try:
             d, m, y = map(int, text.replace("-", "/").split("/"))
@@ -360,22 +390,52 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg = "❌ Invalid format" if lang=="en" else "❌ ትክክለኛ ያልሆነ የቀን አጻጻፍ. እባክዎ ትክክለኛውን የቀን አጻጻፍ ያስገቡ"
             return await update.message.reply_text(msg)
 
-        # ---------- CONVERSION ----------
-        if context.user_data["mode"] == "g2e":
+        # ---------- CONVERSION & AGE ----------
+        if mode == "g2e":
             ed, em, ey = greg_to_eth(d, m, y)
             wk_day = datetime(y, m, d).weekday()
 
             msg = f"📅 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[m-1]} - {y}\n"
             msg += f"📆 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[em-1]} - {ed} - {ey}"
-        else:
+            await update.message.reply_text(msg, reply_markup=menu(lang))
+
+        elif mode == "e2g":
             gd, gm, gy = eth_to_greg(d, m, y)
             wk_day = datetime(gy, gm, gd).weekday()
 
             msg = f"📅 {gy} - {gm:02} - {gd:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[gm-1]} - {gy}\n"
             msg += f"📆 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[m-1]} - {d} - {y}"
+            await update.message.reply_text(msg, reply_markup=menu(lang))
 
-        save_history(uid, msg)
-        await update.message.reply_text(msg, reply_markup=menu(lang))
+        elif mode.startswith("age_calc_"):
+            now = datetime.now()
+            if mode == "age_calc_gc":
+                birth_date = datetime(y, m, d)
+                ed, em, ey = greg_to_eth(d, m, y)
+                wk_day = birth_date.weekday()
+                
+                gd, gm, gy = d, m, y
+            else:
+                gd, gm, gy = eth_to_greg(d, m, y)
+                birth_date = datetime(gy, gm, gd)
+                ed, em, ey = d, m, y
+                wk_day = birth_date.weekday()
+
+            years, months, days = calculate_age(birth_date, now)
+            
+            # Format according to user request
+            msg = f"🇺🇸 {gd:02} - {gm:02} - {gy} | {EN_DAYS[wk_day]}, {EN_MONTHS[gm-1]} - {gd:02}\n"
+            msg += f"🇪🇹 {ed:02} - {em:02} - {ey} | {AM_DAYS[wk_day]} - {AM_MONTHS[em-1]} - {ed:02}\n\n"
+            
+            msg += f"━━━━━━━━━━━━━━━━━\n"
+            if lang == "en":
+                msg += f"🎂 <b>{years}</b> Years | <b>{months}</b> Months | <b>{days}</b> Days"
+            else:
+                msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን"
+
+            await update.message.reply_text(msg, parse_mode="HTML", reply_markup=menu(lang))
+            # Clear mode after calculation
+            del context.user_data["mode"]
     
     
     #except Exception as e:

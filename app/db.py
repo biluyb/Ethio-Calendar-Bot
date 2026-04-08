@@ -2,6 +2,13 @@ import sqlite3
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from datetime import datetime, timedelta, timezone
+
+# Ethiopian Timezone (UTC+3)
+EAT = timezone(timedelta(hours=3))
+
+def get_eth_now():
+    return datetime.now(EAT).strftime('%Y-%m-%d %H:%M:%S')
 
 # Get Database URL from environment (PostgreSQL) or fallback to SQLite
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -35,15 +42,8 @@ def init_db():
             last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """)
-        
-        # 2. HISTORY TABLE
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS history (
-            id SERIAL PRIMARY KEY,
-            username BIGINT,
-            text TEXT
-        )
-        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
     else:
         c.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -54,14 +54,8 @@ def init_db():
             last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         """)
-        
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username INTEGER,
-            text TEXT
-        )
-        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
 
     conn.commit()
     
@@ -129,18 +123,19 @@ def register_user(uid, username):
     conn = get_connection()
     c = conn.cursor()
 
+    now = get_eth_now()
     if DATABASE_URL:
         c.execute("SELECT id FROM users WHERE id=%s", (uid,))
         if not c.fetchone():
-            c.execute("INSERT INTO users (id, username, joined_at, last_active_at) VALUES (%s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", (uid, username))
+            c.execute("INSERT INTO users (id, username, joined_at, last_active_at) VALUES (%s, %s, %s, %s)", (uid, username, now, now))
         else:
-            c.execute("UPDATE users SET username=%s, last_active_at=CURRENT_TIMESTAMP WHERE id=%s", (username, uid))
+            c.execute("UPDATE users SET username=%s, last_active_at=%s WHERE id=%s", (username, now, uid))
     else:
         c.execute("SELECT id FROM users WHERE id=?", (uid,))
         if not c.fetchone():
-            c.execute("INSERT INTO users (id, username, joined_at, last_active_at) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", (uid, username))
+            c.execute("INSERT INTO users (id, username, joined_at, last_active_at) VALUES (?, ?, ?, ?)", (uid, username, now, now))
         else:
-            c.execute("UPDATE users SET username=?, last_active_at=CURRENT_TIMESTAMP WHERE id=?", (username, uid))
+            c.execute("UPDATE users SET username=?, last_active_at=? WHERE id=?", (username, now, uid))
 
     conn.commit()
     conn.close()
@@ -170,30 +165,6 @@ def set_lang(uid, lang):
     conn.commit()
     conn.close()
 
-# ================== HISTORY ==================
-
-def save_history(uid, text):
-    conn = get_connection()
-    c = conn.cursor()
-
-    if DATABASE_URL:
-        c.execute("INSERT INTO history (username, text) VALUES (%s, %s)", (uid, text))
-    else:
-        c.execute("INSERT INTO history (username, text) VALUES (?, ?)", (uid, text))
-
-    conn.commit()
-    conn.close()
-
-def get_history(uid):
-    conn = get_connection()
-    c = conn.cursor()
-    if DATABASE_URL:
-        c.execute("SELECT text FROM history WHERE username=%s", (uid,))
-    else:
-        c.execute("SELECT text FROM history WHERE username=?", (uid,))
-    data = [x[0] for x in c.fetchall()]
-    conn.close()
-    return data
     
 def get_user(update):
     user = update.effective_user

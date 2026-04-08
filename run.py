@@ -18,16 +18,23 @@ def main():
     # Initialize Database
     init_db()
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app = (
+        ApplicationBuilder()
+        .token(BOT_TOKEN)
+        .connect_timeout(30)
+        .read_timeout(30)
+        .build()
+    )
 
 
     # COMMANDS
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("lang", lang))
     app.add_handler(CommandHandler("info", bot_info))
-    from app.handlers import users, users_callback
+    from app.handlers import users, users_callback, age_mode_callback
     app.add_handler(CommandHandler("users", users))
-    app.add_handler(CallbackQueryHandler(users_callback, pattern="^u_"))
+    app.add_handler(CallbackQueryHandler(users_callback, pattern="^u:"))
+    app.add_handler(CallbackQueryHandler(age_mode_callback, pattern="^age_mode_"))
 
     # TEXT HANDLER
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
