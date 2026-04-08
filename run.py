@@ -12,7 +12,11 @@ async def error_handler(update, context):
 
     await notify_admin(context, error_msg)
 
+from app.db import init_db
+
 def main():
+    # Initialize Database
+    init_db()
 
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
@@ -23,7 +27,7 @@ def main():
     app.add_handler(CommandHandler("info", bot_info))
     from app.handlers import users, users_callback
     app.add_handler(CommandHandler("users", users))
-    app.add_handler(CallbackQueryHandler(users_callback, pattern="^users_pg_"))
+    app.add_handler(CallbackQueryHandler(users_callback, pattern="^u_"))
 
     # TEXT HANDLER
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))

@@ -30,11 +30,15 @@ AM_DAYS = ["ሰኞ","ማክሰኞ","ረቡዕ","ሐሙስ","አርብ","ቅዳ�
 AM_MONTHS = ["መስከረም","ጥቅምት","ኅዳር","ታኅሣሥ","ጥር","የካቲት","መጋቢት","ሚያዝያ","ግንቦት","ሰኔ","ሐምሌ","ነሐሴ","ጳጉሜ"]
 
 # ================== users ==================
-async def send_users_page(update: Update, query: str, page: int):
+# ================== users ==================
+async def send_users_page(update: Update, query: str, page: int, sort_by: str = "last_active_at"):
     if query:
-        users_list = search_users(query)
+        users_list = search_users(query, sort_by=sort_by)
     else:
+        # get_all_users already sorts by last_active_at DESC
         users_list = get_all_users()
+        if sort_by == "joined_at":
+            users_list = sorted(users_list, key=lambda x: x[3] if len(x)>3 else 0, reverse=True)
         
     count = len(users_list)
     
@@ -61,26 +65,52 @@ async def send_users_page(update: Update, query: str, page: int):
     msg = f"👥 <b>Total Users:</b> {count}\n"
     if query:
         msg += f"🔍 <b>Search:</b> {query}\n"
+    msg += f"📊 <b>Sort:</b> {'Most Active' if sort_by == 'last_active_at' else 'Newest'}\n"
     msg += f"📄 Page {page+1} of {total_pages}\n\n"
     
-    msg += "\n".join([f"• <code>{u[0]}</code> - {u[1]}" for u in display_users])
+    for u in display_users:
+        uid, uname, lang = u[0], u[1], u[2]
+        # joined_at is index 3, last_active_at is index 4
+        joined = u[3] if len(u) > 3 else "N/A"
+        active = u[4] if len(u) > 4 else "N/A"
+        
+        # Format timestamps if they are strings (SQLite)
+        if isinstance(active, str) and len(active) > 16: active = active[:16]
+        
+        msg += f"• <code>{uname}</code> - {uid}\n"
+        msg += f"   └>> Active: {active}\n"
     
     # Buttons
     buttons = []
-    cb_prefix = f"users_pg_{query}_" if query else "users_pg__"
+    # Shorten callback prefix to stay under 64 bytes
+    # Format: u_{page}_{sort}_{query}
+    q_part = query[:20] # Limit query length in callback
     
-    # Note: Callback data length limit is 64 bytes. If search queries are too long, this might fail!
     if page > 0:
-        buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"{cb_prefix}{page-1}"))
+        buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u_{page-1}_{sort_by}_{q_part}"))
     if page < total_pages - 1:
-        buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"{cb_prefix}{page+1}"))
+        buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"u_{page+1}_{sort_by}_{q_part}"))
         
-    reply_markup = InlineKeyboardMarkup([buttons]) if buttons else None
+    sort_buttons = [
+        InlineKeyboardButton("🔥 Activity", callback_data=f"u_0_last_active_at_{q_part}"),
+        InlineKeyboardButton("🆕 Newest", callback_data=f"u_0_joined_at_{q_part}")
+    ]
+    
+    keyboard = []
+    if buttons: keyboard.append(buttons)
+    keyboard.append(sort_buttons)
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
     
     if update.message:
         await update.message.reply_text(msg, parse_mode="HTML", reply_markup=reply_markup)
     else:
-        await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+        try:
+            await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+        except Exception as e:
+            # Handle "message is not modified" error
+            if "Message is not modified" not in str(e):
+                raise e
 
 
 async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -102,13 +132,13 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
         
     data = query_obj.data  
-    # data format: users_pg_{search_term}_{page}
-    data_content = data[len("users_pg_"):]
-    parts = data_content.rsplit("_", 1) 
-    search_term = parts[0]
+    # data format: u_{page}_{sort}_{query}
+    parts = data.split("_", 3)
     page = int(parts[1])
+    sort_by = parts[2]
+    search_term = parts[3] if len(parts) > 3 else ""
     
-    await send_users_page(update, search_term, page)
+    await send_users_page(update, search_term, page, sort_by=sort_by)
     await query_obj.answer()
 
 # ================== KEYBOARD ==================
@@ -134,6 +164,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = update.effective_user
         uid = user.id
 
+        await update.message.chat.send_action(action="typing")
+
         username = user.username or user.full_name or str(uid)
         register_user(uid, username)
 
@@ -152,7 +184,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
+    await update.message.chat.send_action(action="typing")
+    
     lang = get_lang(uid)
+    register_user(uid, update.effective_user.username or update.effective_user.full_name)
 
     now = datetime.now()
 
@@ -170,11 +205,11 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
     e_month_name = AM_MONTHS[e_month - 1]
 
     if lang == "en":
-        msg = f"Today \n\n📅 {g_year} - {g_month:02} - {g_day:02} | {g_day_name}, {g_month_name} - {g_year}\n"
-        msg += f"📆 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
+        msg = f"Today \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
+        msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
     elif lang == "am":
-        msg = f"ዛሬ \n\n📅 {g_year} - {g_month:02} - {g_day:02} | {g_day_name}, {g_month_name} - {g_year}\n"
-        msg += f"📆 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
+        msg = f"ዛሬ \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
+        msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
 
     await update.message.reply_text(msg, reply_markup=menu(lang))
 
@@ -230,7 +265,10 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         uid = update.effective_user.id
+        await update.message.chat.send_action(action="typing")
+        
         lang = get_lang(uid)
+        register_user(uid, update.effective_user.username or update.effective_user.full_name)
 
         hist = get_history(uid)
 
@@ -252,8 +290,12 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         text = update.message.text.strip()
         uid = update.effective_user.id
+        
+        await update.message.chat.send_action(action="typing")
+        
         text = update.message.text.strip()
         lang = get_lang(uid)
+        register_user(uid, update.effective_user.username or update.effective_user.full_name)
         
 
     # =====================
