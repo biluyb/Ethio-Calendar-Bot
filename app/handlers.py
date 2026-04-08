@@ -7,19 +7,20 @@ import calendar
 from app.db import register_user, set_lang, get_lang
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
-from app.config import ADMIN_ID
+from app.config import ADMIN_IDS
 
 # ================== ERROR NOTIFIER==================
 
 
 async def notify_admin(context, error_text):
-    try:
-        await context.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=f"🚨 BOT ERROR:\n\n{error_text}"
-        )
-    except Exception as e:
-        print("Admin notify failed:", e)
+    for admin_id in ADMIN_IDS:
+        try:
+            await context.bot.send_message(
+                chat_id=admin_id,
+                text=f"🚨 BOT ERROR:\n\n{error_text}"
+            )
+        except Exception as e:
+            print(f"Admin {admin_id} notify failed:", e)
 
 # ================== DAY & MONTH ==================
 
@@ -116,7 +117,7 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
 async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Restrict to Admin
     uid = update.effective_user.id
-    if str(uid) != str(ADMIN_ID):
+    if uid not in ADMIN_IDS:
         await update.message.reply_text("❌ You are not authorized to use this command.")
         return
 
@@ -127,7 +128,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query_obj = update.callback_query
     uid = update.effective_user.id
-    if str(uid) != str(ADMIN_ID):
+    if uid not in ADMIN_IDS:
         await query_obj.answer("Unauthorized", show_alert=True)
         return
         

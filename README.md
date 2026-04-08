@@ -6,10 +6,11 @@ A Python-based Telegram bot for converting dates between the Ethiopian and Grego
 
 - Conversion from Gregorian to Ethiopian calendar.
 - Conversion from Ethiopian to Gregorian calendar.
+- 🎂 **Age Calculator**: Exact age breakdown in Years, Months, and Days.
 - Real-time display of today's date in both calendar systems.
-- User conversion history (stores the last 10 entries).
 - Bilingual interface supporting English and Amharic.
 - Admin dashboard for user statistics with search and pagination.
+- Multi-admin support.
 
 ## Usage
 
