@@ -2,15 +2,15 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Cal
 
 from app.config import BOT_TOKEN, ADMIN_IDS
 from app.handlers import start, handle, language as lang, info as bot_info
-from app.handlers import notify_admin
+from app.handlers import notify_admin, format_error_report
 
 
 async def error_handler(update, context):
-    print(f"GLOBAL ERROR: {context.error}")
-    error_msg = f"Global Error:\n{context.error}"
-    print(error_msg)
-
-    await notify_admin(context, error_msg)
+    print(f"🛑 GLOBAL ERROR: {context.error}")
+    
+    report = format_error_report(context.error, "GLOBAL_DISPATCHER")
+    if report:
+        await notify_admin(context, report)
 
 from app.db import init_db, add_admin_db
 

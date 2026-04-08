@@ -18,10 +18,33 @@ async def notify_admin(context, error_text):
         try:
             await context.bot.send_message(
                 chat_id=admin_id,
-                text=f"🚨 BOT ERROR:\n\n{error_text}"
+                text=f"🚨 <b>BOT ALERT</b>\n\n{error_text}",
+                parse_mode="HTML"
             )
         except Exception as e:
             print(f"Admin {admin_id} notify failed:", e)
+
+def format_error_report(error, func_name):
+    err_str = str(error)
+    category = "Unknown Error"
+    recommendation = "Check code/logs."
+
+    if "ConnectError" in err_str or "Timed out" in err_str or "Connection" in err_str:
+        category = "Network/API"
+        recommendation = "Check server internet or Telegram API status."
+    elif "OperationalError" in err_str or "InterfaceError" in err_str or "database" in err_str.lower():
+        category = "Database"
+        recommendation = "Check Supabase/Postgres connection or secrets."
+    elif "Message is not modified" in err_str:
+        return None
+    elif "Forbidden" in err_str or "blocked" in err_str.lower():
+        category = "Bot Blocked"
+        recommendation = "User blocked the bot. No action needed."
+    elif "ValueError" in err_str or "TypeError" in err_str or "index" in err_str.lower():
+        category = "Logic Bug"
+        recommendation = "Check date conversion or data parsing logic."
+
+    return f"🏷 <b>Category:</b> {category}\n📍 <b>Function:</b> <code>{func_name}</code>\n❌ <b>Detail:</b> <code>{err_str[:150]}</code>\n💡 <b>Rec:</b> {recommendation}"
 
 # ================== DAY & MONTH ==================
 
@@ -497,12 +520,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
      #   await send_error(update, context, e, "handle")
         
     except Exception as e:
-        error_msg = f"Handle Error:\n{str(e)}"
-        print(error_msg)
-
-        await notify_admin(context, error_msg)
-
-        await update.message.reply_text("❌ Something went wrong. Try again")
+        await send_error(update, context, e, "handle")
   #menu commands
 async def lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -532,21 +550,15 @@ async def bot_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # ERROR_MESSAGE
 async def send_error(update, context, error, func_name):
-    user = update.effective_user
+    print(f"🛑 ERROR in {func_name}: {error}")
+    
+    report = format_error_report(error, func_name)
+    if report:
+        await notify_admin(context, report)
 
-    msg = f"""
-    🚨 ERROR in {func_name}
-    User: {user.username}
-    ID: {user.id}
-
-    Error:
-    {str(error)}
-    """
-
-    print(msg)  # terminal log
-
-    # optional: send to you (admin)
-    # await context.bot.send_message(chat_id=YOUR_ID, text=msg)
-
-    # send to user (safe message)
-    await update.message.reply_text("❌ Something went wrong. Try again.")
+    # Safe user message
+    if update and update.effective_message:
+        try:
+            await update.effective_message.reply_text("❌ Something went wrong. Please try again später.")
+        except:
+            pass
