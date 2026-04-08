@@ -4,7 +4,7 @@ from telegram.ext import ContextTypes
 from datetime import datetime, timedelta, date
 import calendar
 
-from app.db import register_user, set_lang, get_lang
+from app.db import register_user, set_lang, get_lang, is_admin_db, get_admins_db, add_admin_db, remove_admin_db
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
 from app.config import ADMIN_IDS
@@ -13,7 +13,8 @@ from app.config import ADMIN_IDS
 
 
 async def notify_admin(context, error_text):
-    for admin_id in ADMIN_IDS:
+    admins = get_admins_db()
+    for admin_id in admins:
         try:
             await context.bot.send_message(
                 chat_id=admin_id,
@@ -117,7 +118,7 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
 async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Restrict to Admin
     uid = update.effective_user.id
-    if uid not in ADMIN_IDS:
+    if not is_admin_db(uid):
         await update.message.reply_text("❌ You are not authorized to use this command.")
         return
 
@@ -128,7 +129,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query_obj = update.callback_query
     uid = update.effective_user.id
-    if uid not in ADMIN_IDS:
+    if not is_admin_db(uid):
         await query_obj.answer("Unauthorized", show_alert=True)
         return
         
@@ -141,6 +142,59 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await send_users_page(update, search_term, page, sort_by=sort_by)
     await query_obj.answer()
+
+async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if uid not in ADMIN_IDS:
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage: /addadmin <user_id>")
+        return
+
+    try:
+        new_id = int(context.args[0])
+        add_admin_db(new_id)
+        await update.message.reply_text(f"✅ User {new_id} added as admin.")
+    except ValueError:
+        await update.message.reply_text("❌ Invalid ID.")
+
+async def del_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if uid not in ADMIN_IDS:
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage: /deladmin <user_id>")
+        return
+
+    try:
+        rem_id = int(context.args[0])
+        # Prevent removing self if it's the last admin
+        if rem_id in ADMIN_IDS:
+             await update.message.reply_text("❌ Cannot remove primary admin.")
+             return
+             
+        remove_admin_db(rem_id)
+        await update.message.reply_text(f"✅ User {rem_id} removed from admins.")
+    except ValueError:
+        await update.message.reply_text("❌ Invalid ID.")
+
+async def list_admins(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if uid not in ADMIN_IDS:
+        return
+
+    admins = get_admins_db()
+    # Also show hardcoded ones
+    all_admins = set(admins) | set(ADMIN_IDS)
+    
+    msg = "👥 **Current Admins:**\n\n"
+    for a in all_admins:
+        status = "(Primary)" if a in ADMIN_IDS else "(Added)"
+        msg += f"• <code>{a}</code> {status}\n"
+        
+    await update.message.reply_text(msg, parse_mode="HTML")
 
 
 async def age_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):

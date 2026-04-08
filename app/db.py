@@ -57,6 +57,22 @@ def init_db():
         c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
 
+    # 2. ADMINS TABLE
+    if DATABASE_URL:
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS admins (
+            id BIGINT PRIMARY KEY,
+            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+    else:
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS admins (
+            id INTEGER PRIMARY KEY,
+            added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+    
     conn.commit()
     
     # Simple migration for existing users table
@@ -169,3 +185,48 @@ def set_lang(uid, lang):
 def get_user(update):
     user = update.effective_user
     return user.username or user.first_name or str(user.id)
+
+# ================== ADMINS ==================
+
+def is_admin_db(uid):
+    conn = get_connection()
+    c = conn.cursor()
+    if DATABASE_URL:
+        c.execute("SELECT id FROM admins WHERE id=%s", (uid,))
+    else:
+        c.execute("SELECT id FROM admins WHERE id=?", (uid,))
+    res = c.fetchone()
+    conn.close()
+    return True if res else False
+
+def get_admins_db():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT id FROM admins")
+    rows = c.fetchall()
+    conn.close()
+    return [r[0] for r in rows]
+
+def add_admin_db(uid):
+    conn = get_connection()
+    c = conn.cursor()
+    now = get_eth_now()
+    try:
+        if DATABASE_URL:
+            c.execute("INSERT INTO admins (id, added_at) VALUES (%s, %s) ON CONFLICT DO NOTHING", (uid, now))
+        else:
+            c.execute("INSERT INTO admins (id, added_at) VALUES (?, ?)", (uid, now))
+        conn.commit()
+    except Exception:
+        pass # Already exists
+    conn.close()
+
+def remove_admin_db(uid):
+    conn = get_connection()
+    c = conn.cursor()
+    if DATABASE_URL:
+        c.execute("DELETE FROM admins WHERE id=%s", (uid,))
+    else:
+        c.execute("DELETE FROM admins WHERE id=?", (uid,))
+    conn.commit()
+    conn.close()
