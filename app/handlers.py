@@ -434,7 +434,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         if text in ["ℹ️ Info","ℹ️ መረጃ"]:
-            return await info(update, context)
+            return await bot_info(update, context)
 
         if text in ["🎂 Age Calculator","🎂 የዕድሜ ስሌት"]:
             lang = get_lang(uid)

@@ -2,7 +2,14 @@ import os
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 
 from app.config import BOT_TOKEN, ADMIN_IDS
-from app.handlers import start, handle, language as lang, info as bot_info
+from app.handlers import (
+    start, 
+    handle, 
+    language as toggle_lang, 
+    lang as lang_keyboard, 
+    info as help_info, 
+    bot_info as dev_info
+)
 from app.handlers import notify_admin, format_error_report
 
 
@@ -39,8 +46,9 @@ def main():
 
     # COMMANDS
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("lang", lang))
-    app.add_handler(CommandHandler("info", bot_info))
+    app.add_handler(CommandHandler("lang", lang_keyboard))
+    app.add_handler(CommandHandler("info", help_info))
+    app.add_handler(CommandHandler("about", dev_info))
     from app.handlers import users, users_callback, age_mode_callback, add_admin, del_admin, list_admins
     app.add_handler(CommandHandler("users", users))
     app.add_handler(CommandHandler("addadmin", add_admin))
