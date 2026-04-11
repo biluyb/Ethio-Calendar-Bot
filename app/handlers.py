@@ -516,7 +516,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # Clear mode after calculation
                 del context.user_data["mode"]
         except ValueError as e:
-            user_msg = "❌ Invalid date. \nEnter date DD/MM/YYYY\n\nExample: 21/12/2022." if lang == "en" else "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ በዚህ ቅርጽ ያስገቡ\nቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
+            user_msg = "❌ Invalid date. \nEnter date DD/MM/YYYY\n\nExample: 21/12/2022." if lang == "en" else "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ በዚህ ቅርጽ ያስገቡ\nቀን/ወር/ዓመት\n\nለምሳሌ: 21/12/2012"
             await send_error(update, context, e, f"handle_{mode}", user_msg=user_msg)
     
     
@@ -567,3 +567,14 @@ async def send_error(update, context, error, func_name, user_msg=None):
             await update.effective_message.reply_text(final_msg)
         except:
             pass
+
+async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    lang = get_lang(uid)
+    
+    if lang == "am":
+        text = "❌ ያልታወቀ ትዕዛዝ። እባክዎ ከታች ያለውን ማውጫ ይጠቀሙ ወይም ለተጨማሪ መረጃ /info ይጫኑ።"
+    else:
+        text = "❌ Unknown command. Please use the menu below or type /info for help."
+        
+    await update.message.reply_text(text, reply_markup=menu(lang))

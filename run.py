@@ -8,7 +8,8 @@ from app.handlers import (
     language as toggle_lang, 
     lang as lang_keyboard, 
     info as help_info, 
-    bot_info as dev_info
+    bot_info as dev_info,
+    unknown_command
 )
 from app.handlers import notify_admin, format_error_report
 
@@ -59,6 +60,10 @@ def main():
 
     # TEXT HANDLER
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+    
+    # UNKNOWN COMMAND HANDLER (Must be last)
+    app.add_handler(MessageHandler(filters.COMMAND, unknown_command))
+
     app.add_error_handler(error_handler)
 
     print(f"✅ Bot starting (Mode: {'Webhook' if WEBHOOK_URL else 'Polling'})...")
