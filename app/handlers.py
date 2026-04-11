@@ -516,7 +516,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # Clear mode after calculation
                 del context.user_data["mode"]
         except ValueError as e:
-            user_msg = "❌ Invalid date. Please check your input." if lang == "en" else "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ ያስገቡትን ቀን ያረጋግጡ"
+            user_msg = "❌ Invalid date. \nEnter date DD/MM/YYYY\n\nExample: 21/12/2022." if lang == "en" else "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ በዚህ ቅርጽ ያስገቡ\nቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
             await send_error(update, context, e, f"handle_{mode}", user_msg=user_msg)
     
     
