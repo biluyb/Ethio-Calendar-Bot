@@ -465,55 +465,59 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             d, m, y = map(int, text.replace("-", "/").split("/"))
         except:
-            msg = "❌ Invalid format" if lang=="en" else "❌ ትክክለኛ ያልሆነ የቀን አጻጻፍ. እባክዎ ትክክለኛውን የቀን አጻጻፍ ያስገቡ"
+            msg = "❌ Invalid format. Please use DD/MM/YYYY\n\nExample: 21/12/2022" if lang=="en" else "❌ ትክክለኛ ያልሆነ የቀን አጻጻፍ. እባክዎ ቀን/ወር/ዓመት በ ቁጥር ያስገቡ\n\nለምሳሌ: 21/12/2012"
             return await update.message.reply_text(msg)
 
         # ---------- CONVERSION & AGE ----------
-        if mode == "g2e":
-            ed, em, ey = greg_to_eth(d, m, y)
-            wk_day = datetime(y, m, d).weekday()
-
-            msg = f"📅 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[m-1]} - {y}\n"
-            msg += f"📆 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[em-1]} - {ed} - {ey}"
-            await update.message.reply_text(msg, reply_markup=menu(lang))
-
-        elif mode == "e2g":
-            gd, gm, gy = eth_to_greg(d, m, y)
-            wk_day = datetime(gy, gm, gd).weekday()
-
-            msg = f"📅 {gy} - {gm:02} - {gd:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[gm-1]} - {gy}\n"
-            msg += f"📆 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[m-1]} - {d} - {y}"
-            await update.message.reply_text(msg, reply_markup=menu(lang))
-
-        elif mode.startswith("age_calc_"):
-            now = datetime.now()
-            if mode == "age_calc_gc":
-                birth_date = datetime(y, m, d)
+        try:
+            if mode == "g2e":
                 ed, em, ey = greg_to_eth(d, m, y)
-                wk_day = birth_date.weekday()
-                
-                gd, gm, gy = d, m, y
-            else:
+                wk_day = datetime(y, m, d).weekday()
+
+                msg = f"📅 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[m-1]} - {y}\n"
+                msg += f"📆 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[em-1]} - {ed} - {ey}"
+                await update.message.reply_text(msg, reply_markup=menu(lang))
+
+            elif mode == "e2g":
                 gd, gm, gy = eth_to_greg(d, m, y)
-                birth_date = datetime(gy, gm, gd)
-                ed, em, ey = d, m, y
-                wk_day = birth_date.weekday()
+                wk_day = datetime(gy, gm, gd).weekday()
 
-            years, months, days = calculate_age(birth_date, now)
-            
-            # Format according to user request
-            msg = f"🇺🇸 {gd:02} - {gm:02} - {gy} | {EN_DAYS[wk_day]}, {EN_MONTHS[gm-1]} - {gd:02}\n"
-            msg += f"🇪🇹 {ed:02} - {em:02} - {ey} | {AM_DAYS[wk_day]} - {AM_MONTHS[em-1]} - {ed:02}\n\n"
-            
-            msg += f"━━━━━━━━━━━━━━━━━\n"
-            if lang == "en":
-                msg += f"🎂 <b>{years}</b> Years | <b>{months}</b> Months | <b>{days}</b> Days"
-            else:
-                msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን"
+                msg = f"📅 {gy} - {gm:02} - {gd:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[gm-1]} - {gy}\n"
+                msg += f"📆 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[m-1]} - {d} - {y}"
+                await update.message.reply_text(msg, reply_markup=menu(lang))
 
-            await update.message.reply_text(msg, parse_mode="HTML", reply_markup=menu(lang))
-            # Clear mode after calculation
-            del context.user_data["mode"]
+            elif mode.startswith("age_calc_"):
+                now = datetime.now()
+                if mode == "age_calc_gc":
+                    birth_date = datetime(y, m, d)
+                    ed, em, ey = greg_to_eth(d, m, y)
+                    wk_day = birth_date.weekday()
+                    
+                    gd, gm, gy = d, m, y
+                else:
+                    gd, gm, gy = eth_to_greg(d, m, y)
+                    birth_date = datetime(gy, gm, gd)
+                    ed, em, ey = d, m, y
+                    wk_day = birth_date.weekday()
+
+                years, months, days = calculate_age(birth_date, now)
+                
+                # Format according to user request
+                msg = f"🇺🇸 {gd:02} - {gm:02} - {gy} | {EN_DAYS[wk_day]}, {EN_MONTHS[gm-1]} - {gd:02}\n"
+                msg += f"🇪🇹 {ed:02} - {em:02} - {ey} | {AM_DAYS[wk_day]} - {AM_MONTHS[em-1]} - {ed:02}\n\n"
+                
+                msg += f"━━━━━━━━━━━━━━━━━\n"
+                if lang == "en":
+                    msg += f"🎂 <b>{years}</b> Years | <b>{months}</b> Months | <b>{days}</b> Days"
+                else:
+                    msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን"
+
+                await update.message.reply_text(msg, parse_mode="HTML", reply_markup=menu(lang))
+                # Clear mode after calculation
+                del context.user_data["mode"]
+        except ValueError as e:
+            user_msg = "❌ Invalid date. Please check your input." if lang == "en" else "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ ያስገቡትን ቀን ያረጋግጡ"
+            await send_error(update, context, e, f"handle_{mode}", user_msg=user_msg)
     
     
     #except Exception as e:
@@ -549,7 +553,7 @@ async def bot_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
     # ERROR_MESSAGE
-async def send_error(update, context, error, func_name):
+async def send_error(update, context, error, func_name, user_msg=None):
     print(f"🛑 ERROR in {func_name}: {error}")
     
     report = format_error_report(error, func_name)
@@ -559,6 +563,7 @@ async def send_error(update, context, error, func_name):
     # Safe user message
     if update and update.effective_message:
         try:
-            await update.effective_message.reply_text("❌ Something went wrong. Please try again später.")
+            final_msg = user_msg if user_msg else "❌ Something went wrong. Please try again."
+            await update.effective_message.reply_text(final_msg)
         except:
             pass
