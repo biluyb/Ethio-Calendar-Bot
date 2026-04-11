@@ -35,8 +35,9 @@ def get_connection():
                 print(f"IPv4 Resolution failed, using original URL: {e}")
                 final_url = DATABASE_URL
                 
-            # Pool: min 5 connections, max 20
-            _pool = ThreadedConnectionPool(5, 20, final_url, sslmode="require")
+            # Pool: min 1 connection, max 10
+            # Higher minconn causes slower cold starts on Render
+            _pool = ThreadedConnectionPool(1, 10, final_url, sslmode="require")
         return _pool.getconn()
     else:
         # SQLite

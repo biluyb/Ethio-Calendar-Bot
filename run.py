@@ -21,7 +21,7 @@ async def error_handler(update, context):
     if report:
         await notify_admin(context, report)
 
-from app.db import init_db, add_admin_db
+from app.db import init_db, add_admin_db, get_admins_db
 
 # Webhook Config
 PORT = int(os.getenv("PORT", 8080))
@@ -32,8 +32,10 @@ def main():
     init_db()
     
     # Sync primary admins to DB
+    existing_admins = set(get_admins_db())
     for aid in ADMIN_IDS:
-        add_admin_db(aid)
+        if aid not in existing_admins:
+            add_admin_db(aid)
 
     app = (
         ApplicationBuilder()
