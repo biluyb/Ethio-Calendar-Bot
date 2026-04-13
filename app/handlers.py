@@ -3,6 +3,7 @@ from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKe
 from telegram.ext import ContextTypes
 from datetime import datetime, timedelta, date
 import calendar
+import html
 
 from app.db import register_user, set_lang, get_lang, is_admin_db, get_admins_db, add_admin_db, remove_admin_db
 from app.utils import eth_to_greg, greg_to_eth
@@ -579,8 +580,12 @@ async def handle_admin_contact_message(update: Update, context: ContextTypes.DEF
     user = update.effective_user
     
     # Format message for admin
-    sender_info = f"👤 <b>From:</b> {user.full_name} (@{user.username if user.username else 'N/A'})\n🆔 <b>ID:</b> <code>{uid}</code>"
-    admin_msg = f"✉️ <b>New Message to Admin</b>\n\n{sender_info}\n\n📝 <b>Message:</b>\n{user_text}"
+    esc_name = html.escape(user.full_name or "Unknown")
+    esc_uname = html.escape(user.username or "N/A")
+    esc_text = html.escape(user_text[:1000]) # Truncate to 1000 chars
+
+    sender_info = f"👤 <b>From:</b> {esc_name} (@{esc_uname})\n🆔 <b>ID:</b> <code>{uid}</code>"
+    admin_msg = f"✉️ <b>New Message to Admin</b>\n\n{sender_info}\n\n📝 <b>Message:</b>\n{esc_text}"
     
     try:
         # Forward to all admins
@@ -597,7 +602,7 @@ async def handle_admin_contact_message(update: Update, context: ContextTypes.DEF
 
         # Confirm to user
         if lang == "am":
-            confirm = "✅ መልዕክትዎ ለአስተዳዳሪው ተልኳል። እናመሰግናለን!"
+            confirm = "✅ መልዕክትዎ ለአድሚኑ ተልኳል። እናመሰግናለን!"
         else:
             confirm = "✅ Your message has been sent to the admin. Thank you!"
             
