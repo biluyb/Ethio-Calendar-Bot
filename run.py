@@ -21,7 +21,9 @@ from app.handlers import (
     del_admin, 
     list_admins, 
     contact_admin_callback, 
-    admin_reply_callback
+    admin_reply_callback,
+    USER_CMDS,
+    refresh_user_commands
 )
 
 
@@ -49,15 +51,13 @@ def main():
             add_admin_db(aid)
 
     async def post_init(application):
-        commands = [
-            BotCommand("start", "Start the bot"),
-            BotCommand("today", "Show today's date"),
-            BotCommand("lang", "Change language"),
-            BotCommand("info", "Information about the calendar"),
-            BotCommand("help", "How to use the bot"),
-            BotCommand("about", "Developer info / Contact Admin")
-        ]
-        await application.bot.set_my_commands(commands)
+        # 1. Set default commands for all users
+        await application.bot.set_my_commands(USER_CMDS)
+
+        # 2. Set specialized commands for admins and super admins
+        admins = set(get_admins_db()) | set(ADMIN_IDS)
+        for uid in admins:
+            await refresh_user_commands(application.bot, uid)
 
     app = (
         ApplicationBuilder()

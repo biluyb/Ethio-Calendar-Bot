@@ -1,5 +1,5 @@
 from app.db import get_all_users, search_users
-from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, BotCommand, BotCommandScopeChat
 from telegram.ext import ContextTypes
 from datetime import datetime, timedelta, date
 import calendar
@@ -177,10 +177,12 @@ async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        new_id = int(context.args[0])
-        add_admin_db(new_id)
-        await update.message.reply_text(f"✅ User {new_id} added as admin.")
-    except ValueError:
+        target_id = int(context.args[0])
+        add_admin_db(target_id)
+        await update.message.reply_text(f"✅ User <code>{target_id}</code> has been promoted to Admin.", parse_mode="HTML")
+        await refresh_user_commands(context.bot, target_id)
+        
+    except (IndexError, ValueError):
         await update.message.reply_text("❌ Invalid ID.")
 
 async def del_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -193,15 +195,17 @@ async def del_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     try:
-        rem_id = int(context.args[0])
+        target_id = int(context.args[0])
         # Prevent removing self if it's the last admin
-        if rem_id in ADMIN_IDS:
+        if target_id in ADMIN_IDS:
              await update.message.reply_text("❌ Cannot remove primary admin.")
              return
              
-        remove_admin_db(rem_id)
-        await update.message.reply_text(f"✅ User {rem_id} removed from admins.")
-    except ValueError:
+        remove_admin_db(target_id)
+        await update.message.reply_text(f"✅ User <code>{target_id}</code> is no longer an Admin.", parse_mode="HTML")
+        await refresh_user_commands(context.bot, target_id)
+        
+    except (IndexError, ValueError):
         await update.message.reply_text("❌ Invalid ID.")
 
 async def list_admins(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -294,10 +298,47 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = "📅 Welcome to Ethio Date Converter\n\nSelect option:"
 
         await update.message.reply_text(text, reply_markup=menu(lang))
+        
+        # Refresh commands on start if role changed or just to ensure correctness
+        await refresh_user_commands(context.bot, uid)
     except Exception as e:
         await send_error(update, context, e, "start")   
 
-    # ================== TODAY ==================
+# ================== RBAC & COMMAND MENU ==================
+
+USER_CMDS = [
+    BotCommand("start", "Start the bot"),
+    BotCommand("today", "Show today's date"),
+    BotCommand("lang", "Change language"),
+    BotCommand("info", "Information about the calendar"),
+    BotCommand("help", "How to use the bot"),
+    BotCommand("about", "Developer info / Contact Admin")
+]
+
+ADMIN_CMDS = USER_CMDS + [
+    BotCommand("users", "User dashboard"),
+    BotCommand("listadmins", "List all admins")
+]
+
+SUPER_ADMIN_CMDS = ADMIN_CMDS + [
+    BotCommand("addadmin", "Add new admin"),
+    BotCommand("deladmin", "Remove admin")
+]
+
+async def refresh_user_commands(bot, uid):
+    try:
+        scope = BotCommandScopeChat(chat_id=uid)
+        if uid in ADMIN_IDS:
+            await bot.set_my_commands(SUPER_ADMIN_CMDS, scope=scope)
+        elif is_admin_db(uid):
+            await bot.set_my_commands(ADMIN_CMDS, scope=scope)
+        else:
+            # Usually users follow default, but if they were demoted we reset
+            await bot.delete_my_commands(scope=scope)
+    except Exception as e:
+        print(f"Failed to refresh commands for {uid}: {e}")
+
+# ================== TODAY ==================
 
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
