@@ -329,11 +329,13 @@ async def refresh_user_commands(bot, uid):
     try:
         scope = BotCommandScopeChat(chat_id=uid)
         if uid in ADMIN_IDS:
+            # Super Admin sees everything
             await bot.set_my_commands(SUPER_ADMIN_CMDS, scope=scope)
         elif is_admin_db(uid):
+            # Regular Admin sees admin tools but not super admin tools
             await bot.set_my_commands(ADMIN_CMDS, scope=scope)
         else:
-            # Usually users follow default, but if they were demoted we reset
+            # Regular user falls back to default commands
             await bot.delete_my_commands(scope=scope)
     except Exception as e:
         print(f"Failed to refresh commands for {uid}: {e}")
@@ -433,12 +435,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text += "/about - ስለ ቦቱ መረጃ (አድሚኑን ለማግኘት)\n"
             text += "/help - ይህንን የእርዳታ መልዕክት ለማሳየት\n"
             
+            
             if is_admin_db(uid) or uid in ADMIN_IDS:
                 text += "\n<b>👑 የአስተዳዳሪ ትዕዛዞች:</b>\n"
                 text += "/users - ስለ ተጠቃሚዎች መረጃ\n"
                 text += "/listadmins - የአስተዳዳሪዎች ዝርዝር\n"
-                text += "/addadmin - አዲስ አስተዳዳሪ ለመጨመር\n"
-                text += "/deladmin - አስተዳዳሪ ለመቀነስ\n"
+                
+                if uid in ADMIN_IDS:
+                    text += "/addadmin - አዲስ አስተዳዳሪ ለመጨመር\n"
+                    text += "/deladmin - አስተዳዳሪ ለመቀነስ\n"
         else:
             text = "<b>🆘 Bot Help</b>\n\n"
             text += "/start - Start the bot\n"
@@ -452,8 +457,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text += "\n<b>👑 Admin Commands:</b>\n"
                 text += "/users - User dashboard\n"
                 text += "/listadmins - List all admins\n"
-                text += "/addadmin - Add new admin\n"
-                text += "/deladmin - Remove admin\n"
+                
+                if uid in ADMIN_IDS:
+                    text += "/addadmin - Add new admin\n"
+                    text += "/deladmin - Remove admin\n"
 
         await update.message.reply_text(text, parse_mode="HTML")
 
