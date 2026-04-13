@@ -546,7 +546,7 @@ async def bot_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if lang == "am":
             text = " የቦት መረጃ\n\n በ ShademT የተሰራ\n \n  © May 2026"
-            btn_text = "📩   መልዕክት ላክ"
+            btn_text = "📩 አድሚኑን ያግኙ"
         else:
             text = " Bot Information\n\nDeveloped by ShademT\n\n   © May 2026"
             btn_text = "📩 Contact Admin"
