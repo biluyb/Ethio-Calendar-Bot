@@ -1,4 +1,5 @@
 import os
+from telegram import BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 
 from app.config import BOT_TOKEN, ADMIN_IDS
@@ -47,9 +48,21 @@ def main():
         if aid not in existing_admins:
             add_admin_db(aid)
 
+    async def post_init(application):
+        commands = [
+            BotCommand("start", "Start the bot"),
+            BotCommand("today", "Show today's date"),
+            BotCommand("lang", "Change language"),
+            BotCommand("info", "Information about the calendar"),
+            BotCommand("help", "How to use the bot"),
+            BotCommand("about", "Developer info / Contact Admin")
+        ]
+        await application.bot.set_my_commands(commands)
+
     app = (
         ApplicationBuilder()
         .token(BOT_TOKEN)
+        .post_init(post_init)
         .concurrent_updates(True)
         .connect_timeout(30)
         .read_timeout(30)
