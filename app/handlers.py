@@ -434,7 +434,12 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        if text in ["📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ", "ℹ️ About", "ℹ️ ስለ ቦቱ"]:
+        if text in ["📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ"]:
+            context.user_data["mode"] = "contact_admin"
+            msg = "እባክዎን ለአድሚኑ መላክ የሚፈልጉትን መልዕክት ይጻፉ።" if lang == "am" else "Please type the message you want to send to the admin."
+            return await update.message.reply_text(msg)
+
+        if text in ["ℹ️ About", "ℹ️ ስለ ቦቱ"]:
             return await bot_info(update, context)
 
         if text in ["🎂 Age Calculator","🎂 የዕድሜ ስሌት"]:
@@ -588,7 +593,19 @@ async def handle_admin_contact_message(update: Update, context: ContextTypes.DEF
     admin_msg = f"✉️ <b>New Message to Admin</b>\n\n{sender_info}\n\n📝 <b>Message:</b>\n{esc_text}"
     
     try:
-        # Forward to all admins
+        # Confirm to user first for immediate feedback
+        if lang == "am":
+            confirm = "✅ መልዕክትዎ ለአድሚኑ ተልኳል። እናመሰግናለን!"
+        else:
+            confirm = "✅ Your message has been sent to the admin. Thank you!"
+            
+        await update.message.reply_text(confirm, reply_markup=menu(lang))
+        
+        # Clear mode immediately
+        if "mode" in context.user_data:
+            del context.user_data["mode"]
+
+        # Forward to all admins in the background
         admins = set(get_admins_db()) | set(ADMIN_IDS)
         for admin_id in admins:
             try:
@@ -599,18 +616,6 @@ async def handle_admin_contact_message(update: Update, context: ContextTypes.DEF
                 )
             except Exception as e:
                 print(f"Failed to send to admin {admin_id}: {e}")
-
-        # Confirm to user
-        if lang == "am":
-            confirm = "✅ መልዕክትዎ ለአድሚኑ ተልኳል። እናመሰግናለን!"
-        else:
-            confirm = "✅ Your message has been sent to the admin. Thank you!"
-            
-        await update.message.reply_text(confirm, reply_markup=menu(lang))
-        
-        # Clear mode
-        if "mode" in context.user_data:
-            del context.user_data["mode"]
             
     except Exception as e:
         await send_error(update, context, e, "handle_admin_contact_message")
