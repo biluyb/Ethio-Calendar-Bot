@@ -52,7 +52,7 @@ def main():
     app.add_handler(CommandHandler("lang", lang_keyboard))
     app.add_handler(CommandHandler("info", help_info))
     app.add_handler(CommandHandler("about", dev_info))
-    from app.handlers import users, users_callback, age_mode_callback, add_admin, del_admin, list_admins, contact_admin_callback
+    from app.handlers import users, users_callback, age_mode_callback, add_admin, del_admin, list_admins, contact_admin_callback, admin_reply_callback
     app.add_handler(CommandHandler("users", users))
     app.add_handler(CommandHandler("addadmin", add_admin))
     app.add_handler(CommandHandler("deladmin", del_admin))
@@ -60,6 +60,7 @@ def main():
     app.add_handler(CallbackQueryHandler(users_callback, pattern="^u:"))
     app.add_handler(CallbackQueryHandler(age_mode_callback, pattern="^age_mode_"))
     app.add_handler(CallbackQueryHandler(contact_admin_callback, pattern="^contact_admin_request$"))
+    app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
 
     # TEXT HANDLER
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))

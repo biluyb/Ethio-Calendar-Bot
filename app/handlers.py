@@ -472,6 +472,10 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if mode == "contact_admin":
             return await handle_admin_contact_message(update, context)
 
+        # Process admin reply to user
+        if mode.startswith("rep_"):
+            return await handle_admin_reply_to_user(update, context)
+
         try:
             d, m, y = map(int, text.replace("-", "/").split("/"))
         except:
@@ -607,18 +611,61 @@ async def handle_admin_contact_message(update: Update, context: ContextTypes.DEF
 
         # Forward to all admins in the background
         admins = set(get_admins_db()) | set(ADMIN_IDS)
+        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("↩️ Reply", callback_data=f"admin_reply_{uid}")]])
+        
         for admin_id in admins:
             try:
                 await context.bot.send_message(
                     chat_id=admin_id,
                     text=admin_msg,
-                    parse_mode="HTML"
+                    parse_mode="HTML",
+                    reply_markup=reply_markup
                 )
             except Exception as e:
                 print(f"Failed to send to admin {admin_id}: {e}")
             
     except Exception as e:
         await send_error(update, context, e, "handle_admin_contact_message")
+
+async def admin_reply_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    uid = update.effective_user.id
+    
+    # Restrict to Admin
+    if not is_admin_db(uid):
+        await query.answer("Unauthorized", show_alert=True)
+        return
+        
+    target_uid = query.data.replace("admin_reply_", "")
+    context.user_data["mode"] = f"rep_{target_uid}"
+    
+    await query.message.reply_text(f"✍️ <b>Replying to User:</b> <code>{target_uid}</code>\n\nPlease type your message below:", parse_mode="HTML")
+    await query.answer()
+
+async def handle_admin_reply_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    admin_uid = update.effective_user.id
+    mode = context.user_data.get("mode", "")
+    target_uid = int(mode.replace("rep_", ""))
+    reply_text = update.message.text
+    
+    admin_info = "📨 <b>Message from Admin</b>\n\n"
+    final_msg = f"{admin_info}{reply_text}"
+    
+    try:
+        await context.bot.send_message(
+            chat_id=target_uid,
+            text=final_msg,
+            parse_mode="HTML"
+        )
+        
+        await update.message.reply_text(f"✅ Reply sent to user <code>{target_uid}</code>", parse_mode="HTML")
+        
+        # Clear mode
+        if "mode" in context.user_data:
+            del context.user_data["mode"]
+            
+    except Exception as e:
+        await send_error(update, context, e, "handle_admin_reply_to_user")
     
 
 
