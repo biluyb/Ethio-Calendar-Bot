@@ -1,14 +1,60 @@
-from app.db import get_all_users, search_users
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, BotCommand, BotCommandScopeChat
-from telegram.ext import ContextTypes
-from datetime import datetime, timedelta, date
 import calendar
 import html
+from datetime import datetime, timedelta, date
 
-from app.db import register_user, set_lang, get_lang, is_admin_db, get_admins_db, add_admin_db, remove_admin_db
+from telegram import (
+    Update, 
+    InlineKeyboardButton, 
+    InlineKeyboardMarkup, 
+    ReplyKeyboardMarkup, 
+    BotCommand, 
+    BotCommandScopeChat
+)
+from telegram.ext import ContextTypes
+
+# Local imports
+from app.db import (
+    register_user, 
+    set_lang, 
+    get_lang, 
+    is_admin_db, 
+    get_admins_db, 
+    add_admin_db, 
+    remove_admin_db,
+    get_all_users, 
+    search_users
+)
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
 from app.config import ADMIN_IDS
+
+# ================== CONSTANTS ==================
+
+EN_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+EN_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+
+AM_DAYS = ["ሰኞ", "ማክሰኞ", "ረቡዕ", "ሐሙስ", "አርብ", "ቅዳሜ", "እሁድ"]
+AM_MONTHS = ["መስከረም", "ጥቅምት", "ኅዳር", "ታኅሣሥ", "ጥር", "የካቲት", "መጋቢት", "ሚያዝያ", "ግንቦት", "ሰኔ", "ሐምሌ", "ነሐሴ", "ጳጉሜ"]
+
+# ================== RBAC & COMMAND SETS ==================
+
+USER_CMDS = [
+    BotCommand("start", "Start the bot"),
+    BotCommand("lang", "Change language"),
+    BotCommand("info", "Information about the calendar"),
+    BotCommand("help", "How to use the bot")
+]
+
+ADMIN_CMDS = USER_CMDS + [
+    BotCommand("users", "User dashboard"),
+    BotCommand("listadmins", "List all admins")
+]
+
+SUPER_ADMIN_CMDS = ADMIN_CMDS + [
+    BotCommand("addadmin", "Add new admin"),
+    BotCommand("deladmin", "Remove admin"),
+    BotCommand("listadmins", "List all admins") # Redundant but kept for Super Admin block clarity if needed
+]
 
 # ================== ERROR NOTIFIER==================
 
@@ -23,7 +69,8 @@ async def notify_admin(context, error_text):
                 parse_mode="HTML"
             )
         except Exception as e:
-            print(f"Admin {admin_id} notify failed:", e)
+            # Using logging would be better, but print is kept per current style
+            print(f"Admin {admin_id} notify failed: {e}")
 
 def format_error_report(error, func_name):
     err_str = str(error)
@@ -45,17 +92,9 @@ def format_error_report(error, func_name):
         category = "Logic Bug"
         recommendation = "Check date conversion or data parsing logic."
 
-    return f"🏷 <b>Category:</b> {category}\n📍 <b>Function:</b> <code>{func_name}</code>\n❌ <b>Detail:</b> <code>{err_str[:150]}</code>\n💡 <b>Rec:</b> {recommendation}"
+    return f"🏷 <b>Category:</b> {category}\n📍 <b>Function:</b> <code>{func_name}</code>\n❌ <b>Detail:</b> <code>{str(err_str)[:150]}</code>\n💡 <b>Rec:</b> {recommendation}"
 
-# ================== DAY & MONTH ==================
-
-EN_DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
-EN_MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"]
-
-AM_DAYS = ["ሰኞ","ማክሰኞ","ረቡዕ","ሐሙስ","አርብ","ቅዳሜ","እሁድ"]
-AM_MONTHS = ["መስከረም","ጥቅምት","ኅዳር","ታኅሣሥ","ጥር","የካቲት","መጋቢት","ሚያዝያ","ግንቦት","ሰኔ","ሐምሌ","ነሐሴ","ጳጉሜ"]
-
-# ================== users ==================
+# ================== ADMIN TOOLS ==================
 # ================== users ==================
 async def send_users_page(update: Update, query: str, page: int, sort_by: str = "last_active_at"):
     if query:
@@ -64,7 +103,8 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
         # get_all_users already sorts by last_active_at DESC
         users_list = get_all_users()
         if sort_by == "joined_at":
-            users_list = sorted(users_list, key=lambda x: x[3] if len(x)>3 else 0, reverse=True)
+            # joined_at is index 3
+            users_list = sorted(users_list, key=lambda x: x[3] if isinstance(x, (list, tuple)) and len(x) > 3 else 0, reverse=True)
         
     count = len(users_list)
     
@@ -94,14 +134,13 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
     msg += f"📊 <b>Sort:</b> {'Most Active' if sort_by == 'last_active_at' else 'Newest'}\n"
     msg += f"📄 Page {page+1} of {total_pages}\n\n"
     
-    for u in display_users:
-        uid, uname, lang = u[0], u[1], u[2]
-        # joined_at is index 3, last_active_at is index 4
-        joined = u[3] if len(u) > 3 else "N/A"
-        active = u[4] if len(u) > 4 else "N/A"
+    for user_data in display_users:
+        # DB returns: (id, username, lang, joined_at, last_active_at)
+        uid, uname, lang, joined, active = user_data[:5]
         
         # Format timestamps if they are strings (SQLite)
-        if isinstance(active, str) and len(active) > 16: active = active[:16]
+        if isinstance(active, str) and len(active) > 16:
+            active = active[:16]
         
         msg += f"• <code>{uname}</code> - {uid}\n"
         msg += f"   └>> Active: {active}\n"
@@ -304,24 +343,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "start")   
 
-# ================== RBAC & COMMAND MENU ==================
-
-USER_CMDS = [
-    BotCommand("start", "Start the bot"),
-    BotCommand("lang", "Change language"),
-    BotCommand("info", "Information about the calendar"),
-    BotCommand("help", "How to use the bot")
-]
-
-ADMIN_CMDS = USER_CMDS + [
-    BotCommand("users", "User dashboard"),
-    BotCommand("listadmins", "List all admins")
-]
-
-SUPER_ADMIN_CMDS = ADMIN_CMDS + [
-    BotCommand("addadmin", "Add new admin"),
-    BotCommand("deladmin", "Remove admin")
-]
+# ================== UTILS ==================
 
 async def refresh_user_commands(bot, uid):
     try:
@@ -489,150 +511,172 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
 
     # =====================
-    # LANGUAGE SELECTION FIX
+    # MAIN HANDLER LOGIC
     # =====================
-        if text == "🇺🇸 English":
-            context.user_data["lang"] = "en"
-            set_lang(uid, "en")
-            await update.message.reply_text(
-            "✅ Language set to English\n\nSelect option:",
-            reply_markup=menu("en")
-            )
+        # Pre-process common data
+        user = update.effective_user
+        if not user:
+            return
+            
+        username = user.username or user.full_name or "Unknown"
+        register_user(uid, str(username))
+
+        # 1. Handle Menu Buttons & Navigation
+        if await process_menu_commands(update, context, text, uid, lang):
             return
 
-
-        if text == "🇪🇹 አማርኛ":
-            context.user_data["lang"] = "am"
-            set_lang(uid, "am")
-            await update.message.reply_text(
-                "✅ ቋንቋ ወደ አማርኛ ተቀይሯል",
-                reply_markup=menu("am")   # ✅ ADD THIS
-            )
-            return
-        # ---------- BUTTONS ----------
-        if text in ["📆 Today","📆 ዛሬ"]:
-            return await today(update, context)
-
-        if text in ["🌐 Language","🌐 ቋንቋ"]:
-            #return await language(update, context)
-            keyboard = [["🇺🇸 English", "🇪🇹 አማርኛ"]]
-
-            await update.message.reply_text(
-            "Choose language / ቋንቋ ይምረጡ",
-            reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-            )
-            return
-
-        if text in ["📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ"]:
-            context.user_data["mode"] = "contact_admin"
-            if lang == "am":
-                info = "የቦት መረጃ\n\nበ ShademT የተሰራ\n\n© May 2026\n\n"
-                msg = info + "<b>✍️ እባክዎን መልዕክትዎን እዚህ ይጻፉ...</b>"
-            else:
-                info = "Bot Information\n\nDeveloped by ShademT\n\n© May 2026\n\n"
-                msg = info + "<b>✍️ Please type your message below...</b>"
-            return await update.message.reply_text(msg, parse_mode="HTML")
-
-        if text in ["ℹ️ About", "ℹ️ ስለ ቦቱ"]:
-            return await bot_info(update, context)
-
-        if text in ["🎂 Age Calculator","🎂 የዕድሜ ስሌት"]:
-            lang = get_lang(uid)
-            msg = "Choose birthdate calendar:" if lang == "en" else "የልደት ቀን መቁጠሪያ ይምረጡ፦"
-            keyboard = [
-                [InlineKeyboardButton("🇺🇸 Gregorian", callback_data="age_mode_gc"), 
-                 InlineKeyboardButton("🇪🇹 Ethiopian", callback_data="age_mode_et")]
-            ]
-            return await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
-
-        # ---------- MODES ----------
-        if text in ["📅 Gregorian ➜ Ethiopian","📅 ከፈረንጅ ወደ ኢትዮጵያ"]:
-            context.user_data["mode"] = "g2e"
-            msg = "Enter date DD/MM/YYYY\n\nExample: 21/12/2022" if lang == "en" else "ቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
-            return await update.message.reply_text(msg)
-
-        if text in ["📆 Ethiopian ➜ Gregorian","📆 ከኢትዮጵያ ወደ ፈረንጅ"]:
-            context.user_data["mode"] = "e2g"
-            msg = "Enter date DD/MM/YYYY\n\nExample: 21/12/2022" if lang == "en" else "ቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
-            return await update.message.reply_text(msg)
-
-        # ---------- PROCESS INPUT ----------
+        # 2. Check if user is in a specific input mode
         if "mode" not in context.user_data:
             return
 
-        mode = context.user_data["mode"]
+        mode = str(context.user_data["mode"])
         
-        # Process contact admin message
+        # Admin Contact & Reply Flows
         if mode == "contact_admin":
             return await handle_admin_contact_message(update, context)
 
-        # Process admin reply to user
         if mode.startswith("rep_"):
             return await handle_admin_reply_to_user(update, context)
 
+        # 3. Process Date Input (for conversions and age)
         try:
-            d, m, y = map(int, text.replace("-", "/").split("/"))
-        except:
-            msg = "❌ Invalid format. Please use DD/MM/YYYY\n\nExample: 21/12/2022" if lang=="en" else "❌ ትክክለኛ ያልሆነ የቀን አጻጻፍ. እባክዎ ቀን/ወር/ዓመት በ ቁጥር ያስገቡ\n\nለምሳሌ: 21/12/2012"
+            # Handle variations in date separators
+            date_parts = text.replace("-", "/").split("/")
+            if len(date_parts) != 3:
+                raise ValueError("Invalid date format")
+            d, m, y = map(int, date_parts)
+        except (ValueError, TypeError):
+            msg = (
+                "❌ Invalid format. Please use DD/MM/YYYY\n\nExample: 21/12/2022" 
+                if lang == "en" else 
+                "❌ ትክክለኛ ያልሆነ የቀን አጻጻፍ. እባክዎ ቀን/ወር/ዓመት በ ቁጥር ያስገቡ\n\nለምሳሌ: 21/12/2012"
+            )
             return await update.message.reply_text(msg)
 
-        # ---------- CONVERSION & AGE ----------
+        # 4. Perform Conversion based on Mode
         try:
             if mode == "g2e":
-                ed, em, ey = greg_to_eth(d, m, y)
-                wk_day = datetime(y, m, d).weekday()
-
-                msg = f"📅 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[m-1]} - {y}\n"
-                msg += f"📆 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[em-1]} - {ed} - {ey}"
-                await update.message.reply_text(msg, reply_markup=menu(lang))
-
+                await process_g2e(update, context, d, m, y, lang)
             elif mode == "e2g":
-                gd, gm, gy = eth_to_greg(d, m, y)
-                wk_day = datetime(gy, gm, gd).weekday()
-
-                msg = f"📅 {gy} - {gm:02} - {gd:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[gm-1]} - {gy}\n"
-                msg += f"📆 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[m-1]} - {d} - {y}"
-                await update.message.reply_text(msg, reply_markup=menu(lang))
-
+                await process_e2g(update, context, d, m, y, lang)
             elif mode.startswith("age_calc_"):
-                now = datetime.now()
-                if mode == "age_calc_gc":
-                    birth_date = datetime(y, m, d)
-                    ed, em, ey = greg_to_eth(d, m, y)
-                    wk_day = birth_date.weekday()
-                    
-                    gd, gm, gy = d, m, y
-                else:
-                    gd, gm, gy = eth_to_greg(d, m, y)
-                    birth_date = datetime(gy, gm, gd)
-                    ed, em, ey = d, m, y
-                    wk_day = birth_date.weekday()
-
-                years, months, days = calculate_age(birth_date, now)
+                await process_age_calc(update, context, d, m, y, lang, mode)
                 
-                # Format according to user request
-                msg = f"🇺🇸 {gd:02} - {gm:02} - {gy} | {EN_DAYS[wk_day]}, {EN_MONTHS[gm-1]} - {gd:02}\n"
-                msg += f"🇪🇹 {ed:02} - {em:02} - {ey} | {AM_DAYS[wk_day]} - {AM_MONTHS[em-1]} - {ed:02}\n\n"
-                
-                msg += f"━━━━━━━━━━━━━━━━━\n"
-                if lang == "en":
-                    msg += f"🎂 <b>{years}</b> Years | <b>{months}</b> Months | <b>{days}</b> Days"
-                else:
-                    msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን"
-
-                await update.message.reply_text(msg, parse_mode="HTML", reply_markup=menu(lang))
-                # Clear mode after calculation
-                del context.user_data["mode"]
         except ValueError as e:
-            user_msg = "❌ Invalid date. \nEnter date DD/MM/YYYY\n\nExample: 21/12/2022." if lang == "en" else "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ በዚህ ቅርጽ ያስገቡ\nቀን/ወር/ዓመት\n\nለምሳሌ: 21/12/2012"
+            user_msg = (
+                "❌ Invalid date range. \nEnter date DD/MM/YYYY\n\nExample: 21/12/2022." 
+                if lang == "en" else 
+                "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ በዚህ ቅርጽ ያስገቡ\nቀን/ወር/ዓመት\n\nለምሳሌ: 21/12/2012"
+            )
             await send_error(update, context, e, f"handle_{mode}", user_msg=user_msg)
-    
-    
-    #except Exception as e:
-     #   await send_error(update, context, e, "handle")
-        
+            
     except Exception as e:
         await send_error(update, context, e, "handle")
+
+# ================== SUB-HANDLERS (MODULAR) ==================
+
+async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str, uid: int, lang: str) -> bool:
+    """Processes menu button clicks. Returns True if handled."""
+    # Language Selection Buttons
+    if text == "🇺🇸 English":
+        set_lang(uid, "en")
+        await update.message.reply_text("✅ Language set to English", reply_markup=menu("en"))
+        return True
+
+    if text == "🇪🇹 አማርኛ":
+        set_lang(uid, "am")
+        await update.message.reply_text("✅ ቋንቋ ወደ አማርኛ ተቀይሯል", reply_markup=menu("am"))
+        return True
+
+    # Main Reply Keyboard Actions
+    if text in ["📆 Today", "📆 ዛሬ"]:
+        await today(update, context)
+        return True
+
+    if text in ["🌐 Language", "🌐 ቋንቋ"]:
+        keyboard = [["🇺🇸 English", "🇪🇹 አማርኛ"]]
+        await update.message.reply_text("Choose language / ቋንቋ ይምረጡ", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+        return True
+
+    if text in ["📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ"]:
+        context.user_data["mode"] = "contact_admin"
+        if lang == "am":
+            info_prefix = "የቦት መረጃ\n\nበ ShademT የተሰራ\n\n© May 2026\n\n"
+            msg = info_prefix + "<b>✍️ እባክዎን መልዕክትዎን እዚህ ይጻፉ...</b>"
+        else:
+            info_prefix = "Bot Information\n\nDeveloped by ShademT\n\n© May 2026\n\n"
+            msg = info_prefix + "<b>✍️ Please type your message below...</b>"
+        await update.message.reply_text(msg, parse_mode="HTML")
+        return True
+
+    if text in ["ℹ️ About", "ℹ️ ስለ ቦቱ"]:
+        await bot_info(update, context)
+        return True
+
+    if text in ["🎂 Age Calculator", "🎂 የዕድሜ ስሌት"]:
+        prompt = "Choose birthdate calendar:" if lang == "en" else "የልደት ቀን መቁጠሪያ ይምረጡ፦"
+        keyboard = [[InlineKeyboardButton("Gregorian", callback_data="age_mode_gc"), 
+                     InlineKeyboardButton("Ethiopian", callback_data="age_mode_et")]]
+        await update.message.reply_text(prompt, reply_markup=InlineKeyboardMarkup(keyboard))
+        return True
+
+    if text in ["📅 Gregorian ➜ Ethiopian", "📅 ከፈረንጅ ወደ ኢትዮጵያ"]:
+        context.user_data["mode"] = "g2e"
+        prompt = "Enter date DD/MM/YYYY\n\nExample: 21/12/2022" if lang == "en" else "ቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
+        await update.message.reply_text(prompt)
+        return True
+
+    if text in ["📆 Ethiopian ➜ Gregorian", "📆 ከኢትዮጵያ ወደ ፈረንጅ"]:
+        context.user_data["mode"] = "e2g"
+        prompt = "Enter date DD/MM/YYYY\n\nExample: 21/12/2022" if lang == "en" else "ቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
+        await update.message.reply_text(prompt)
+        return True
+
+    return False
+
+async def process_g2e(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
+    ed, em, ey = greg_to_eth(d, m, y)
+    wk_day = datetime(y, m, d).weekday()
+    msg = f"📅 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(m)-1]} - {y}\n"
+    msg += f"📆 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed} - {ey}"
+    await update.message.reply_text(msg, reply_markup=menu(lang))
+    context.user_data.pop("mode", None)
+
+async def process_e2g(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
+    gd, gm, gy = eth_to_greg(d, m, y)
+    wk_day = datetime(gy, gm, gd).weekday()
+    msg = f"📅 {gy} - {gm:02} - {gd:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(gm)-1]} - {gy}\n"
+    msg += f"📆 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(m)-1]} - {d} - {y}"
+    await update.message.reply_text(msg, reply_markup=menu(lang))
+    context.user_data.pop("mode", None)
+
+async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str, mode: str):
+    now = datetime.now()
+    if mode == "age_calc_gc":
+        birth_date = datetime(y, m, d)
+        wk_day = birth_date.weekday()
+        ed, em, ey = greg_to_eth(d, m, y)
+        gd, gm, gy = d, m, y
+    else:
+        gd, gm, gy = eth_to_greg(d, m, y)
+        birth_date = datetime(gy, gm, gd)
+        wk_day = birth_date.weekday()
+        ed, em, ey = d, m, y
+
+    years, months, days = calculate_age(birth_date, now)
+    
+    # Professional result format
+    msg = f"🇺🇸 {gd:02} - {gm:02} - {gy} | {EN_DAYS[wk_day]}, {EN_MONTHS[int(gm)-1]} - {gd:02}\n"
+    msg += f"🇪🇹 {ed:02} - {em:02} - {ey} | {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed:02}\n\n"
+    msg += "━━━━━━━━━━━━━━━━━\n"
+    
+    if lang == "en":
+        msg += f"🎂 <b>{years}</b> Years | <b>{months}</b> Months | <b>{days}</b> Days"
+    else:
+        msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን"
+
+    await update.message.reply_text(msg, parse_mode="HTML", reply_markup=menu(lang))
+    context.user_data.pop("mode", None)
   #menu commands
 async def lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -784,8 +828,8 @@ async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_lang(uid)
     
     if lang == "am":
-        text = "❌ ያልታወቀ ትዕዛዝ። እባክዎ ከታች ያለውን ማውጫ ይጠቀሙ ወይም ለተጨማሪ መረጃ /info ይጫኑ።"
+        text = "❌ ያልታወቀ ትዕዛዝ። እባክዎ ከታች ያለውን ማውጫ ይጠቀሙ ወይም ለተጨማሪ መረጃ /help ይጫኑ።"
     else:
-        text = "❌ Unknown command. Please use the menu below or type /info for help."
+        text = "❌ Unknown command. Please use the menu below or type /help for help."
         
     await update.message.reply_text(text, reply_markup=menu(lang))
