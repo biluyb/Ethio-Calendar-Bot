@@ -428,33 +428,39 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = "<b>🆘 የቦቱ እርዳታ</b>\n\n"
             text += "/start - ቦቱን ለመጀመር\n"
             text += "/lang - ቋንቋ ለመቀየር\n"
+            text += "/today - የዛሬን ቀን ለማየት\n"
             text += "/info - ስለ ቀን መቁጠሪያው ግንዛቤ\n"
+            text += "/about - ስለ ቦቱ መረጃ (አድሚኑን ለማግኘት)\n"
             text += "/help - ይህንን የእርዳታ መልዕክት ለማሳየት\n"
-            
             
             if is_admin_db(uid) or uid in ADMIN_IDS:
                 text += "\n<b>👑 የአስተዳዳሪ ትዕዛዞች:</b>\n"
                 text += "/users - ስለ ተጠቃሚዎች መረጃ\n"
-                text += "/listadmins - የአስተዳዳሪዎች ዝርዝር\n"
                 
                 if uid in ADMIN_IDS:
                     text += "/addadmin - አዲስ አስተዳዳሪ ለመጨመር\n"
                     text += "/deladmin - አስተዳዳሪ ለመቀነስ\n"
+                    text += "/listadmins - የአስተዳዳሪዎች ዝርዝር\n"
+
         else:
             text = "<b>🆘 Bot Help</b>\n\n"
             text += "/start - Start the bot\n"
             text += "/lang - Change language\n"
+            text += "/today - Show today's date\n"
             text += "/info - Calendar information\n"
+            text += "/about - Bot info (Contact Admin)\n"
             text += "/help - Show this help message\n"
             
             if is_admin_db(uid) or uid in ADMIN_IDS:
                 text += "\n<b>👑 Admin Commands:</b>\n"
                 text += "/users - User dashboard\n"
-                text += "/listadmins - List all admins\n"
                 
                 if uid in ADMIN_IDS:
                     text += "/addadmin - Add new admin\n"
                     text += "/deladmin - Remove admin\n"
+                    text += "/listadmins - List all admins\n"
+                    
+
 
         await update.message.reply_text(text, parse_mode="HTML")
 
