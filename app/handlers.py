@@ -525,7 +525,12 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if text in ["📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ"]:
             context.user_data["mode"] = "contact_admin"
-            msg = "<b>✍️ እባክዎን መልዕክትዎን እዚህ ይጻፉ...</b>" if lang == "am" else "<b>✍️ Please type your message below...</b>"
+            if lang == "am":
+                info = "የቦት መረጃ\n\nበ ShademT የተሰራ\n\n© May 2026\n\n"
+                msg = info + "<b>✍️ እባክዎን መልዕክትዎን እዚህ ይጻፉ...</b>"
+            else:
+                info = "Bot Information\n\nDeveloped by ShademT\n\n© May 2026\n\n"
+                msg = info + "<b>✍️ Please type your message below...</b>"
             return await update.message.reply_text(msg, parse_mode="HTML")
 
         if text in ["ℹ️ About", "ℹ️ ስለ ቦቱ"]:
