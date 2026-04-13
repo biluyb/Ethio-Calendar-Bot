@@ -73,10 +73,8 @@ def main():
     # COMMANDS
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("menu", start))
-    app.add_handler(CommandHandler("today", today))
     app.add_handler(CommandHandler("lang", lang_keyboard))
     app.add_handler(CommandHandler("info", help_info))
-    app.add_handler(CommandHandler("about", dev_info))
     app.add_handler(CommandHandler("help", help_command))
     
     app.add_handler(CommandHandler("users", users))
