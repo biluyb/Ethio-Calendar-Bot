@@ -48,10 +48,14 @@ def main():
 
 
     # COMMANDS
+    from app.handlers import start, menu_handler, today, lang_keyboard, help_info, dev_info, help_command
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("menu", menu_handler))
+    app.add_handler(CommandHandler("today", today))
     app.add_handler(CommandHandler("lang", lang_keyboard))
     app.add_handler(CommandHandler("info", help_info))
     app.add_handler(CommandHandler("about", dev_info))
+    app.add_handler(CommandHandler("help", help_command))
     from app.handlers import users, users_callback, age_mode_callback, add_admin, del_admin, list_admins, contact_admin_callback, admin_reply_callback
     app.add_handler(CommandHandler("users", users))
     app.add_handler(CommandHandler("addadmin", add_admin))
