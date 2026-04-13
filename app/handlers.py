@@ -264,13 +264,13 @@ def menu(lang):
         return ReplyKeyboardMarkup([
             ["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"],
             ["📆 ዛሬ", "🎂 የዕድሜ ስሌት"],
-            ["🌐 ቋንቋ", "ℹ️ ስለ ቦቱ"]
+            ["🌐 ቋንቋ", "📩 አድሚኑን ያግኙ"]
         ], resize_keyboard=True)
     else:
         return ReplyKeyboardMarkup([
             ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
             ["📆 Today", "🎂 Age Calculator"],
-            ["🌐 Language", "ℹ️ About"]
+            ["🌐 Language", "📩 Contact Admin"]
         ], resize_keyboard=True)
         
 # ================== START ==================
@@ -433,7 +433,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        if text in ["ℹ️ About","ℹ️ ስለ ቦቱ"]:
+        if text in ["📩 Contact Admin", "📩 መልዕክት ላክ", "📩   መልዕክት ላክ", "ℹ️ About", "ℹ️ ስለ ቦቱ"]:
             return await bot_info(update, context)
 
         if text in ["🎂 Age Calculator","🎂 የዕድሜ ስሌት"]:
@@ -461,6 +461,10 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         mode = context.user_data["mode"]
+        
+        # Process contact admin message
+        if mode == "contact_admin":
+            return await handle_admin_contact_message(update, context)
 
         try:
             d, m, y = map(int, text.replace("-", "/").split("/"))
@@ -541,14 +545,70 @@ async def bot_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lang = get_lang(uid)
 
         if lang == "am":
-            text = " የቦት መረጃ\n\n በ ShademT የተሰራ\n \n email: \nbiluquick123@gmail.com\n  © May 2026"
+            text = " የቦት መረጃ\n\n በ ShademT የተሰራ\n \n  © May 2026"
+            btn_text = "📩   መልዕክት ላክ"
         else:
-            text = " Bot Information\n\nDeveloped by ShademT\n\n email: \n biluquick123@gmail.com\n   © May 2026"
+            text = " Bot Information\n\nDeveloped by ShademT\n\n   © May 2026"
+            btn_text = "📩 Contact Admin"
 
-        await update.message.reply_text(text)
+        keyboard = [[InlineKeyboardButton(btn_text, callback_data="contact_admin_request")]]
+        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     
     except Exception as e:
         await send_error(update, context, e, "bot_info")    
+
+async def contact_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    uid = update.effective_user.id
+    lang = get_lang(uid)
+    
+    context.user_data["mode"] = "contact_admin"
+    
+    if lang == "am":
+        msg = "እባክዎን ለአድሚኑ መላክ የሚፈልጉትን መልዕክት ይጻፉ።"
+    else:
+        msg = "Please type the message you want to send to the admin."
+        
+    await query.message.reply_text(msg)
+    await query.answer()
+
+async def handle_admin_contact_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    lang = get_lang(uid)
+    user_text = update.message.text
+    user = update.effective_user
+    
+    # Format message for admin
+    sender_info = f"👤 <b>From:</b> {user.full_name} (@{user.username if user.username else 'N/A'})\n🆔 <b>ID:</b> <code>{uid}</code>"
+    admin_msg = f"✉️ <b>New Message to Admin</b>\n\n{sender_info}\n\n📝 <b>Message:</b>\n{user_text}"
+    
+    try:
+        # Forward to all admins
+        admins = set(get_admins_db()) | set(ADMIN_IDS)
+        for admin_id in admins:
+            try:
+                await context.bot.send_message(
+                    chat_id=admin_id,
+                    text=admin_msg,
+                    parse_mode="HTML"
+                )
+            except Exception as e:
+                print(f"Failed to send to admin {admin_id}: {e}")
+
+        # Confirm to user
+        if lang == "am":
+            confirm = "✅ መልዕክትዎ ለአስተዳዳሪው ተልኳል። እናመሰግናለን!"
+        else:
+            confirm = "✅ Your message has been sent to the admin. Thank you!"
+            
+        await update.message.reply_text(confirm, reply_markup=menu(lang))
+        
+        # Clear mode
+        if "mode" in context.user_data:
+            del context.user_data["mode"]
+            
+    except Exception as e:
+        await send_error(update, context, e, "handle_admin_contact_message")
     
 
 
