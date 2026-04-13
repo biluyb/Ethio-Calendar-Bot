@@ -433,7 +433,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        if text in ["📩 Contact Admin", "📩 መልዕክት ላክ", "📩   መልዕክት ላክ", "ℹ️ About", "ℹ️ ስለ ቦቱ"]:
+        if text in ["📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ", "ℹ️ About", "ℹ️ ስለ ቦቱ"]:
             return await bot_info(update, context)
 
         if text in ["🎂 Age Calculator","🎂 የዕድሜ ስሌት"]:
