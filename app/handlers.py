@@ -525,8 +525,8 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if text in ["📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ"]:
             context.user_data["mode"] = "contact_admin"
-            msg = "እባክዎን ለአድሚኑ መላክ የሚፈልጉትን መልዕክት ይጻፉ።" if lang == "am" else "Please type the message you want to send to the admin."
-            return await update.message.reply_text(msg)
+            msg = "<b>✍️ እባክዎን መልዕክትዎን እዚህ ይጻፉ...</b>" if lang == "am" else "<b>✍️ Please type your message below...</b>"
+            return await update.message.reply_text(msg, parse_mode="HTML")
 
         if text in ["ℹ️ About", "ℹ️ ስለ ቦቱ"]:
             return await bot_info(update, context)
