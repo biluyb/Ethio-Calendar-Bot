@@ -37,7 +37,10 @@ from app.db import (
     get_referrers_count,
     get_top_referrers,
     get_user_by_id,
-    get_user_by_username
+    get_user_by_username,
+    block_entity_db,
+    unblock_entity_db,
+    is_blocked_db
 )
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
@@ -64,7 +67,9 @@ USER_CMDS = [
 ADMIN_CMDS = USER_CMDS + [
     BotCommand("users", "User dashboard"),
     BotCommand("broadcast", "Send message to all users"),
-    BotCommand("send_msg", "Send DM to a user by ID or username")
+    BotCommand("send_msg", "Send DM to a user by ID or username"),
+    BotCommand("block", "Block a user or group"),
+    BotCommand("unblock", "Unblock a user or group")
 ]
 
 SUPER_ADMIN_CMDS = ADMIN_CMDS + [
@@ -186,7 +191,7 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         msg = f"👥 <b>Total Users:</b> {count}\n"
         if query:
             msg += f"🔍 <b>Search:</b> {query}\n"
-        msg += f"📊 <b>Sort:</b> {'Most Active' if sort_by == 'last_active_at' else 'Newest'}\n"
+        msg += f"📊 <b>Sort:</b> {'Most Active' if sort_by == 'last_active_at' else ('Referrals' if sort_by == 'referrals' else 'Newest')}\n"
         msg += f"📄 Page {page+1} of {total_pages}\n\n"
         
         for user_data in display_users:
@@ -407,8 +412,54 @@ def get_menu(uid, lang):
             
     return ReplyKeyboardMarkup(kb, resize_keyboard=True)
         
+async def block_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to block a user or group."""
+    try:
+        uid = update.effective_user.id
+        if not is_admin_db(uid):
+            return
+
+        if not context.args:
+            await update.message.reply_text("Usage: /block <id>")
+            return
+
+        target_id = int(context.args[0])
+        block_entity_db(target_id)
+        await update.message.reply_text(f"✅ ID <code>{target_id}</code> has been blocked.", parse_mode="HTML")
+    except Exception as e:
+        await send_error(update, context, e, "block_command")
+
+async def unblock_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to unblock a user or group."""
+    try:
+        uid = update.effective_user.id
+        if not is_admin_db(uid):
+            return
+
+        if not context.args:
+            await update.message.reply_text("Usage: /unblock <id>")
+            return
+
+        target_id = int(context.args[0])
+        unblock_entity_db(target_id)
+        await update.message.reply_text(f"✅ ID <code>{target_id}</code> has been unblocked.", parse_mode="HTML")
+    except Exception as e:
+        await send_error(update, context, e, "unblock_command")
+
+async def check_blocked(update: Update):
+    """Checks if the user or chat is blocked. Returns True if blocked."""
+    if not update or not update.effective_chat:
+        return False
+    
+    cid = update.effective_chat.id
+    if is_blocked_db(cid):
+        # Silently ignore blocked users/chats to avoid bot spamming
+        return True
+    return False
+
 # ================== START ==================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await check_blocked(update): return
     try:
         user = update.effective_user
         uid = user.id
@@ -606,7 +657,7 @@ def track_group(update: Update):
 
 # ================== HANDLE ==================
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
+    if await check_blocked(update): return
     try:
         if not update.message or not update.message.text:
             return
@@ -892,6 +943,9 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Combine lists and start broadcasting
         for i, target_id in enumerate(all_targets):
+            if is_blocked_db(target_id):
+                blocked += 1
+                continue
             try:
                 await context.bot.send_message(chat_id=target_id, text=broadcast_msg, parse_mode="HTML")
                 success += 1

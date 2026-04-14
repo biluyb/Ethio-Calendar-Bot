@@ -42,6 +42,8 @@ from app.handlers import (
     contact_admin_callback, 
     admin_reply_callback,
     send_msg_command,
+    block_command,
+    unblock_command,
     USER_CMDS,
     refresh_user_commands
 )
@@ -117,6 +119,8 @@ def main():
     app.add_handler(CommandHandler("deladmin", del_admin))
     app.add_handler(CommandHandler("listadmins", list_admins))
     app.add_handler(CommandHandler("send_msg", send_msg_command))
+    app.add_handler(CommandHandler("block", block_command))
+    app.add_handler(CommandHandler("unblock", unblock_command))
     
     # Callback Handlers (Inline Buttons)
     app.add_handler(CallbackQueryHandler(users_callback, pattern="^u:"))

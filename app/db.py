@@ -80,7 +80,8 @@ def init_db():
                 lang TEXT DEFAULT 'en',
                 joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                referred_by BIGINT
+                referred_by BIGINT,
+                is_blocked BOOLEAN DEFAULT FALSE
             )
             """)
             c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
@@ -89,7 +90,8 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS groups (
                     id BIGINT PRIMARY KEY,
                     title TEXT,
-                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_blocked BOOLEAN DEFAULT FALSE
                 )
             """)
             c.execute("""
@@ -107,7 +109,8 @@ def init_db():
                 lang TEXT DEFAULT 'en',
                 joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                referred_by INTEGER
+                referred_by INTEGER,
+                is_blocked BOOLEAN DEFAULT FALSE
             )
             """)
             c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
@@ -116,7 +119,8 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS groups (
                     id INTEGER PRIMARY KEY,
                     title TEXT,
-                    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    is_blocked BOOLEAN DEFAULT FALSE
                 )
             """)
             c.execute("""
@@ -139,6 +143,14 @@ def init_db():
                     c.execute("ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
                 if "referred_by" not in existing_cols:
                     c.execute("ALTER TABLE users ADD COLUMN referred_by BIGINT")
+                if "is_blocked" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
+                
+                # Update groups table
+                c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='groups'")
+                group_cols = [row[0] for row in c.fetchall()]
+                if "is_blocked" not in group_cols:
+                    c.execute("ALTER TABLE groups ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
             else:
                 c.execute("PRAGMA table_info(users)")
                 existing_cols = [col[1] for col in c.fetchall()]
@@ -148,6 +160,14 @@ def init_db():
                     c.execute("ALTER TABLE users ADD COLUMN last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP")
                 if "referred_by" not in existing_cols:
                     c.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
+                if "is_blocked" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
+                
+                # Update groups table
+                c.execute("PRAGMA table_info(groups)")
+                group_cols = [col[1] for col in c.fetchall()]
+                if "is_blocked" not in group_cols:
+                    c.execute("ALTER TABLE groups ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
         except Exception as e:
             print(f"Migration error: {e}")
 
@@ -489,5 +509,54 @@ def get_all_group_ids():
     except Exception as e:
         print(f"Error in get_all_group_ids: {e}")
         return []
+    finally:
+        release_connection(conn)
+
+def block_entity_db(entity_id, is_user=True):
+    """Blocks a user or group."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        table = "users" if is_user else "groups"
+        stmt = f"UPDATE {table} SET is_blocked = TRUE WHERE id = %s" if DATABASE_URL else f"UPDATE {table} SET is_blocked = 1 WHERE id = ?"
+        c.execute(stmt, (entity_id,))
+        conn.commit()
+    except Exception as e:
+        print(f"Error blocking entity {entity_id}: {e}")
+    finally:
+        release_connection(conn)
+
+def unblock_entity_db(entity_id, is_user=True):
+    """Unblocks a user or group."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        table = "users" if is_user else "groups"
+        stmt = f"UPDATE {table} SET is_blocked = FALSE WHERE id = %s" if DATABASE_URL else f"UPDATE {table} SET is_blocked = 0 WHERE id = ?"
+        c.execute(stmt, (entity_id,))
+        conn.commit()
+    except Exception as e:
+        print(f"Error unblocking entity {entity_id}: {e}")
+    finally:
+        release_connection(conn)
+
+def is_blocked_db(entity_id):
+    """Checks if a user or group is blocked."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        # Check users first
+        c.execute("SELECT is_blocked FROM users WHERE id = %s" if DATABASE_URL else "SELECT is_blocked FROM users WHERE id = ?", (entity_id,))
+        row = c.fetchone()
+        if row and row[0]:
+            return True
+        
+        # Check groups
+        c.execute("SELECT is_blocked FROM groups WHERE id = %s" if DATABASE_URL else "SELECT is_blocked FROM groups WHERE id = ?", (entity_id,))
+        row = c.fetchone()
+        return bool(row and row[0])
+    except Exception as e:
+        print(f"Error checking block status for {entity_id}: {e}")
+        return False
     finally:
         release_connection(conn)
