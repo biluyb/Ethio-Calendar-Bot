@@ -10,7 +10,6 @@ from app.handlers import (
     lang as lang_keyboard, 
     info as help_info, 
     bot_info as dev_info,
-    send_users_command,
     share_command,
     ranks_command,
     help_command,
