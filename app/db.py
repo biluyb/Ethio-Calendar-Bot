@@ -137,15 +137,30 @@ def init_db():
     conn.commit()
     release_connection(conn)
 
-def get_all_users():
+def get_all_users(sort_by="last_active_at", limit=None, offset=None):
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT * FROM users ORDER BY last_active_at DESC")
+    
+    order_clause = "last_active_at DESC"
+    if sort_by == "joined_at":
+        order_clause = "joined_at DESC"
+        
+    query = f"SELECT * FROM users ORDER BY {order_clause}"
+    params = []
+    
+    if limit is not None:
+        query += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
+        params.append(limit)
+    if offset is not None:
+        query += " OFFSET %s" if DATABASE_URL else " OFFSET ?"
+        params.append(offset)
+        
+    c.execute(query, tuple(params))
     rows = c.fetchall()
     release_connection(conn)
     return rows
 
-def search_users(query, sort_by="last_active_at"):
+def search_users(query, sort_by="last_active_at", limit=None, offset=None):
     conn = get_connection()
     c = conn.cursor()
     # SQL injection safe query
@@ -155,13 +170,39 @@ def search_users(query, sort_by="last_active_at"):
     if sort_by == "joined_at":
         order_clause = "joined_at DESC"
     
-    if DATABASE_URL:
-        c.execute(f"SELECT * FROM users WHERE username ILIKE %s OR CAST(id AS TEXT) LIKE %s ORDER BY {order_clause}", (q, q))
-    else:
-        c.execute(f"SELECT * FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ? ORDER BY {order_clause}", (q, q))
+    base_query = f"SELECT * FROM users WHERE username {'ILIKE' if DATABASE_URL else 'LIKE'} %s OR CAST(id AS TEXT) LIKE %s" if DATABASE_URL else f"SELECT * FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?"
+    
+    sql = f"{base_query} ORDER BY {order_clause}"
+    params = [q, q]
+    
+    if limit is not None:
+        sql += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
+        params.append(limit)
+    if offset is not None:
+        sql += " OFFSET %s" if DATABASE_URL else " OFFSET ?"
+        params.append(offset)
+
+    c.execute(sql, tuple(params))
     rows = c.fetchall()
     release_connection(conn)
     return rows
+
+def get_user_count(search_query=None):
+    conn = get_connection()
+    c = conn.cursor()
+    
+    if search_query:
+        q = f"%{search_query}%"
+        if DATABASE_URL:
+            c.execute("SELECT COUNT(*) FROM users WHERE username ILIKE %s OR CAST(id AS TEXT) LIKE %s", (q, q))
+        else:
+            c.execute("SELECT COUNT(*) FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?", (q, q))
+    else:
+        c.execute("SELECT COUNT(*) FROM users")
+        
+    count = c.fetchone()[0]
+    release_connection(conn)
+    return count
 
 def get_user_by_id(uid):
     conn = get_connection()

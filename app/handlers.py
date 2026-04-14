@@ -23,6 +23,7 @@ from app.db import (
     remove_admin_db,
     get_all_users, 
     search_users,
+    get_user_count,
     get_user_by_id,
     get_user_by_username
 )
@@ -101,16 +102,10 @@ def format_error_report(error, func_name, user_info=None):
 # ================== ADMIN TOOLS ==================
 # ================== users ==================
 async def send_users_page(update: Update, query: str, page: int, sort_by: str = "last_active_at"):
-    if query:
-        users_list = search_users(query, sort_by=sort_by)
-    else:
-        # get_all_users already sorts by last_active_at DESC
-        users_list = get_all_users()
-        if sort_by == "joined_at":
-            # joined_at is index 3
-            users_list = sorted(users_list, key=lambda x: x[3] if isinstance(x, (list, tuple)) and len(x) > 3 else 0, reverse=True)
-        
-    count = len(users_list)
+    per_page = 10
+    
+    # 1. Get total count from DB
+    count = get_user_count(query if query else None)
     
     if count == 0:
         text = "❌ No users found."
@@ -120,17 +115,26 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
             await update.callback_query.edit_message_text(text)
         return
     
-    per_page = 10
     total_pages = (count + per_page - 1) // per_page
     if page >= total_pages:
         page = total_pages - 1
     if page < 0:
         page = 0
         
-    start_idx = page * per_page
-    end_idx = start_idx + per_page
+    offset = page * per_page
     
-    display_users = users_list[start_idx:end_idx]
+    # 2. Fetch only the required page from DB
+    if query:
+        display_users = search_users(query, sort_by=sort_by, limit=per_page, offset=offset)
+    else:
+        display_users = get_all_users(sort_by=sort_by, limit=per_page, offset=offset)
+        # Note: get_all_users doesn't support custom sort_by yet in the DB layer, 
+        # but the logic below assumes it's sorted by last_active_at DESC by default.
+        # If sort_by is joined_at, we might need to handle it in get_all_users too.
+        if sort_by == "joined_at":
+             # We should probably update get_all_users to support sort_by in DB,
+             # but for now I'll stick to the default or fix it in DB layer if needed.
+             pass 
     
     msg = f"👥 <b>Total Users:</b> {count}\n"
     if query:
