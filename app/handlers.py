@@ -72,7 +72,7 @@ async def notify_admin(context, error_text):
             # Using logging would be better, but print is kept per current style
             print(f"Admin {admin_id} notify failed: {e}")
 
-def format_error_report(error, func_name):
+def format_error_report(error, func_name, user_info=None):
     err_str = str(error)
     category = "Unknown Error"
     recommendation = "Check code/logs."
@@ -92,7 +92,11 @@ def format_error_report(error, func_name):
         category = "Logic Bug"
         recommendation = "Check date conversion or data parsing logic."
 
-    return f"🏷 <b>Category:</b> {category}\n📍 <b>Function:</b> <code>{func_name}</code>\n❌ <b>Detail:</b> <code>{str(err_str)[:150]}</code>\n💡 <b>Rec:</b> {recommendation}"
+    report = f"🏷 <b>Category:</b> {category}\n📍 <b>Function:</b> <code>{func_name}</code>\n"
+    if user_info:
+        report += f"👤 <b>User:</b> {user_info}\n"
+    report += f"❌ <b>Detail:</b> <code>{str(err_str)[:150]}</code>\n💡 <b>Rec:</b> {recommendation}"
+    return report
 
 # ================== ADMIN TOOLS ==================
 # ================== users ==================
@@ -808,10 +812,16 @@ async def handle_admin_reply_to_user(update: Update, context: ContextTypes.DEFAU
 
 
     # ERROR_MESSAGE
-async def send_error(update, context, error, func_name, user_msg=None):
+async def send_error(update: Update, context: ContextTypes.DEFAULT_TYPE, error, func_name, user_msg=None):
     print(f"🛑 ERROR in {func_name}: {error}")
     
-    report = format_error_report(error, func_name)
+    # Get user info if available
+    user_info = None
+    if update and update.effective_user:
+        u = update.effective_user
+        user_info = f"{u.full_name} (@{u.username}) [<code>{u.id}</code>]"
+    
+    report = format_error_report(error, func_name, user_info=user_info)
     if report:
         await notify_admin(context, report)
 
