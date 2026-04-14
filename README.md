@@ -1,63 +1,71 @@
-# Ethio Calendar Bot (@pagumebot)
+# Ethiopian Calendar Bot (@pagumebot)
 
-A Python-based Telegram bot for converting dates between the Ethiopian and Gregorian calendars.
+This is a simple but powerful Telegram bot that helps you convert dates between the Ethiopian and Gregorian calendars. It also calculates age precisely and provides historical info about the Ethiopian calendar.
 
-## Features
+## What it does
 
-- Conversion from Gregorian to Ethiopian calendar.
-- Conversion from Ethiopian to Gregorian calendar.
-- 🎂 **Age Calculator**: Exact age breakdown in Years, Months, and Days.
-- Real-time display of today's date in both calendar systems.
-- Bilingual interface supporting English and Amharic.
-- Admin dashboard for user statistics with search and pagination.
-- Multi-admin support.
+### For Everyone
+- **Convert Dates:** Quickly flip between Gregorian and Ethiopian dates.
+- **Check Today:** See what today's date is in both systems, including Amharic weekday and month names.
+- **Calculate Age:** Find out exactly how old you are in years, months, and days using either your Gregorian or Ethiopian birthdate.
+- **Learn:** Use `/info` to learn some interesting facts about how the Ethiopian calendar works.
+- **Two Languages:** Works in both English and Amharic (አማርኛ).
 
-## Usage
+### For Admins
+- **Manage Users:** View stats and search for users directly through a dashboard.
+- **Admin Tools:** Add or remove other admins with simple commands.
+- **Direct Support:** Users can message the admin through the bot, and admins can reply back directly.
+- **Health Checks:** The bot automatically alerts admins if something goes wrong.
 
-The bot can be found on Telegram at @pagumebot or use the link https://t.me/pagumebot. Users can start the bot using the /start command, select their preferred language, and then choose a conversion method from the menu. Dates should be entered in the DD/MM/YYYY format.
+## Tech Stack
+- **Python 3.12+**
+- **python-telegram-bot**
+- **SQLite3** for the database
+- **Docker** support for easy hosting
 
-## Implementation Details
+## How to run it locally
 
-- Language: Python 3.12+
-- Library: python-telegram-bot
-- Database: SQLite3
-- Configuration: Environment variables via .env
-
-## Local Setup
-
-To run this project locally, follow these steps:
-
-1. Clone the repository:
+1. **Clone the repo:**
    ```bash
    git clone https://github.com/biluyb/Ethio-Calendar-Bot.git
    cd Ethio-Calendar-Bot
    ```
 
-2. Configure a virtual environment:
+2. **Set up a virtual environment:**
    ```bash
    python3 -m venv venv
    source venv/bin/activate
    ```
 
-3. Install required packages:
+3. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Set up environment variables:
-   Create a .env file in the root directory with the following variables:
+4. **Add your tokens:**
+   Create a `.env` file and add your bot token and admin ID:
    ```env
-   BOT_TOKEN=your_bot_token
-   ADMIN_ID=your_id
+   BOT_TOKEN=your_token_here
+   ADMIN_ID=your_telegram_id
    ```
 
-5. Start the bot:
+5. **Run the bot:**
    ```bash
    python run.py
    ```
 
-## Contact
+## Running with Docker
+If you prefer Docker, you can use:
+```bash
+docker build -t ethio-calendar-bot .
+docker run -d --name ethio-bot --env-file .env ethio-calendar-bot
+```
 
-Developed by ShademT
-Email: biluquick123@gmail.com
-Copyright May 2026
+## Contact
+Developed by **ShademT**
+- Telegram: [@pagumebot](https://t.me/pagumebot)
+- Email: biluquick123@gmail.com
+- © May 2026
+
+---
+*Built for the Ethiopian community.*
