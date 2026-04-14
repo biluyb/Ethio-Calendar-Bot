@@ -21,6 +21,7 @@ from app.db import (
     get_admins_db, 
     add_admin_db, 
     remove_admin_db,
+    get_all_user_ids,
     get_all_users, 
     search_users,
     get_user_count,
@@ -483,8 +484,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if is_admin_db(uid) or uid in ADMIN_IDS:
                 text += "\n<b>👑 የአስተዳዳሪ ትዕዛዞች:</b>\n"
                 text += "/users - ስለ ተጠቃሚዎች መረጃ\n"
-                text += "/ranks - የጋባዦች ደረጃ\n"
                 text += "/send_msg - ለተጠቃሚ መልዕክት ለመላክ\n"
+                text += "/broadcast - ለሁሉም ተጠቃሚዎች መልዕክት ለመላክ\n"
                 
                 if uid in ADMIN_IDS:
                     text += "/addadmin - አዲስ አስተዳዳሪ ለመጨመር\n"
@@ -504,8 +505,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if is_admin_db(uid) or uid in ADMIN_IDS:
                 text += "\n<b>👑 Admin Commands:</b>\n"
                 text += "/users - User dashboard\n"
-                text += "/ranks - Referral leaderboard\n"
                 text += "/send_msg - Send DM to user\n"
+                text += "/broadcast - Send message to all users\n"
                 
                 if uid in ADMIN_IDS:
                     text += "/addadmin - Add new admin\n"
@@ -742,6 +743,54 @@ async def ranks_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     page = int(data.split(":")[1])
     await send_ranks_page(update, context, page=page)
     await query.answer()
+
+async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if not is_admin_db(uid) and uid not in ADMIN_IDS:
+        return
+
+    if not context.args:
+        await update.message.reply_text("Usage: /broadcast <message>")
+        return
+
+    broadcast_msg = " ".join(context.args)
+    user_ids = get_all_user_ids()
+    total = len(user_ids)
+    
+    status_msg = await update.message.reply_text(f"🚀 Starting broadcast to {total} users...")
+    
+    success = 0
+    failed = 0
+    blocked = 0
+    
+    for i, user_id in enumerate(user_ids):
+        try:
+            await context.bot.send_message(chat_id=user_id, text=broadcast_msg, parse_mode="HTML")
+            success += 1
+        except Exception as e:
+            err_str = str(e).lower()
+            if "bot was blocked by the user" in err_str or "user is deactivated" in err_str:
+                blocked += 1
+            else:
+                failed += 1
+        
+        # Rate limiting: ~20 messages per second
+        if i % 20 == 0 and i > 0:
+            import asyncio
+            await asyncio.sleep(1)
+            try:
+                await status_msg.edit_text(f"⏳ Broadcasting... {i}/{total}\n✅ Success: {success}\n❌ Failed: {failed+blocked}")
+            except Exception:
+                pass
+
+    report = (
+        f"📢 <b>Broadcast Complete</b>\n\n"
+        f"👥 Total Users: {total}\n"
+        f"✅ Successfully Sent: {success}\n"
+        f"🚫 Blocked/Deactivated: {blocked}\n"
+        f"❌ Other Failures: {failed}"
+    )
+    await update.message.reply_text(report, parse_mode="HTML")
 
 async def process_e2g(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
     gd, gm, gy = eth_to_greg(d, m, y)

@@ -19,6 +19,7 @@ from app.handlers import (
     users, 
     users_callback, 
     ranks_callback,
+    broadcast_command,
     age_mode_callback, 
     add_admin, 
     del_admin, 
@@ -82,7 +83,9 @@ def main():
     app.add_handler(CommandHandler("info", help_info))
     app.add_handler(CommandHandler("about", dev_info))
     app.add_handler(CommandHandler("help", help_command))
-    
+    app.add_handler(CommandHandler("share", share_command))
+    app.add_handler(CommandHandler("ranks", ranks_command))
+    app.add_handler(CommandHandler("broadcast", broadcast_command))
     app.add_handler(CommandHandler("users", users))
     app.add_handler(CommandHandler("addadmin", add_admin))
     app.add_handler(CommandHandler("deladmin", del_admin))
@@ -100,8 +103,6 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
     
     # UNKNOWN COMMAND HANDLER (Must be last)
-    app.add_handler(CommandHandler("share", share_command))
-    app.add_handler(CommandHandler("ranks", ranks_command))
     app.add_handler(MessageHandler(filters.COMMAND, unknown_command))
 
     app.add_error_handler(error_handler)

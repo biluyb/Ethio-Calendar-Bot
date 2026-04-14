@@ -143,6 +143,14 @@ def init_db():
     conn.commit()
     release_connection(conn)
 
+def get_all_user_ids():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT id FROM users")
+    rows = c.fetchall()
+    release_connection(conn)
+    return [r[0] for r in rows]
+
 def get_all_users(sort_by="last_active_at", limit=None, offset=None):
     conn = get_connection()
     c = conn.cursor()
