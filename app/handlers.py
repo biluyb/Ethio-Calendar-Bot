@@ -1,5 +1,12 @@
+"""
+Command Handlers and Bot Logic for Ethiopian Calendar Bot.
+Implements Date conversion, Age calculation, Referral tracking, and Admin dashboards.
+Uses a centralized error reporting system (`send_error`) to notify maintainers of issues.
+"""
+
 import calendar
 import html
+import asyncio
 from datetime import datetime, timedelta, date
 
 from telegram import (
@@ -68,8 +75,14 @@ SUPER_ADMIN_CMDS = ADMIN_CMDS + [
 
 # ================== ERROR NOTIFIER==================
 async def notify_admin(context, error_text):
+    """
+    Internal utility to broadcast critical errors or alerts to all registered admins.
+    """
     admins = get_admins_db()
-    for admin_id in admins:
+    # Ensure primary admins are always notified even if not in DB
+    all_notifiable = set(admins) | set(ADMIN_IDS)
+    
+    for admin_id in all_notifiable:
         try:
             await context.bot.send_message(
                 chat_id=admin_id,
@@ -77,10 +90,40 @@ async def notify_admin(context, error_text):
                 parse_mode="HTML"
             )
         except Exception as e:
-            # Using logging would be better, but print is kept per current style
+            # Silence notification errors to prevent infinite loops or cascading failures
             print(f"Admin {admin_id} notify failed: {e}")
 
+async def send_error(update, context, error, func_name, user_msg=None):
+    """
+    Standardized error reporter. Captures stack trace details, categorizes the error,
+    and notifies admins while providing a graceful response to the end user.
+    """
+    uid = update.effective_user.id if update.effective_user else "Unknown"
+    uname = update.effective_user.username if update.effective_user else "Unknown"
+    user_info = f"@{uname} ({uid})"
+    
+    report = format_error_report(error, func_name, user_info)
+    if report:
+        await notify_admin(context, report)
+        
+    # Provide a graceful fallback to the user
+    try:
+        if not user_msg:
+            lang = get_lang(uid) if isinstance(uid, int) else "en"
+            user_msg = "⚠️ An unexpected error occurred. Our team has been notified." if lang == "en" else "⚠️ ያልተጠበቀ ስህተት አጋጥሟል። ለቴክኒክ ቡድናችን አሳውቀናል።"
+        
+        if update.message:
+            await update.message.reply_text(user_msg)
+        elif update.callback_query:
+            await update.callback_query.answer(user_msg, show_alert=True)
+    except Exception:
+        pass
+
 def format_error_report(error, func_name, user_info=None):
+    """
+    Parses exception details into a human-readable HTML report for admins.
+    Categorizes errors based on string patterns for quick triaging.
+    """
     err_str = str(error)
     category = "Unknown Error"
     recommendation = "Check code/logs."
@@ -108,148 +151,164 @@ def format_error_report(error, func_name, user_info=None):
 
 # ================== ADMIN TOOLS ==================
 # ================== users ==================
-async def send_users_page(update: Update, query: str, page: int, sort_by: str = "last_active_at"):
-    per_page = 10
-    
-    # 1. Get total count from DB
-    count = get_user_count(query if query else None)
-    
-    if count == 0:
-        text = "❌ No users found."
-        if update.message:
-            await update.message.reply_text(text)
+async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, query: str, page: int, sort_by: str = "last_active_at"):
+    """
+    Core logic for the paginated user dashboard. 
+    Fetches data from DB and constructs the visual report with interactive buttons.
+    """
+    try:
+        per_page = 10
+        
+        # 1. Get total count from DB
+        count = get_user_count(query if query else None)
+        
+        if count == 0:
+            text = "❌ No users found."
+            if update.message:
+                await update.message.reply_text(text)
+            else:
+                await update.callback_query.edit_message_text(text)
+            return
+        
+        total_pages = (count + per_page - 1) // per_page
+        if page >= total_pages:
+            page = total_pages - 1
+        if page < 0:
+            page = 0
+            
+        offset = page * per_page
+        
+        # 2. Fetch only the required page from DB
+        if query:
+            display_users = search_users(query, sort_by=sort_by, limit=per_page, offset=offset)
         else:
-            await update.callback_query.edit_message_text(text)
-        return
+            display_users = get_all_users(sort_by=sort_by, limit=per_page, offset=offset)
     
-    total_pages = (count + per_page - 1) // per_page
-    if page >= total_pages:
-        page = total_pages - 1
-    if page < 0:
-        page = 0
+        msg = f"👥 <b>Total Users:</b> {count}\n"
+        if query:
+            msg += f"🔍 <b>Search:</b> {query}\n"
+        msg += f"📊 <b>Sort:</b> {'Most Active' if sort_by == 'last_active_at' else 'Newest'}\n"
+        msg += f"📄 Page {page+1} of {total_pages}\n\n"
         
-    offset = page * per_page
-    
-    # 2. Fetch only the required page from DB
-    if query:
-        display_users = search_users(query, sort_by=sort_by, limit=per_page, offset=offset)
-    else:
-        display_users = get_all_users(sort_by=sort_by, limit=per_page, offset=offset)
-        # Note: get_all_users doesn't support custom sort_by yet in the DB layer, 
-        # but the logic below assumes it's sorted by last_active_at DESC by default.
-        # If sort_by is joined_at, we might need to handle it in get_all_users too.
-        if sort_by == "joined_at":
-             # We should probably update get_all_users to support sort_by in DB,
-             # but for now I'll stick to the default or fix it in DB layer if needed.
-             pass 
-    
-    msg = f"👥 <b>Total Users:</b> {count}\n"
-    if query:
-        msg += f"🔍 <b>Search:</b> {query}\n"
-    msg += f"📊 <b>Sort:</b> {'Most Active' if sort_by == 'last_active_at' else 'Newest'}\n"
-    msg += f"📄 Page {page+1} of {total_pages}\n\n"
-    
-    for user_data in display_users:
-        # DB returns: (id, username, lang, joined_at, last_active_at, referred_by, referral_count)
-        uid, uname, lang, joined, active, ref_by, ref_count = user_data[:7]
+        for user_data in display_users:
+            # DB returns: (id, username, lang, joined_at, last_active_at, referred_by, referral_count)
+            uid, uname, lang, joined, active, ref_by, ref_count = user_data[:7]
+            
+            # Format timestamps if they are strings (SQLite)
+            if isinstance(active, str) and len(active) > 16:
+                active = active[:16]
+            
+            msg += f"• <code>{uname}</code> - {uid}\n"
+            msg += f"   └>> Active: {active} | 🤝 Invites: <b>{ref_count}</b>\n"
         
-        # Format timestamps if they are strings (SQLite)
-        if isinstance(active, str) and len(active) > 16:
-            active = active[:16]
+        # Buttons
+        buttons = []
+        # Shorten callback prefix to stay under 64 bytes
+        # Format: u_{page}_{sort}_{query}
+        q_part = query[:20] # Limit query length in callback
         
-        msg += f"• <code>{uname}</code> - {uid}\n"
-        msg += f"   └>> Active: {active} | 🤝 Invites: <b>{ref_count}</b>\n"
-    
-    # Buttons
-    buttons = []
-    # Shorten callback prefix to stay under 64 bytes
-    # Format: u_{page}_{sort}_{query}
-    q_part = query[:20] # Limit query length in callback
-    
-    if isinstance(page, int) and page > 0:
-        buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{q_part}"))
-    if isinstance(page, int) and isinstance(total_pages, int) and page < total_pages - 1:
-        buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{q_part}"))
+        if isinstance(page, int) and page > 0:
+            buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{q_part}"))
+        if isinstance(page, int) and isinstance(total_pages, int) and page < total_pages - 1:
+            buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{q_part}"))
+            
+        sort_buttons = [
+            InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:last_active_at:{q_part}"),
+            InlineKeyboardButton("🆕 Newest", callback_data=f"u:0:joined_at:{q_part}"),
+            InlineKeyboardButton("🤝 Referrals", callback_data=f"u:0:referrals:{q_part}")
+        ]
         
-    sort_buttons = [
-        InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:last_active_at:{q_part}"),
-        InlineKeyboardButton("🆕 Newest", callback_data=f"u:0:joined_at:{q_part}"),
-        InlineKeyboardButton("🤝 Referrals", callback_data=f"u:0:referrals:{q_part}")
-    ]
-    
-    keyboard = []
-    if buttons: keyboard.append(buttons)
-    keyboard.append(sort_buttons)
-    
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    if update.message:
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=reply_markup)
-    else:
-        try:
-            await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
-        except Exception as e:
-            # Handle "message is not modified" error
-            if "Message is not modified" not in str(e):
-                raise e
+        keyboard = []
+        if buttons: keyboard.append(buttons)
+        keyboard.append(sort_buttons)
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        if update.message:
+            await update.message.reply_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+        else:
+            try:
+                await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+            except Exception as e:
+                # Handle "message is not modified" error gracefully
+                if "Message is not modified" not in str(e):
+                    raise e
+    except Exception as e:
+        await send_error(update, context, e, "send_users_page")
 
 async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Restrict to Admin
-    uid = update.effective_user.id
-    if not is_admin_db(uid):
-        await update.message.reply_text("❌ You are not authorized to use this command.")
-        return
+    """Admin command to launch the user dashboard."""
+    try:
+        uid = update.effective_user.id
+        if not is_admin_db(uid):
+            await update.message.reply_text("❌ You are not authorized to use this command.")
+            return
 
-    query = " ".join(context.args) if context.args else ""
-    await send_users_page(update, query, page=0)
+        query = " ".join(context.args) if context.args else ""
+        await send_users_page(update, context, query, page=0)
+    except Exception as e:
+        await send_error(update, context, e, "users")
 
 async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query_obj = update.callback_query
-    uid = update.effective_user.id
-    if not is_admin_db(uid):
-        await query_obj.answer("Unauthorized", show_alert=True)
-        return
+    """Handles pagination and sorting button clicks for the user dashboard."""
+    try:
+        query_obj = update.callback_query
+        uid = update.effective_user.id
+        if not is_admin_db(uid):
+            await query_obj.answer("Unauthorized", show_alert=True)
+            return
+            
+        data = query_obj.data  
+        parts = data.split(":", 3)
+        page = int(parts[1])
+        sort_by = parts[2]
+        search_term = parts[3] if len(parts) > 3 else ""
         
-    data = query_obj.data  
-    # data format: u:{page}:{sort}:{query}
-    parts = data.split(":", 3)
-    page = int(parts[1])
-    sort_by = parts[2]
-    search_term = parts[3] if len(parts) > 3 else ""
-    
-    await send_users_page(update, search_term, page, sort_by=sort_by)
-    await query_obj.answer()
+        await send_users_page(update, context, search_term, page, sort_by=sort_by)
+        await query_obj.answer()
+    except Exception as e:
+        await send_error(update, context, e, "users_callback")
 
 async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    if uid not in ADMIN_IDS:
-        return
-
-    if not context.args:
-        await update.message.reply_text("Usage: /addadmin <user_id>")
-        return
-
+    """Super-Admin command to promote a user to Admin status."""
     try:
-        target_id = int(context.args[0])
+        uid = update.effective_user.id
+        if uid not in ADMIN_IDS:
+            return
+
+        if not context.args:
+            await update.message.reply_text("Usage: /addadmin <user_id>")
+            return
+
+        target_id_str = context.args[0]
+        if not target_id_str.isdigit() and not (target_id_str.startswith("-") and target_id_str[1:].isdigit()):
+            await update.message.reply_text("❌ Invalid ID. Please provide a numeric User ID.")
+            return
+
+        target_id = int(target_id_str)
         add_admin_db(target_id)
         await update.message.reply_text(f"✅ User <code>{target_id}</code> has been promoted to Admin.", parse_mode="HTML")
         await refresh_user_commands(context.bot, target_id)
-        
-    except (IndexError, ValueError):
-        await update.message.reply_text("❌ Invalid ID.")
+    except Exception as e:
+        await send_error(update, context, e, "add_admin")
 
 async def del_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    if uid not in ADMIN_IDS:
-        return
-
-    if not context.args:
-        await update.message.reply_text("Usage: /deladmin <user_id>")
-        return
-
+    """Super-Admin command to revoke Admin status from a user."""
     try:
-        target_id = int(context.args[0])
-        # Prevent removing self if it's the last admin
+        uid = update.effective_user.id
+        if uid not in ADMIN_IDS:
+            return
+
+        if not context.args:
+            await update.message.reply_text("Usage: /deladmin <user_id>")
+            return
+
+        target_id_str = context.args[0]
+        if not target_id_str.isdigit() and not (target_id_str.startswith("-") and target_id_str[1:].isdigit()):
+             await update.message.reply_text("❌ Invalid ID.")
+             return
+
+        target_id = int(target_id_str)
         if target_id in ADMIN_IDS:
              await update.message.reply_text("❌ Cannot remove primary admin.")
              return
@@ -257,43 +316,50 @@ async def del_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         remove_admin_db(target_id)
         await update.message.reply_text(f"✅ User <code>{target_id}</code> is no longer an Admin.", parse_mode="HTML")
         await refresh_user_commands(context.bot, target_id)
-        
-    except (IndexError, ValueError):
-        await update.message.reply_text("❌ Invalid ID.")
+    except Exception as e:
+        await send_error(update, context, e, "del_admin")
 
 async def list_admins(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    if uid not in ADMIN_IDS:
-        return
+    """Admin command to list all users with administrative privileges."""
+    try:
+        uid = update.effective_user.id
+        if uid not in ADMIN_IDS:
+            return
 
-    admins = get_admins_db()
-    # Also show hardcoded ones
-    all_admins = set(admins) | set(ADMIN_IDS)
-    
-    msg = "👥 **Current Admins:**\n\n"
-    for a in all_admins:
-        status = "(Primary)" if a in ADMIN_IDS else "(Added)"
-        msg += f"• <code>{a}</code> {status}\n"
+        admins = get_admins_db()
+        # Also show hardcoded ones
+        all_admins = set(admins) | set(ADMIN_IDS)
         
-    await update.message.reply_text(msg, parse_mode="HTML")
+        msg = "👥 <b>Current Admins:</b>\n\n"
+        for a in all_admins:
+            status = "(Primary)" if a in ADMIN_IDS else "(Added)"
+            msg += f"• <code>{a}</code> {status}\n"
+            
+        await update.message.reply_text(msg, parse_mode="HTML")
+    except Exception as e:
+        await send_error(update, context, e, "list_admins")
 
 async def age_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    uid = update.effective_user.id
-    lang = get_lang(uid)
-    
-    data = query.data
-    mode = data.replace("age_mode_", "")
-    
-    context.user_data["mode"] = f"age_calc_{mode}"
-    
-    if mode == "gc":
-        msg = "Enter your birthdate in Gregorian \n(DD/MM/YYYY):\n\nExample: 21/12/2012" if lang == "en" else "የትውልድ ቀንዎን በፈረንጅ አቆጣጠር ያስገቡ \n(ቀን/ወር/ዓመት)፦\n\nለምሳሌ: 21/12/2012"
-    else:
-        msg = "Enter your birthdate in Ethiopian \n(DD/MM/YYYY):\n\nExample: 21/12/2012" if lang == "en" else "የትውልድ ቀንዎን በኢትዮጵያ አቆጣጠር ያስገቡ \n(ቀን/ወር/ዓመት)፦\n\nለምሳሌ: 21/12/2012"
+    """Handles the selection of Gregorian vs Ethiopian birthdate input."""
+    try:
+        query = update.callback_query
+        uid = update.effective_user.id
+        lang = get_lang(uid)
         
-    await query.message.reply_text(msg)
-    await query.answer()
+        data = query.data
+        mode = data.replace("age_mode_", "")
+        
+        context.user_data["mode"] = f"age_calc_{mode}"
+        
+        if mode == "gc":
+            msg = "Enter your birthdate in Gregorian \n(DD/MM/YYYY):\n\nExample: 21/12/2012" if lang == "en" else "የትውልድ ቀንዎን በፈረንጅ አቆጣጠር ያስገቡ \n(ቀን/ወር/ዓመት)፦\n\nለምሳሌ: 21/12/2012"
+        else:
+            msg = "Enter your birthdate in Ethiopian \n(DD/MM/YYYY):\n\nExample: 21/12/2012" if lang == "en" else "የትውልድ ቀንዎን በኢትዮጵያ አቆጣጠር ያስገቡ \n(ቀን/ወር/ዓመት)፦\n\nለምሳሌ: 21/12/2012"
+            
+        await query.message.reply_text(msg)
+        await query.answer()
+    except Exception as e:
+        await send_error(update, context, e, "age_mode_callback")
 
 def calculate_age(birth_date, current_date):
     years = current_date.year - birth_date.year
@@ -601,12 +667,16 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await process_age_calc(update, context, d, m, y, lang, mode)
                 
         except ValueError as e:
+            # Expected range validation errors
             user_msg = (
                 "❌ Invalid date range. \nEnter date DD/MM/YYYY\n\nExample: 21/12/2022." 
                 if lang == "en" else 
                 "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ በዚህ ቅርጽ ያስገቡ\nቀን/ወር/ዓመት\n\nለምሳሌ: 21/12/2012"
             )
-            await send_error(update, context, e, f"handle_{mode}", user_msg=user_msg)
+            # We don't necessarily need to notify admin for simple user input errors, 
+            # but we keep it here using send_error for consistency if desired.
+            # In a real senior app, we might distinguish between UserError and SystemError.
+            await update.message.reply_text(user_msg)
             
     except Exception as e:
         await send_error(update, context, e, "handle")
@@ -676,146 +746,183 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
     return False
 
 async def process_g2e(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
-    ed, em, ey = greg_to_eth(d, m, y)
-    wk_day = datetime(y, m, d).weekday()
-    msg = f"🇺🇸 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(m)-1]} - {y}\n"
-    msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed} - {ey}"
-    await update.message.reply_text(msg, reply_markup=menu(lang))
-    context.user_data.pop("mode", None)
+    """Internal logic to convert Gregorian date to Ethiopian and reply to user."""
+    try:
+        ed, em, ey = greg_to_eth(d, m, y)
+        wk_day = datetime(y, m, d).weekday()
+        msg = f"🇺🇸 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(m)-1]} - {y}\n"
+        msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed} - {ey}"
+        await update.message.reply_text(msg, reply_markup=menu(lang))
+        context.user_data.pop("mode", None)
+    except Exception as e:
+        await send_error(update, context, e, "process_g2e")
 
 async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    lang = get_lang(uid)
-    bot_username = (await context.bot.get_me()).username
-    share_link = f"https://t.me/{bot_username}?start={uid}"
-    
-    if lang == "am":
-        text = f"<b>የኢትዮጵያ ቀን መለወጫ ቦት</b>\n\nይህንን ቦት ለጓደኞችዎ እንዲጠቀሙ ይጋብዙ! ቦቱን ተጠቅመው የፈረንጅን ቀን ወደ ኢትዮጵያ፣ የኢትዮጵያን ደግሞ ወደ ፈረንጅ መቀየር ይችላሉ።\n\n<b>መጋበዣ ሊንክ፦</b> {share_link}"
-    else:
-        text = f"<b>Ethio Date Converter Bot</b>\n\nInvite your friends to use this bot! You can use it to convert between Gregorian and Ethiopian dates easily.\n\n<b>Referral Link:</b> {share_link}"
+    """Generates and sends a unique referral link for the user."""
+    try:
+        uid = update.effective_user.id
+        lang = get_lang(uid)
+        bot_me = await context.bot.get_me()
+        bot_username = bot_me.username
+        share_link = f"https://t.me/{bot_username}?start={uid}"
+        
+        if lang == "am":
+            text = f"<b>የኢትዮጵያ ቀን መለወጫ ቦት</b>\n\nይህንን ቦት ለጓደኞችዎ እንዲጠቀሙ ይጋብዙ! ቦቱን ተጠቅመው የፈረንጅን ቀን ወደ ኢትዮጵያ፣ የኢትዮጵያን ደግሞ ወደ ፈረንጅ መቀየር ይችላሉ።\n\n<b>መጋበዣ ሊንክ፦</b> {share_link}"
+        else:
+            text = f"<b>Ethio Date Converter Bot</b>\n\nInvite your friends to use this bot! You can use it to convert between Gregorian and Ethiopian dates easily.\n\n<b>Referral Link:</b> {share_link}"
 
-    await update.message.reply_text(text, parse_mode="HTML")
+        await update.message.reply_text(text, parse_mode="HTML")
+    except Exception as e:
+        await send_error(update, context, e, "share_command")
 
 async def send_ranks_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int = 0):
-    per_page = 10
-    offset = page * per_page
-    
-    top_users = get_top_referrers(limit=per_page, offset=offset)
-    total_count = get_referrers_count()
-    
-    uid = update.effective_user.id
-    lang = get_lang(uid)
-    
-    if lang == "am":
-        title = "🏆 <b>ጥሩ ጋባዦች (Top Referrers)</b>\n\n"
-        empty = "ገና ምንም መጋበዣዎች የሉም።"
-    else:
-        title = "🏆 <b>Top Referrers Leaderboard</b>\n\n"
-        empty = "No referrals yet. Be the first to invite!"
-
-    if not top_users and page == 0:
-        if update.message:
-            await update.message.reply_text(title + empty, parse_mode="HTML")
-        else:
-            await update.callback_query.edit_message_text(title + empty, parse_mode="HTML")
-        return
-
-    msg = title
-    for i, (uid_r, uname, count) in enumerate(top_users, 1 + offset):
-        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "🎖"
-        msg += f"{i}. {medal} <b>{uname}</b> — {count} invites\n"
-    
-    # Pagination buttons
-    buttons = []
-    total_pages = (total_count + per_page - 1) // per_page
-    
-    if page > 0:
-        buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"r:{page-1}"))
-    if page < total_pages - 1:
-        buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"r:{page+1}"))
+    """Displays the paginated referral leaderboard."""
+    try:
+        per_page = 10
+        offset = page * per_page
         
-    reply_markup = InlineKeyboardMarkup([buttons]) if buttons else None
+        top_users = get_top_referrers(limit=per_page, offset=offset)
+        total_count = get_referrers_count()
     
-    if update.message:
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=reply_markup)
-    else:
-        try:
-            await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
-        except Exception as e:
-            if "Message is not modified" not in str(e):
-                raise e
+        uid = update.effective_user.id
+        lang = get_lang(uid)
+        
+        if lang == "am":
+            title = "🏆 <b>ጥሩ ጋባዦች (Top Referrers)</b>\n\n"
+            empty = "ገና ምንም መጋበዣዎች የሉም።"
+        else:
+            title = "🏆 <b>Top Referrers Leaderboard</b>\n\n"
+            empty = "No referrals yet. Be the first to invite!"
+
+        if not top_users and page == 0:
+            if update.message:
+                await update.message.reply_text(title + empty, parse_mode="HTML")
+            else:
+                await update.callback_query.edit_message_text(title + empty, parse_mode="HTML")
+            return
+
+        msg = title
+        for i, (uid_r, uname, count) in enumerate(top_users, 1 + offset):
+            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "🎖"
+            msg += f"{i}. {medal} <b>{uname}</b> — {count} invites\n"
+        
+        # Pagination buttons
+        buttons = []
+        total_pages = (total_count + per_page - 1) // per_page
+        
+        if page > 0:
+            buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"r:{page-1}"))
+        if page < total_pages - 1:
+            buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"r:{page+1}"))
+            
+        reply_markup = InlineKeyboardMarkup([buttons]) if buttons else None
+        
+        if update.message:
+            await update.message.reply_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+        else:
+            try:
+                await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+            except Exception as e:
+                # Silently fail on "message not modified"
+                if "Message is not modified" not in str(e):
+                    raise e
+    except Exception as e:
+        await send_error(update, context, e, "send_ranks_page")
 
 async def ranks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await send_ranks_page(update, context, page=0)
+    """Command to view the top referrers leaderboard."""
+    try:
+        await send_ranks_page(update, context, page=0)
+    except Exception as e:
+        await send_error(update, context, e, "ranks_command")
 
 async def ranks_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    data = query.data # format: r:{page}
-    page = int(data.split(":")[1])
-    await send_ranks_page(update, context, page=page)
-    await query.answer()
+    """Handles pagination for the leaderboard."""
+    try:
+        query = update.callback_query
+        data = query.data # format: r:{page}
+        page = int(data.split(":")[1])
+        await send_ranks_page(update, context, page=page)
+        await query.answer()
+    except Exception as e:
+        await send_error(update, context, e, "ranks_callback")
 
 async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    if not is_admin_db(uid) and uid not in ADMIN_IDS:
-        return
+    """Admin command to send a message to all users and group chats."""
+    try:
+        uid = update.effective_user.id
+        if not is_admin_db(uid) and uid not in ADMIN_IDS:
+            return
 
-    if not context.args:
-        await update.message.reply_text("Usage: /broadcast <message>")
-        return
+        if not context.args:
+            await update.message.reply_text("Usage: /broadcast <message>")
+            return
 
-    broadcast_msg = " ".join(context.args)
-    user_ids = get_all_user_ids()
-    group_ids = get_all_group_ids()
-    
-    all_targets = user_ids + group_ids
-    total = len(all_targets)
-    
-    status_msg = await update.message.reply_text(
-        f"🚀 Starting broadcast to {total} targets...\n"
-        f"(👤 Users: {len(user_ids)}, 👥 Groups: {len(group_ids)})"
-    )
-    
-    success = 0
-    failed = 0
-    blocked = 0
-    
-    # Combine lists and start broadcasting
-    for i, target_id in enumerate(all_targets):
-        try:
-            await context.bot.send_message(chat_id=target_id, text=broadcast_msg, parse_mode="HTML")
-            success += 1
-        except Exception as e:
-            err_str = str(e).lower()
-            if "bot was blocked by the user" in err_str or "user is deactivated" in err_str:
-                blocked += 1
-            else:
-                # If it's a group, it might be that the bot was kicked
-                failed += 1
+        broadcast_msg = " ".join(context.args)
+        user_ids = get_all_user_ids()
+        group_ids = get_all_group_ids()
         
-        # Rate limiting: ~20 messages per second
-        if i % 20 == 0 and i > 0:
-            import asyncio
-            await asyncio.sleep(1)
+        all_targets = user_ids + group_ids
+        total = len(all_targets)
+        
+        status_msg = await update.message.reply_text(
+            f"🚀 Starting broadcast to {total} targets...\n"
+            f"(👤 Users: {len(user_ids)}, 👥 Groups: {len(group_ids)})"
+        )
+        
+        success = 0
+        failed = 0
+        blocked = 0
+        
+        # Combine lists and start broadcasting
+        for i, target_id in enumerate(all_targets):
             try:
-                await status_msg.edit_text(
-                    f"⏳ Broadcasting... {i}/{total}\n"
-                    f"✅ Success: {success}\n"
-                    f"❌ Failed: {failed+blocked}"
-                )
-            except Exception:
-                pass
+                await context.bot.send_message(chat_id=target_id, text=broadcast_msg, parse_mode="HTML")
+                success += 1
+            except Exception as e:
+                err_str = str(e).lower()
+                if "bot was blocked by the user" in err_str or "user is deactivated" in err_str:
+                    blocked += 1
+                else:
+                    failed += 1
+            
+            # Rate limiting: ~20 messages per second (avg)
+            if i % 20 == 0 and i > 0:
+                await asyncio.sleep(1)
+                try:
+                    await status_msg.edit_text(
+                        f"⏳ Broadcasting... {i}/{total}\n"
+                        f"✅ Success: {success}\n"
+                        f"❌ Failed: {failed+blocked}"
+                    )
+                except Exception:
+                    pass
 
-    report = (
-        f"📢 <b>Broadcast Complete</b>\n\n"
-        f"👥 Total Targets: {total}\n"
-        f"👤 Individual Users: {len(user_ids)}\n"
-        f"🏘 Group Chats: {len(group_ids)}\n\n"
-        f"✅ Successfully Sent: {success}\n"
-        f"🚫 Blocked/Kicked: {blocked}\n"
-        f"❌ Other Failures: {failed}"
-    )
-    await update.message.reply_text(report, parse_mode="HTML")
+        report = (
+            f"📢 <b>Broadcast Complete</b>\n\n"
+            f"👥 Total Targets: {total}\n"
+            f"👤 Individual Users: {len(user_ids)}\n"
+            f"🏘 Group Chats: {len(group_ids)}\n\n"
+            f"✅ Successfully Sent: {success}\n"
+            f"🚫 Blocked/Kicked: {blocked}\n"
+            f"❌ Other Failures: {failed}"
+        )
+        await update.message.reply_text(report, parse_mode="HTML")
+    except Exception as e:
+        await send_error(update, context, e, "broadcast_command")
+
+        report = (
+            f"📢 <b>Broadcast Complete</b>\n\n"
+            f"👥 Total Targets: {total}\n"
+            f"👤 Individual Users: {len(user_ids)}\n"
+            f"🏘 Group Chats: {len(group_ids)}\n\n"
+            f"✅ Successfully Sent: {success}\n"
+            f"🚫 Blocked/Kicked: {blocked}\n"
+            f"❌ Other Failures: {failed}"
+        )
+        await update.message.reply_text(report, parse_mode="HTML")
+    except Exception as e:
+        await send_error(update, context, e, "broadcast_command")
 
 async def process_e2g(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
     gd, gm, gy = eth_to_greg(d, m, y)

@@ -1,3 +1,9 @@
+"""
+Date Conversion Utilities for the Ethiopian Calendar.
+Provides algorithms for converting between Ethiopian (EC) and Gregorian (GC) calendars,
+as well as date validation and parsing logic.
+"""
+
 from datetime import date, timedelta
 
 ETHIOPIAN_MONTHS = [
@@ -15,13 +21,27 @@ AM_DAYS = ["ሰኞ","ማክሰኞ","ረቡዕ","ሐሙስ","አርብ","ቅዳ�
 
 
 def parse_date(text):
-    text = text.strip().replace("-", "/").replace(" ", "/")
-    parts = text.split("/")
+    """
+    Attempts to parse a date string in various formats (DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY).
+    Returns a tuple (day, month, year) or None if parsing fails.
+    """
+    if not text or not isinstance(text, str):
+        return None
+        
+    # Standardize delimiters
+    normalized = text.strip().replace("-", "/").replace(" ", "/").replace(".", "/")
+    parts = normalized.split("/")
+    
     if len(parts) != 3:
         return None
+        
     try:
-        return int(parts[0]), int(parts[1]), int(parts[2])
-    except:
+        d, m, y = map(int, parts)
+        # Basic sanity check
+        if y < 1 or m < 1 or d < 1:
+            return None
+        return d, m, y
+    except (ValueError, TypeError):
         return None
 
 

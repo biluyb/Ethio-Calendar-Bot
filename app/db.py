@@ -1,3 +1,9 @@
+"""
+Database Access Layer for Ethiopian Calendar Bot.
+Supports both SQLite (local development) and PostgreSQL (production via Supabase).
+Implements connection pooling for PostgreSQL to manage resources efficiently.
+"""
+
 import sqlite3
 import os
 import psycopg2
@@ -9,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 EAT = timezone(timedelta(hours=3))
 
 def get_eth_now():
+    """Returns current Ethiopian server time formatted as a string."""
     return datetime.now(EAT).strftime('%Y-%m-%d %H:%M:%S')
 
 # Get Database URL from environment (PostgreSQL) or fallback to SQLite
@@ -55,264 +62,302 @@ def release_connection(conn):
 # ================== INIT ==================
 
 def init_db():
+    """
+    Initializes the database schema for both SQLite and PostgreSQL.
+    Creates users, admins, and groups tables and performs necessary column migrations.
+    """
     conn = get_connection()
-    c = conn.cursor()
-
-    # PostgreSQL uses SERIAL for autoincrement, SQLite uses AUTOINCREMENT
-    # Using logical structure that fits both where possible
-    
-    # 1. USERS TABLE
-    if DATABASE_URL:
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id BIGINT PRIMARY KEY,
-            username TEXT,
-            lang TEXT DEFAULT 'en',
-            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            referred_by BIGINT
-        )
-        """)
-        c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS groups (
-                id BIGINT PRIMARY KEY,
-                title TEXT,
-                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-    else:
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY,
-            username TEXT,
-            lang TEXT DEFAULT 'en',
-            joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            referred_by INTEGER
-        )
-        """)
-        c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS groups (
-                id INTEGER PRIMARY KEY,
-                title TEXT,
-                joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-    # 2. ADMINS TABLE
-    if DATABASE_URL:
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS admins (
-            id BIGINT PRIMARY KEY,
-            added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
-    else:
-        c.execute("""
-        CREATE TABLE IF NOT EXISTS admins (
-            id INTEGER PRIMARY KEY,
-            added_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-        """)
-    
-    conn.commit()
-    
-    # Simple migration for existing users table
     try:
-        if DATABASE_URL:
-            # PostgreSQL migration
-            c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
-            existing_cols = [row[0] for row in c.fetchall()]
-            if "joined_at" not in existing_cols:
-                c.execute("ALTER TABLE users ADD COLUMN joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-            if "last_active_at" not in existing_cols:
-                c.execute("ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-            if "referred_by" not in existing_cols:
-                c.execute("ALTER TABLE users ADD COLUMN referred_by BIGINT")
-        else:
-            # SQLite migration
-            c.execute("PRAGMA table_info(users)")
-            existing_cols = [col[1] for col in c.fetchall()]
-            if "joined_at" not in existing_cols:
-                try:
-                    c.execute("ALTER TABLE users ADD COLUMN joined_at DATETIME DEFAULT CURRENT_TIMESTAMP")
-                except Exception:
-                    c.execute("ALTER TABLE users ADD COLUMN joined_at DATETIME")
-                    c.execute("UPDATE users SET joined_at = CURRENT_TIMESTAMP")
-            if "last_active_at" not in existing_cols:
-                try:
-                    c.execute("ALTER TABLE users ADD COLUMN last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP")
-                except Exception:
-                    c.execute("ALTER TABLE users ADD COLUMN last_active_at DATETIME")
-                    c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP")
-            if "referred_by" not in existing_cols:
-                c.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
-    except Exception as e:
-        print(f"Migration error: {e}")
+        c = conn.cursor()
 
-    conn.commit()
-    release_connection(conn)
+        # Schema definition varies slightly between SQLite (INTEGER) and PostgreSQL (BIGINT)
+        if DATABASE_URL:
+            # PostgreSQL Schema
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id BIGINT PRIMARY KEY,
+                username TEXT,
+                lang TEXT DEFAULT 'en',
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                referred_by BIGINT
+            )
+            """)
+            c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS groups (
+                    id BIGINT PRIMARY KEY,
+                    title TEXT,
+                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS admins (
+                    id BIGINT PRIMARY KEY,
+                    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+        else:
+            # SQLite Schema
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                username TEXT,
+                lang TEXT DEFAULT 'en',
+                joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                referred_by INTEGER
+            )
+            """)
+            c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS groups (
+                    id INTEGER PRIMARY KEY,
+                    title TEXT,
+                    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS admins (
+                id INTEGER PRIMARY KEY,
+                added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+
+        conn.commit()
+        
+        # Migration: Ensure all expected columns exist
+        try:
+            if DATABASE_URL:
+                c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+                existing_cols = [row[0] for row in c.fetchall()]
+                if "joined_at" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                if "last_active_at" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                if "referred_by" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN referred_by BIGINT")
+            else:
+                c.execute("PRAGMA table_info(users)")
+                existing_cols = [col[1] for col in c.fetchall()]
+                if "joined_at" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN joined_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+                if "last_active_at" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP")
+                if "referred_by" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
+        except Exception as e:
+            print(f"Migration error: {e}")
+
+        conn.commit()
+    except Exception as e:
+        print(f"CRITICAL DB INIT ERROR: {e}")
+    finally:
+        release_connection(conn)
 
 def get_all_user_ids():
+    """Returns a list of all user IDs from the database."""
     conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT id FROM users")
-    rows = c.fetchall()
-    release_connection(conn)
-    return [r[0] for r in rows]
+    try:
+        c = conn.cursor()
+        c.execute("SELECT id FROM users")
+        rows = c.fetchall()
+        return [r[0] for r in rows]
+    except Exception as e:
+        print(f"Error fetching user IDs: {e}")
+        return []
+    finally:
+        release_connection(conn)
 
 def get_all_users(sort_by="last_active_at", limit=None, offset=None):
-    conn = get_connection()
-    c = conn.cursor()
-    
-    order_clause = "last_active_at DESC"
-    if sort_by == "joined_at":
-        order_clause = "joined_at DESC"
-    elif sort_by == "referrals":
-        order_clause = "referral_count DESC"
-        
-    query = f"""
-        SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
-        FROM users u 
-        ORDER BY {order_clause}
     """
-    params = []
-    
-    if limit is not None:
-        query += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
-        params.append(limit)
-    if offset is not None:
-        query += " OFFSET %s" if DATABASE_URL else " OFFSET ?"
-        params.append(offset)
+    Retrieves a list of all users with their referral counts.
+    Supports sorting by last activity, join date, or referral count.
+    Supports pagination via limit and offset.
+    """
+    conn = get_connection()
+    try:
+        c = conn.cursor()
         
-    c.execute(query, tuple(params))
-    rows = c.fetchall()
-    release_connection(conn)
-    return rows
+        order_clause = "last_active_at DESC"
+        if sort_by == "joined_at":
+            order_clause = "joined_at DESC"
+        elif sort_by == "referrals":
+            order_clause = "referral_count DESC"
+            
+        query = f"""
+            SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+            FROM users u 
+            ORDER BY {order_clause}
+        """
+        params = []
+        
+        if limit is not None:
+            query += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
+            params.append(limit)
+        if offset is not None:
+            query += " OFFSET %s" if DATABASE_URL else " OFFSET ?"
+            params.append(offset)
+            
+        c.execute(query, tuple(params))
+        return c.fetchall()
+    except Exception as e:
+        print(f"Error in get_all_users: {e}")
+        return []
+    finally:
+        release_connection(conn)
 
 def search_users(query, sort_by="last_active_at", limit=None, offset=None):
-    conn = get_connection()
-    c = conn.cursor()
-    # SQL injection safe query
-    q = f"%{query}%"
-    
-    order_clause = "last_active_at DESC"
-    if sort_by == "joined_at":
-        order_clause = "joined_at DESC"
-    elif sort_by == "referrals":
-        order_clause = "referral_count DESC"
-    
-    base_query = f"""
-        SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
-        FROM users u 
-        WHERE u.username {'ILIKE' if DATABASE_URL else 'LIKE'} %s 
-        OR CAST(u.id AS TEXT) LIKE %s
-    """ if DATABASE_URL else f"""
-        SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
-        FROM users u 
-        WHERE u.username LIKE ? 
-        OR CAST(u.id AS TEXT) LIKE ?
     """
-    
-    sql = f"{base_query} ORDER BY {order_clause}"
-    params = [q, q]
-    
-    if limit is not None:
-        sql += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
-        params.append(limit)
-    if offset is not None:
-        sql += " OFFSET %s" if DATABASE_URL else " OFFSET ?"
-        params.append(offset)
+    Searches users by username or ID with support for sorting and pagination.
+    Uses case-insensitive search (ILIKE) on PostgreSQL.
+    """
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        q = f"%{query}%"
+        
+        order_clause = "last_active_at DESC"
+        if sort_by == "joined_at":
+            order_clause = "joined_at DESC"
+        elif sort_by == "referrals":
+            order_clause = "referral_count DESC"
+        
+        base_query = f"""
+            SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+            FROM users u 
+            WHERE u.username {'ILIKE' if DATABASE_URL else 'LIKE'} %s 
+            OR CAST(u.id AS TEXT) LIKE %s
+        """ if DATABASE_URL else f"""
+            SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+            FROM users u 
+            WHERE u.username LIKE ? 
+            OR CAST(u.id AS TEXT) LIKE ?
+        """
+        
+        sql = f"{base_query} ORDER BY {order_clause}"
+        params = [q, q]
+        
+        if limit is not None:
+            sql += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
+            params.append(limit)
+        if offset is not None:
+            sql += " OFFSET %s" if DATABASE_URL else " OFFSET ?"
+            params.append(offset)
 
-    c.execute(sql, tuple(params))
-    rows = c.fetchall()
-    release_connection(conn)
-    return rows
+        c.execute(sql, tuple(params))
+        return c.fetchall()
+    except Exception as e:
+        print(f"Error in search_users: {e}")
+        return []
+    finally:
+        release_connection(conn)
 
 def get_user_count(search_query=None):
+    """Returns the total number of users, optionally filtered by search."""
     conn = get_connection()
-    c = conn.cursor()
-    
-    if search_query:
-        q = f"%{search_query}%"
-        if DATABASE_URL:
-            c.execute("SELECT COUNT(*) FROM users WHERE username ILIKE %s OR CAST(id AS TEXT) LIKE %s", (q, q))
+    try:
+        c = conn.cursor()
+        if search_query:
+            q = f"%{search_query}%"
+            if DATABASE_URL:
+                c.execute("SELECT COUNT(*) FROM users WHERE username ILIKE %s OR CAST(id AS TEXT) LIKE %s", (q, q))
+            else:
+                c.execute("SELECT COUNT(*) FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?", (q, q))
         else:
-            c.execute("SELECT COUNT(*) FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?", (q, q))
-    else:
-        c.execute("SELECT COUNT(*) FROM users")
-        
-    count = c.fetchone()[0]
-    release_connection(conn)
-    return count
+            c.execute("SELECT COUNT(*) FROM users")
+        return c.fetchone()[0]
+    except Exception as e:
+        print(f"Error in get_user_count: {e}")
+        return 0
+    finally:
+        release_connection(conn)
 
 def get_user_by_id(uid):
+    """Retrieves full user data by unique ID."""
     conn = get_connection()
-    c = conn.cursor()
-    if DATABASE_URL:
-        c.execute("SELECT * FROM users WHERE id=%s", (uid,))
-    else:
-        c.execute("SELECT * FROM users WHERE id=?", (uid,))
-    row = c.fetchone()
-    release_connection(conn)
-    return row
+    try:
+        c = conn.cursor()
+        if DATABASE_URL:
+            c.execute("SELECT * FROM users WHERE id=%s", (uid,))
+        else:
+            c.execute("SELECT * FROM users WHERE id=?", (uid,))
+        return c.fetchone()
+    except Exception as e:
+        print(f"Error in get_user_by_id: {e}")
+        return None
+    finally:
+        release_connection(conn)
 
 def get_user_by_username(username):
+    """Retrieves full user data by username (case-insensitive on Postgres)."""
     conn = get_connection()
-    c = conn.cursor()
-    # Normalize username (strip @ if present)
-    uname = username.lstrip("@")
-    if DATABASE_URL:
-        c.execute("SELECT * FROM users WHERE username ILIKE %s", (uname,))
-    else:
-        c.execute("SELECT * FROM users WHERE username LIKE ?", (uname,))
-    row = c.fetchone()
-    release_connection(conn)
-    return row
+    try:
+        c = conn.cursor()
+        uname = username.lstrip("@")
+        if DATABASE_URL:
+            c.execute("SELECT * FROM users WHERE username ILIKE %s", (uname,))
+        else:
+            c.execute("SELECT * FROM users WHERE username LIKE ?", (uname,))
+        return c.fetchone()
+    except Exception as e:
+        print(f"Error in get_user_by_username: {e}")
+        return None
+    finally:
+        release_connection(conn)
 
 # ================== USER ==================
 
 def register_user(uid, username, referred_by=None):
+    """
+    Upserts a user into the database.
+    Returns True if the user is newly registered, False otherwise.
+    """
     conn = get_connection()
-    c = conn.cursor()
-
-    now = get_eth_now()
-    is_new = False
-    if DATABASE_URL:
-        c.execute("SELECT id FROM users WHERE id=%s", (uid,))
-        if not c.fetchone():
-            c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (%s, %s, %s, %s, %s)", (uid, username, now, now, referred_by))
-            is_new = True
+    try:
+        c = conn.cursor()
+        now = get_eth_now()
+        is_new = False
+        if DATABASE_URL:
+            c.execute("SELECT id FROM users WHERE id=%s", (uid,))
+            if not c.fetchone():
+                c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (%s, %s, %s, %s, %s)", (uid, username, now, now, referred_by))
+                is_new = True
+            else:
+                c.execute("UPDATE users SET username=%s, last_active_at=%s WHERE id=%s", (username, now, uid))
         else:
-            c.execute("UPDATE users SET username=%s, last_active_at=%s WHERE id=%s", (username, now, uid))
-    else:
-        c.execute("SELECT id FROM users WHERE id=?", (uid,))
-        if not c.fetchone():
-            c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (?, ?, ?, ?, ?)", (uid, username, now, now, referred_by))
-            is_new = True
-        else:
-            c.execute("UPDATE users SET username=?, last_active_at=? WHERE id=?", (username, now, uid))
-
-    conn.commit()
-    release_connection(conn)
-    return is_new
+            c.execute("SELECT id FROM users WHERE id=?", (uid,))
+            if not c.fetchone():
+                c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (?, ?, ?, ?, ?)", (uid, username, now, now, referred_by))
+                is_new = True
+            else:
+                c.execute("UPDATE users SET username=?, last_active_at=? WHERE id=?", (username, now, uid))
+        conn.commit()
+        return is_new
+    except Exception as e:
+        print(f"Error in register_user: {e}")
+        return False
+    finally:
+        release_connection(conn)
 
 def get_lang(uid):
+    """Retrieves user's preferred language, defaulting to English."""
     conn = get_connection()
-    c = conn.cursor()
-
-    if DATABASE_URL:
-        c.execute("SELECT lang FROM users WHERE id=%s", (uid,))
-    else:
-        c.execute("SELECT lang FROM users WHERE id=?", (uid,))
-    
-    row = c.fetchone()
-    release_connection(conn)
-    return row[0] if row and row[0] else "en"
+    try:
+        c = conn.cursor()
+        if DATABASE_URL:
+            c.execute("SELECT lang FROM users WHERE id=%s", (uid,))
+        else:
+            c.execute("SELECT lang FROM users WHERE id=?", (uid,))
+        row = c.fetchone()
+        return row[0] if row and row[0] else "en"
+    except Exception as e:
+        print(f"Error in get_lang: {e}")
+        return "en"
+    finally:
+        release_connection(conn)
 
 def get_top_referrers(limit=10, offset=0):
     conn = get_connection()
@@ -414,25 +459,35 @@ def remove_admin_db(uid):
 # ================== GROUPS ==================
 
 def register_group(group_id, title):
+    """Registers or updates group information."""
     conn = get_connection()
-    c = conn.cursor()
-    now = get_eth_now()
-    if DATABASE_URL:
-        c.execute("INSERT INTO groups (id, title, joined_at) VALUES (%s, %s, %s) ON CONFLICT (id) DO UPDATE SET title=%s", (group_id, title, now, title))
-    else:
-        c.execute("SELECT id FROM groups WHERE id=?", (group_id,))
-        if not c.fetchone():
-            c.execute("INSERT INTO groups (id, title, joined_at) VALUES (?, ?, ?)", (group_id, title, now))
+    try:
+        c = conn.cursor()
+        now = get_eth_now()
+        if DATABASE_URL:
+            c.execute("INSERT INTO groups (id, title, joined_at) VALUES (%s, %s, %s) ON CONFLICT (id) DO UPDATE SET title=%s", (group_id, title, now, title))
         else:
-            c.execute("UPDATE groups SET title=? WHERE id=?", (title, group_id))
-    conn.commit()
-    release_connection(conn)
+            c.execute("SELECT id FROM groups WHERE id=?", (group_id,))
+            if not c.fetchone():
+                c.execute("INSERT INTO groups (id, title, joined_at) VALUES (?, ?, ?)", (group_id, title, now))
+            else:
+                c.execute("UPDATE groups SET title=? WHERE id=?", (title, group_id))
+        conn.commit()
+    except Exception as e:
+        print(f"Error in register_group: {e}")
+    finally:
+        release_connection(conn)
 
 def get_all_group_ids():
+    """Returns a list of all unique group IDs."""
     conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT id FROM groups")
-    rows = c.fetchall()
-    release_connection(conn)
-    return [r[0] for r in rows]
-    release_connection(conn)
+    try:
+        c = conn.cursor()
+        c.execute("SELECT id FROM groups")
+        rows = c.fetchall()
+        return [r[0] for r in rows]
+    except Exception as e:
+        print(f"Error in get_all_group_ids: {e}")
+        return []
+    finally:
+        release_connection(conn)
