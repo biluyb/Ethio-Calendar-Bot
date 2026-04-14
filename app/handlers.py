@@ -463,12 +463,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text += "/lang - ቋንቋ ለመቀየር\n"
             text += "/today - የዛሬን ቀን ለማየት\n"
             text += "/info - ስለ ቀን መቁጠሪያው ግንዛቤ\n"
+            text += "/share - ጓደኞችን ይጋብዙ\n"
             text += "/about - ስለ ቦቱ መረጃ (አድሚኑን ለማግኘት)\n"
             text += "/help - ይህንን የእርዳታ መልዕክት ለማሳየት\n"
             
             if is_admin_db(uid) or uid in ADMIN_IDS:
                 text += "\n<b>👑 የአስተዳዳሪ ትዕዛዞች:</b>\n"
                 text += "/users - ስለ ተጠቃሚዎች መረጃ\n"
+                text += "/ranks - የጋባዦች ደረጃ\n"
+                text += "/send_msg - ለተጠቃሚ መልዕክት ለመላክ\n"
                 
                 if uid in ADMIN_IDS:
                     text += "/addadmin - አዲስ አስተዳዳሪ ለመጨመር\n"
@@ -481,12 +484,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text += "/lang - Change language\n"
             text += "/today - Show today's date\n"
             text += "/info - Calendar information\n"
+            text += "/share - Invite friends\n"
             text += "/about - Bot info (Contact Admin)\n"
             text += "/help - Show this help message\n"
             
             if is_admin_db(uid) or uid in ADMIN_IDS:
                 text += "\n<b>👑 Admin Commands:</b>\n"
                 text += "/users - User dashboard\n"
+                text += "/ranks - Referral leaderboard\n"
+                text += "/send_msg - Send DM to user\n"
                 
                 if uid in ADMIN_IDS:
                     text += "/addadmin - Add new admin\n"
