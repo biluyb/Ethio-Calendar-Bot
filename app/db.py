@@ -117,6 +117,8 @@ def init_db():
                 c.execute("ALTER TABLE users ADD COLUMN joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
             if "last_active_at" not in existing_cols:
                 c.execute("ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            if "referred_by" not in existing_cols:
+                c.execute("ALTER TABLE users ADD COLUMN referred_by BIGINT")
         else:
             # SQLite migration
             c.execute("PRAGMA table_info(users)")
