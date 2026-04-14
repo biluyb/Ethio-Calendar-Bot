@@ -59,8 +59,6 @@ SUPER_ADMIN_CMDS = ADMIN_CMDS + [
 ]
 
 # ================== ERROR NOTIFIER==================
-
-
 async def notify_admin(context, error_text):
     admins = get_admins_db()
     for admin_id in admins:
@@ -183,7 +181,6 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
             if "Message is not modified" not in str(e):
                 raise e
 
-
 async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Restrict to Admin
     uid = update.effective_user.id
@@ -193,7 +190,6 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = " ".join(context.args) if context.args else ""
     await send_users_page(update, query, page=0)
-
 
 async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query_obj = update.callback_query
@@ -269,7 +265,6 @@ async def list_admins(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     await update.message.reply_text(msg, parse_mode="HTML")
 
-
 async def age_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     uid = update.effective_user.id
@@ -308,7 +303,6 @@ def calculate_age(birth_date, current_date):
     return years, months, days
 
 # ================== KEYBOARD ==================
-
 def menu(lang):
     if lang == "am":
         return ReplyKeyboardMarkup([
@@ -324,7 +318,6 @@ def menu(lang):
         ], resize_keyboard=True)
         
 # ================== START ==================
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user = update.effective_user
@@ -350,7 +343,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_error(update, context, e, "start")   
 
 # ================== UTILS ==================
-
 async def refresh_user_commands(bot, uid):
     try:
         scope = BotCommandScopeChat(chat_id=uid)
@@ -367,7 +359,6 @@ async def refresh_user_commands(bot, uid):
         print(f"Failed to refresh commands for {uid}: {e}")
 
 # ================== TODAY ==================
-
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         uid = update.effective_user.id
@@ -404,7 +395,6 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_error(update, context, e, "today")
 
 # ================== LANGUAGE ==================
-
 async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         uid = update.effective_user.id
@@ -423,7 +413,6 @@ async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_error(update, context, e, "lang")
 
 # ================== INFO ==================
-
 #async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
  #   uid = update.effective_user.id
   #  lang = get_lang(uid)
@@ -431,8 +420,6 @@ async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
    # from app.texts import INFO_AM, INFO_EN
 
     #await update.message.reply_text(INFO_AM if lang=="am" else INFO_EN)
-
-
 
 async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -495,14 +482,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "help_command")
 
-
-
-
-# ================== HISTORY ==================
-
-
 # ================== HANDLE ==================
-
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
@@ -583,7 +563,6 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_error(update, context, e, "handle")
 
 # ================== SUB-HANDLERS (MODULAR) ==================
-
 async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str, uid: int, lang: str) -> bool:
     """Processes menu button clicks. Returns True if handled."""
     # Language Selection Buttons
@@ -646,16 +625,16 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
 async def process_g2e(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
     ed, em, ey = greg_to_eth(d, m, y)
     wk_day = datetime(y, m, d).weekday()
-    msg = f"📅 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(m)-1]} - {y}\n"
-    msg += f"📆 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed} - {ey}"
+    msg = f"🇺🇸 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(m)-1]} - {y}\n"
+    msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed} - {ey}"
     await update.message.reply_text(msg, reply_markup=menu(lang))
     context.user_data.pop("mode", None)
 
 async def process_e2g(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
     gd, gm, gy = eth_to_greg(d, m, y)
     wk_day = datetime(gy, gm, gd).weekday()
-    msg = f"📅 {gy} - {gm:02} - {gd:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(gm)-1]} - {gy}\n"
-    msg += f"📆 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(m)-1]} - {d} - {y}"
+    msg = f"🇺🇸 {gy} - {gm:02} - {gd:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(gm)-1]} - {gy}\n"
+    msg += f"🇪🇹 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(m)-1]} - {d} - {y}"
     await update.message.reply_text(msg, reply_markup=menu(lang))
     context.user_data.pop("mode", None)
 
@@ -696,6 +675,7 @@ async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d
     await update.message.reply_text(msg, parse_mode="HTML", reply_markup=menu(lang))
     context.user_data.pop("mode", None)
   #menu commands
+
 async def lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [["🇺🇸 English", "🇪🇹 አማርኛ"]]
@@ -823,7 +803,6 @@ async def handle_admin_reply_to_user(update: Update, context: ContextTypes.DEFAU
     except Exception as e:
         await send_error(update, context, e, "handle_admin_reply_to_user")
     
-
 async def send_msg_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     if not is_admin_db(uid) and uid not in ADMIN_IDS:
@@ -902,6 +881,7 @@ async def perform_admin_dm(update, context, target_uid, target_name, msg_text, l
 
 
     # ERROR_MESSAGE
+
 async def send_error(update: Update, context: ContextTypes.DEFAULT_TYPE, error, func_name, user_msg=None):
     print(f"🛑 ERROR in {func_name}: {error}")
     
