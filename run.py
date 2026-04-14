@@ -22,6 +22,7 @@ from app.handlers import (
     list_admins, 
     contact_admin_callback, 
     admin_reply_callback,
+    send_msg_command,
     USER_CMDS,
     refresh_user_commands
 )
@@ -83,6 +84,7 @@ def main():
     app.add_handler(CommandHandler("addadmin", add_admin))
     app.add_handler(CommandHandler("deladmin", del_admin))
     app.add_handler(CommandHandler("listadmins", list_admins))
+    app.add_handler(CommandHandler("send_msg", send_msg_command))
     
     # CALLBACKS
     app.add_handler(CallbackQueryHandler(users_callback, pattern="^u:"))

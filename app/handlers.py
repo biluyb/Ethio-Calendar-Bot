@@ -22,7 +22,9 @@ from app.db import (
     add_admin_db, 
     remove_admin_db,
     get_all_users, 
-    search_users
+    search_users,
+    get_user_by_id,
+    get_user_by_username
 )
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
@@ -47,13 +49,13 @@ USER_CMDS = [
 
 ADMIN_CMDS = USER_CMDS + [
     BotCommand("users", "User dashboard"),
-    BotCommand("listadmins", "List all admins")
+    BotCommand("listadmins", "List all admins"),
+    BotCommand("send_msg", "Send DM to a user by ID or username")
 ]
 
 SUPER_ADMIN_CMDS = ADMIN_CMDS + [
     BotCommand("addadmin", "Add new admin"),
-    BotCommand("deladmin", "Remove admin"),
-    BotCommand("listadmins", "List all admins") # Redundant but kept for Super Admin block clarity if needed
+    BotCommand("deladmin", "Remove admin")
 ]
 
 # ================== ERROR NOTIFIER==================
@@ -155,9 +157,9 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
     # Format: u_{page}_{sort}_{query}
     q_part = query[:20] # Limit query length in callback
     
-    if page > 0:
+    if isinstance(page, int) and page > 0:
         buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{q_part}"))
-    if page < total_pages - 1:
+    if isinstance(page, int) and isinstance(total_pages, int) and page < total_pages - 1:
         buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{q_part}"))
         
     sort_buttons = [
@@ -541,6 +543,9 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if mode.startswith("rep_"):
             return await handle_admin_reply_to_user(update, context)
+            
+        if mode == "admin_dm_send":
+            return await handle_admin_dm_send(update, context)
 
         # 3. Process Date Input (for conversions and age)
         try:
@@ -808,6 +813,82 @@ async def handle_admin_reply_to_user(update: Update, context: ContextTypes.DEFAU
             
     except Exception as e:
         await send_error(update, context, e, "handle_admin_reply_to_user")
+    
+
+async def send_msg_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if not is_admin_db(uid) and uid not in ADMIN_IDS:
+        return
+
+    lang = get_lang(uid)
+    args = context.args
+    
+    # Usage: /send_msg <ID or username> <message>
+    if not args:
+        msg = "✍️ Please provide User ID or @username.\n\nUsage: <code>/send_msg 12345 Hello there!</code>" if lang == "en" else "✍️ እባክዎ የተጠቃሚውን መለያ (ID) ወይም @username ያስገቡ።\n\nአጠቃቀም፦ <code>/send_msg 12345 ሰላም!</code>"
+        await update.message.reply_text(msg, parse_mode="HTML")
+        return
+
+    target_query = args[0]
+    
+    # Try finding user
+    user_data = None
+    if target_query.isdigit():
+        user_data = get_user_by_id(int(target_query))
+    else:
+        user_data = get_user_by_username(target_query)
+        
+    if not user_data:
+        msg = f"❌ User <code>{target_query}</code> not found in database." if lang == "en" else f"❌ ተጠቃሚ <code>{target_query}</code> በዳታቤዙ ውስጥ አልተገኘም።"
+        await update.message.reply_text(msg, parse_mode="HTML")
+        return
+
+    target_uid = user_data[0]
+    target_name = user_data[1] or "Unknown"
+
+    if len(args) > 1:
+        # Direct send mode
+        msg_text = " ".join(args[1:])
+        await perform_admin_dm(update, context, target_uid, target_name, msg_text, lang)
+    else:
+        # Conversational mode
+        context.user_data["mode"] = "admin_dm_send"
+        context.user_data["target_uid"] = target_uid
+        context.user_data["target_name"] = target_name
+        
+        msg = f"✍️ <b>Sending to:</b> {target_name} [<code>{target_uid}</code>]\n\nPlease type your message below:" if lang=="en" else f"✍️ <b>ለመላክ የተመረጠው፦</b> {target_name} [<code>{target_uid}</code>]\n\nእባክዎን መልዕክትዎን ከታች ይጻፉ፦"
+        await update.message.reply_text(msg, parse_mode="HTML")
+
+async def handle_admin_dm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    lang = get_lang(uid)
+    target_uid = context.user_data.get("target_uid")
+    target_name = context.user_data.get("target_name")
+    msg_text = update.message.text
+
+    await perform_admin_dm(update, context, target_uid, target_name, msg_text, lang)
+
+async def perform_admin_dm(update, context, target_uid, target_name, msg_text, lang):
+    admin_info = "📨 <b>Message from Admin</b>\n\n"
+    final_msg = f"{admin_info}{msg_text}"
+
+    try:
+        await context.bot.send_message(
+            chat_id=target_uid,
+            text=final_msg,
+            parse_mode="HTML"
+        )
+        
+        confirm = f"✅ Message sent to {target_name} [<code>{target_uid}</code>]" if lang == "en" else f"✅ መልዕክቱ ለ {target_name} [<code>{target_uid}</code>] ተልኳል።"
+        await update.message.reply_text(confirm, parse_mode="HTML")
+        
+        # Clear data
+        context.user_data.pop("mode", None)
+        context.user_data.pop("target_uid", None)
+        context.user_data.pop("target_name", None)
+
+    except Exception as e:
+        await send_error(update, context, e, "perform_admin_dm")
     
 
 

@@ -163,6 +163,30 @@ def search_users(query, sort_by="last_active_at"):
     release_connection(conn)
     return rows
 
+def get_user_by_id(uid):
+    conn = get_connection()
+    c = conn.cursor()
+    if DATABASE_URL:
+        c.execute("SELECT * FROM users WHERE id=%s", (uid,))
+    else:
+        c.execute("SELECT * FROM users WHERE id=?", (uid,))
+    row = c.fetchone()
+    release_connection(conn)
+    return row
+
+def get_user_by_username(username):
+    conn = get_connection()
+    c = conn.cursor()
+    # Normalize username (strip @ if present)
+    uname = username.lstrip("@")
+    if DATABASE_URL:
+        c.execute("SELECT * FROM users WHERE username ILIKE %s", (uname,))
+    else:
+        c.execute("SELECT * FROM users WHERE username LIKE ?", (uname,))
+    row = c.fetchone()
+    release_connection(conn)
+    return row
+
 # ================== USER ==================
 
 def register_user(uid, username):
