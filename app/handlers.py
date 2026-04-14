@@ -58,13 +58,12 @@ USER_CMDS = [
     BotCommand("lang", "Change language"),
     BotCommand("info", "Information about the calendar"),
     BotCommand("share", "Invite friends"),
-    BotCommand("ranks", "Referral leaderboard"),
     BotCommand("help", "How to use the bot")
 ]
 
 ADMIN_CMDS = USER_CMDS + [
     BotCommand("users", "User dashboard"),
-    BotCommand("listadmins", "List all admins"),
+    BotCommand("broadcast", "Send message to all users"),
     BotCommand("send_msg", "Send DM to a user by ID or username")
 ]
 
@@ -381,21 +380,32 @@ def calculate_age(birth_date, current_date):
     return years, months, days
 
 # ================== KEYBOARD ==================
-def menu(lang):
+def get_menu(uid, lang):
+    """
+    Returns a role-aware reply keyboard with a modern, emoji-rich layout.
+    """
+    is_admin = is_admin_db(uid) or uid in ADMIN_IDS
+    
     if lang == "am":
-        return ReplyKeyboardMarkup([
+        kb = [
             ["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"],
-            ["📆 ዛሬ", "🎂 የዕድሜ ስሌት"],
+            ["📅 ዛሬ", "🎂 የዕድሜ ስሌት"],
             ["🌐 ቋንቋ", "🤝 ጓደኞችን ይጋብዙ"],
             ["📩 አድሚኑን ያግኙ"]
-        ], resize_keyboard=True)
+        ]
+        if is_admin:
+            kb.append(["📢 መልዕክት ማስተላለፊያ (Broadcast)"])
     else:
-        return ReplyKeyboardMarkup([
+        kb = [
             ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
-            ["📆 Today", "🎂 Age Calculator"],
+            ["📅 Today", "🎂 Age Calculator"],
             ["🌐 Language", "🤝 Invite Friends"],
             ["📩 Contact Admin"]
-        ], resize_keyboard=True)
+        ]
+        if is_admin:
+            kb.append(["📢 Broadcast Message"])
+            
+    return ReplyKeyboardMarkup(kb, resize_keyboard=True)
         
 # ================== START ==================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -436,7 +446,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             text = "📅 Welcome to Ethio Date Converter\n\nSelect option:"
 
-        await update.message.reply_text(text, reply_markup=menu(lang))
+        await update.message.reply_text(text, reply_markup=get_menu(uid, lang))
         
         # Refresh commands on start if role changed or just to ensure correctness
         await refresh_user_commands(context.bot, uid)
@@ -491,7 +501,7 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg = f"ዛሬ \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
             msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
 
-        await update.message.reply_text(msg, reply_markup=menu(lang))
+        await update.message.reply_text(msg, reply_markup=get_menu(uid, lang))
     except Exception as e:
         await send_error(update, context, e, "today")
 
@@ -508,7 +518,7 @@ async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             msg = "✅ Language changed to English"
 
-        await update.message.reply_text(msg, reply_markup=menu(new_lang))
+        await update.message.reply_text(msg, reply_markup=get_menu(uid, new_lang))
         
     except Exception as e:
         await send_error(update, context, e, "lang")
@@ -687,12 +697,12 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
     # Language Selection Buttons
     if text == "🇺🇸 English":
         set_lang(uid, "en")
-        await update.message.reply_text("✅ Language set to English", reply_markup=menu("en"))
+        await update.message.reply_text("✅ Language set to English", reply_markup=get_menu(uid, "en"))
         return True
 
     if text == "🇪🇹 አማርኛ":
         set_lang(uid, "am")
-        await update.message.reply_text("✅ ቋንቋ ወደ አማርኛ ተቀይሯል", reply_markup=menu("am"))
+        await update.message.reply_text("✅ ቋንቋ ወደ አማርኛ ተቀይሯል", reply_markup=get_menu(uid, "am"))
         return True
 
     # Main Reply Keyboard Actions
@@ -743,6 +753,12 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text(prompt)
         return True
 
+    # Broadcast Menu Button
+    if text in ["📢 Broadcast Message", "📢 መልዕክት ማስተላለፊያ (Broadcast)"]:
+        if is_admin_db(uid) or uid in ADMIN_IDS:
+            await update.message.reply_text("Usage: /broadcast <message>\n\nOr just type your message with the command.")
+        return True
+
     return False
 
 async def process_g2e(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
@@ -752,7 +768,7 @@ async def process_g2e(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int
         wk_day = datetime(y, m, d).weekday()
         msg = f"🇺🇸 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(m)-1]} - {y}\n"
         msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed} - {ey}"
-        await update.message.reply_text(msg, reply_markup=menu(lang))
+        await update.message.reply_text(msg, reply_markup=get_menu(update.effective_user.id, lang))
         context.user_data.pop("mode", None)
     except Exception as e:
         await send_error(update, context, e, "process_g2e")
@@ -771,7 +787,7 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             text = f"<b>Ethio Date Converter Bot</b>\n\nInvite your friends to use this bot! You can use it to convert between Gregorian and Ethiopian dates easily.\n\n<b>Referral Link:</b> {share_link}"
 
-        await update.message.reply_text(text, parse_mode="HTML")
+        await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_menu(uid, lang))
     except Exception as e:
         await send_error(update, context, e, "share_command")
 
@@ -911,25 +927,12 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "broadcast_command")
 
-        report = (
-            f"📢 <b>Broadcast Complete</b>\n\n"
-            f"👥 Total Targets: {total}\n"
-            f"👤 Individual Users: {len(user_ids)}\n"
-            f"🏘 Group Chats: {len(group_ids)}\n\n"
-            f"✅ Successfully Sent: {success}\n"
-            f"🚫 Blocked/Kicked: {blocked}\n"
-            f"❌ Other Failures: {failed}"
-        )
-        await update.message.reply_text(report, parse_mode="HTML")
-    except Exception as e:
-        await send_error(update, context, e, "broadcast_command")
-
 async def process_e2g(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
     gd, gm, gy = eth_to_greg(d, m, y)
     wk_day = datetime(gy, gm, gd).weekday()
     msg = f"🇺🇸 {gy} - {gm:02} - {gd:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(gm)-1]} - {gy}\n"
     msg += f"🇪🇹 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(m)-1]} - {d} - {y}"
-    await update.message.reply_text(msg, reply_markup=menu(lang))
+    await update.message.reply_text(msg, reply_markup=get_menu(update.effective_user.id, lang))
     context.user_data.pop("mode", None)
 
 async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str, mode: str):
@@ -950,7 +953,7 @@ async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d
             err = "❌ የልደት ቀን ወደፊት መሆን አይችልም!"
         else:
             err = "❌ Birthdate cannot be in the future!"
-        await update.message.reply_text(err, reply_markup=menu(lang))
+        await update.message.reply_text(err, reply_markup=get_menu(uid, lang))
         context.user_data.pop("mode", None)
         return
 
@@ -966,7 +969,7 @@ async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d
     else:
         msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን"
 
-    await update.message.reply_text(msg, parse_mode="HTML", reply_markup=menu(lang))
+    await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_menu(update.effective_user.id, lang))
     context.user_data.pop("mode", None)
   #menu commands
 
@@ -1033,7 +1036,7 @@ async def handle_admin_contact_message(update: Update, context: ContextTypes.DEF
         else:
             confirm = "✅ Your message has been sent to the admin. Thank you!"
             
-        await update.message.reply_text(confirm, reply_markup=menu(lang))
+        await update.message.reply_text(confirm, reply_markup=get_menu(uid, lang))
         
         # Clear mode immediately
         if "mode" in context.user_data:
@@ -1206,4 +1209,4 @@ async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text = "❌ Unknown command. Please use the menu below or type /help for help."
         
-    await update.message.reply_text(text, reply_markup=menu(lang))
+    await update.message.reply_text(text, reply_markup=get_menu(update.effective_user.id, lang))
