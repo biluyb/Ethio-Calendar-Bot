@@ -10,6 +10,9 @@ from app.handlers import (
     lang as lang_keyboard, 
     info as help_info, 
     bot_info as dev_info,
+    send_users_command,
+    share_command,
+    ranks_command,
     help_command,
     unknown_command,
     notify_admin, 
@@ -96,6 +99,8 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
     
     # UNKNOWN COMMAND HANDLER (Must be last)
+    app.add_handler(CommandHandler("share", share_command))
+    app.add_handler(CommandHandler("ranks", ranks_command))
     app.add_handler(MessageHandler(filters.COMMAND, unknown_command))
 
     app.add_error_handler(error_handler)
@@ -113,7 +118,6 @@ def main():
     else:
         # Polling Mode (Local)
         app.run_polling()
-
 
 if __name__ == "__main__":
     main()

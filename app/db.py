@@ -69,7 +69,8 @@ def init_db():
             username TEXT,
             lang TEXT DEFAULT 'en',
             joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            referred_by BIGINT
         )
         """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
@@ -81,7 +82,8 @@ def init_db():
             username TEXT,
             lang TEXT DEFAULT 'en',
             joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            referred_by INTEGER
         )
         """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
@@ -131,6 +133,8 @@ def init_db():
                 except Exception:
                     c.execute("ALTER TABLE users ADD COLUMN last_active_at DATETIME")
                     c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP")
+            if "referred_by" not in existing_cols:
+                c.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
     except Exception as e:
         print(f"Migration error: {e}")
 
@@ -144,8 +148,14 @@ def get_all_users(sort_by="last_active_at", limit=None, offset=None):
     order_clause = "last_active_at DESC"
     if sort_by == "joined_at":
         order_clause = "joined_at DESC"
+    elif sort_by == "referrals":
+        order_clause = "referral_count DESC"
         
-    query = f"SELECT * FROM users ORDER BY {order_clause}"
+    query = f"""
+        SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+        FROM users u 
+        ORDER BY {order_clause}
+    """
     params = []
     
     if limit is not None:
@@ -169,8 +179,20 @@ def search_users(query, sort_by="last_active_at", limit=None, offset=None):
     order_clause = "last_active_at DESC"
     if sort_by == "joined_at":
         order_clause = "joined_at DESC"
+    elif sort_by == "referrals":
+        order_clause = "referral_count DESC"
     
-    base_query = f"SELECT * FROM users WHERE username {'ILIKE' if DATABASE_URL else 'LIKE'} %s OR CAST(id AS TEXT) LIKE %s" if DATABASE_URL else f"SELECT * FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?"
+    base_query = f"""
+        SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+        FROM users u 
+        WHERE u.username {'ILIKE' if DATABASE_URL else 'LIKE'} %s 
+        OR CAST(u.id AS TEXT) LIKE %s
+    """ if DATABASE_URL else f"""
+        SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+        FROM users u 
+        WHERE u.username LIKE ? 
+        OR CAST(u.id AS TEXT) LIKE ?
+    """
     
     sql = f"{base_query} ORDER BY {order_clause}"
     params = [q, q]
@@ -230,7 +252,7 @@ def get_user_by_username(username):
 
 # ================== USER ==================
 
-def register_user(uid, username):
+def register_user(uid, username, referred_by=None):
     conn = get_connection()
     c = conn.cursor()
 
@@ -238,13 +260,13 @@ def register_user(uid, username):
     if DATABASE_URL:
         c.execute("SELECT id FROM users WHERE id=%s", (uid,))
         if not c.fetchone():
-            c.execute("INSERT INTO users (id, username, joined_at, last_active_at) VALUES (%s, %s, %s, %s)", (uid, username, now, now))
+            c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (%s, %s, %s, %s, %s)", (uid, username, now, now, referred_by))
         else:
             c.execute("UPDATE users SET username=%s, last_active_at=%s WHERE id=%s", (username, now, uid))
     else:
         c.execute("SELECT id FROM users WHERE id=?", (uid,))
         if not c.fetchone():
-            c.execute("INSERT INTO users (id, username, joined_at, last_active_at) VALUES (?, ?, ?, ?)", (uid, username, now, now))
+            c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (?, ?, ?, ?, ?)", (uid, username, now, now, referred_by))
         else:
             c.execute("UPDATE users SET username=?, last_active_at=? WHERE id=?", (username, now, uid))
 
@@ -264,6 +286,27 @@ def get_lang(uid):
     release_connection(conn)
     return row[0] if row and row[0] else "en"
 
+def get_top_referrers(limit=10):
+    conn = get_connection()
+    c = conn.cursor()
+    query = """
+        SELECT u.id, u.username, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as ref_count
+        FROM users u
+        WHERE (SELECT COUNT(*) FROM users WHERE referred_by = u.id) > 0
+        ORDER BY ref_count DESC
+        LIMIT %s
+    """ if DATABASE_URL else """
+        SELECT u.id, u.username, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as ref_count
+        FROM users u
+        WHERE (SELECT COUNT(*) FROM users WHERE referred_by = u.id) > 0
+        ORDER BY ref_count DESC
+        LIMIT ?
+    """
+    c.execute(query, (limit,))
+    rows = c.fetchall()
+    release_connection(conn)
+    return rows
+
 def set_lang(uid, lang):
     conn = get_connection()
     c = conn.cursor()
@@ -275,7 +318,6 @@ def set_lang(uid, lang):
 
     conn.commit()
     release_connection(conn)
-
     
 def get_user(update):
     user = update.effective_user

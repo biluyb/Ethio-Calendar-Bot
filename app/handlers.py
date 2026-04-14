@@ -24,6 +24,7 @@ from app.db import (
     get_all_users, 
     search_users,
     get_user_count,
+    get_top_referrers,
     get_user_by_id,
     get_user_by_username
 )
@@ -45,6 +46,8 @@ USER_CMDS = [
     BotCommand("start", "Start the bot"),
     BotCommand("lang", "Change language"),
     BotCommand("info", "Information about the calendar"),
+    BotCommand("share", "Invite friends"),
+    BotCommand("ranks", "Referral leaderboard"),
     BotCommand("help", "How to use the bot")
 ]
 
@@ -143,15 +146,15 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
     msg += f"📄 Page {page+1} of {total_pages}\n\n"
     
     for user_data in display_users:
-        # DB returns: (id, username, lang, joined_at, last_active_at)
-        uid, uname, lang, joined, active = user_data[:5]
+        # DB returns: (id, username, lang, joined_at, last_active_at, referred_by, referral_count)
+        uid, uname, lang, joined, active, ref_by, ref_count = user_data[:7]
         
         # Format timestamps if they are strings (SQLite)
         if isinstance(active, str) and len(active) > 16:
             active = active[:16]
         
         msg += f"• <code>{uname}</code> - {uid}\n"
-        msg += f"   └>> Active: {active}\n"
+        msg += f"   └>> Active: {active} | 🤝 Invites: <b>{ref_count}</b>\n"
     
     # Buttons
     buttons = []
@@ -166,7 +169,8 @@ async def send_users_page(update: Update, query: str, page: int, sort_by: str = 
         
     sort_buttons = [
         InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:last_active_at:{q_part}"),
-        InlineKeyboardButton("🆕 Newest", callback_data=f"u:0:joined_at:{q_part}")
+        InlineKeyboardButton("🆕 Newest", callback_data=f"u:0:joined_at:{q_part}"),
+        InlineKeyboardButton("🤝 Referrals", callback_data=f"u:0:referrals:{q_part}")
     ]
     
     keyboard = []
@@ -312,13 +316,15 @@ def menu(lang):
         return ReplyKeyboardMarkup([
             ["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"],
             ["📆 ዛሬ", "🎂 የዕድሜ ስሌት"],
-            ["🌐 ቋንቋ", "📩 አድሚኑን ያግኙ"]
+            ["🌐 ቋንቋ", "🤝 ጓደኞችን ይጋብዙ"],
+            ["📩 አድሚኑን ያግኙ"]
         ], resize_keyboard=True)
     else:
         return ReplyKeyboardMarkup([
             ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
             ["📆 Today", "🎂 Age Calculator"],
-            ["🌐 Language", "📩 Contact Admin"]
+            ["🌐 Language", "🤝 Invite Friends"],
+            ["📩 Contact Admin"]
         ], resize_keyboard=True)
         
 # ================== START ==================
@@ -330,7 +336,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.chat.send_action(action="typing")
 
         username = user.username or user.full_name or str(uid)
-        register_user(uid, username)
+        
+        # Check for referral payload in /start
+        referred_by = None
+        if context.args and context.args[0].isdigit():
+            referrer_id = int(context.args[0])
+            if referrer_id != uid: # Cannot refer self
+                referred_by = referrer_id
+        
+        register_user(uid, username, referred_by=referred_by)
 
         lang = get_lang(uid)
 
@@ -612,6 +626,10 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text(prompt, reply_markup=InlineKeyboardMarkup(keyboard))
         return True
 
+    if text in ["🤝 Invite Friends", "🤝 ጓደኞችን ይጋብዙ"]:
+        await share_command(update, context)
+        return True
+
     if text in ["📅 Gregorian ➜ Ethiopian", "📅 ከፈረንጅ ወደ ኢትዮጵያ"]:
         context.user_data["mode"] = "g2e"
         prompt = "Enter date DD/MM/YYYY\n\nExample: 21/12/2022" if lang == "en" else "ቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
@@ -633,6 +651,43 @@ async def process_g2e(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int
     msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed} - {ey}"
     await update.message.reply_text(msg, reply_markup=menu(lang))
     context.user_data.pop("mode", None)
+
+async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    lang = get_lang(uid)
+    bot_username = (await context.bot.get_me()).username
+    share_link = f"https://t.me/{bot_username}?start={uid}"
+    
+    if lang == "am":
+        text = f"<b>የኢትዮጵያ ቀን መለወጫ ቦት</b>\n\nይህንን ቦት ለጓደኞችዎ እንዲጠቀሙ ይጋብዙ! ቦቱን ተጠቅመው የፈረንጅን ቀን ወደ ኢትዮጵያ፣ የኢትዮጵያን ደግሞ ወደ ፈረንጅ መቀየር ይችላሉ።\n\n<b>መጋበዣ ሊንክ፦</b> {share_link}"
+    else:
+        text = f"<b>Ethio Date Converter Bot</b>\n\nInvite your friends to use this bot! You can use it to convert between Gregorian and Ethiopian dates easily.\n\n<b>Referral Link:</b> {share_link}"
+
+    await update.message.reply_text(text, parse_mode="HTML")
+
+async def ranks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    lang = get_lang(uid)
+    
+    top_users = get_top_referrers(10)
+    
+    if lang == "am":
+        title = "🏆 <b>ጥሩ ጋባዦች (Top Referrers)</b>\n\n"
+        empty = "ገና ምንም መጋበዣዎች የሉም።"
+    else:
+        title = "🏆 <b>Top Referrers Leaderboard</b>\n\n"
+        empty = "No referrals yet. Be the first to invite!"
+
+    if not top_users:
+        await update.message.reply_text(title + empty, parse_mode="HTML")
+        return
+
+    msg = title
+    for i, (uid_r, uname, count) in enumerate(top_users, 1):
+        medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "🎖"
+        msg += f"{medal} <b>{uname}</b> — {count} invites\n"
+    
+    await update.message.reply_text(msg, parse_mode="HTML")
 
 async def process_e2g(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
     gd, gm, gy = eth_to_greg(d, m, y)
