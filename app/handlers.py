@@ -671,6 +671,15 @@ async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d
         birth_date = datetime(gy, gm, gd)
         wk_day = birth_date.weekday()
         ed, em, ey = d, m, y
+    
+    if birth_date > now:
+        if lang == "am":
+            err = "❌ የልደት ቀን ወደፊት መሆን አይችልም!"
+        else:
+            err = "❌ Birthdate cannot be in the future!"
+        await update.message.reply_text(err, reply_markup=menu(lang))
+        context.user_data.pop("mode", None)
+        return
 
     years, months, days = calculate_age(birth_date, now)
     
