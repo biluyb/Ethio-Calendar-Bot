@@ -18,6 +18,7 @@ from app.handlers import (
     format_error_report,
     users, 
     users_callback, 
+    ranks_callback,
     age_mode_callback, 
     add_admin, 
     del_admin, 
@@ -90,6 +91,7 @@ def main():
     
     # CALLBACKS
     app.add_handler(CallbackQueryHandler(users_callback, pattern="^u:"))
+    app.add_handler(CallbackQueryHandler(ranks_callback, pattern="^r:"))
     app.add_handler(CallbackQueryHandler(age_mode_callback, pattern="^age_mode_"))
     app.add_handler(CallbackQueryHandler(contact_admin_callback, pattern="^contact_admin_request$"))
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))

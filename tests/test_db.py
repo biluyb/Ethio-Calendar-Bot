@@ -1,7 +1,7 @@
 import pytest
 import os
 import sqlite3
-from app.db import init_db, register_user, get_all_users, get_user_count, search_users, set_lang, get_lang, get_top_referrers
+from app.db import init_db, register_user, get_all_users, get_user_count, search_users, set_lang, get_lang, get_top_referrers, get_referrers_count
 
 @pytest.fixture(autouse=True)
 def setup_test_db(monkeypatch, tmp_path):
@@ -55,16 +55,24 @@ def test_language_settings():
     assert get_lang(1) == "am"
 
 def test_referrals():
-    register_user(1, "referrer")
-    register_user(2, "referred", referred_by=1)
+    is_new1 = register_user(1, "referrer")
+    is_new2 = register_user(2, "referred", referred_by=1)
+    is_new3 = register_user(1, "referrer_updated") # Existing user
+    
+    assert is_new1 is True
+    assert is_new2 is True
+    assert is_new3 is False
     
     # Check if referral is counted in all_users
     users = get_all_users(sort_by="referrals")
     referrer = next(u for u in users if u[0] == 1)
     assert referrer[6] == 1 # referrals count is index 6
     
-    # Check top referrers
-    top = get_top_referrers()
+    # Check top referrers with pagination
+    top = get_top_referrers(limit=1, offset=0)
     assert len(top) == 1
     assert top[0][0] == 1
     assert top[0][2] == 1
+    
+    # Check referrers count
+    assert get_referrers_count() == 1

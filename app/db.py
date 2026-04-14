@@ -259,21 +259,25 @@ def register_user(uid, username, referred_by=None):
     c = conn.cursor()
 
     now = get_eth_now()
+    is_new = False
     if DATABASE_URL:
         c.execute("SELECT id FROM users WHERE id=%s", (uid,))
         if not c.fetchone():
             c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (%s, %s, %s, %s, %s)", (uid, username, now, now, referred_by))
+            is_new = True
         else:
             c.execute("UPDATE users SET username=%s, last_active_at=%s WHERE id=%s", (username, now, uid))
     else:
         c.execute("SELECT id FROM users WHERE id=?", (uid,))
         if not c.fetchone():
             c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (?, ?, ?, ?, ?)", (uid, username, now, now, referred_by))
+            is_new = True
         else:
             c.execute("UPDATE users SET username=?, last_active_at=? WHERE id=?", (username, now, uid))
 
     conn.commit()
     release_connection(conn)
+    return is_new
 
 def get_lang(uid):
     conn = get_connection()
@@ -288,26 +292,41 @@ def get_lang(uid):
     release_connection(conn)
     return row[0] if row and row[0] else "en"
 
-def get_top_referrers(limit=10):
+def get_top_referrers(limit=10, offset=0):
     conn = get_connection()
     c = conn.cursor()
-    query = """
-        SELECT u.id, u.username, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as ref_count
-        FROM users u
-        WHERE (SELECT COUNT(*) FROM users WHERE referred_by = u.id) > 0
-        ORDER BY ref_count DESC
-        LIMIT %s
-    """ if DATABASE_URL else """
-        SELECT u.id, u.username, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as ref_count
-        FROM users u
-        WHERE (SELECT COUNT(*) FROM users WHERE referred_by = u.id) > 0
-        ORDER BY ref_count DESC
-        LIMIT ?
-    """
-    c.execute(query, (limit,))
+    
+    if DATABASE_URL:
+        query = """
+            SELECT u.id, u.username, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as ref_count
+            FROM users u
+            WHERE (SELECT COUNT(*) FROM users WHERE referred_by = u.id) > 0
+            ORDER BY ref_count DESC
+            LIMIT %s OFFSET %s
+        """
+        c.execute(query, (limit, offset))
+    else:
+        query = """
+            SELECT u.id, u.username, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as ref_count
+            FROM users u
+            WHERE (SELECT COUNT(*) FROM users WHERE referred_by = u.id) > 0
+            ORDER BY ref_count DESC
+            LIMIT ? OFFSET ?
+        """
+        c.execute(query, (limit, offset))
+        
     rows = c.fetchall()
     release_connection(conn)
     return rows
+
+def get_referrers_count():
+    conn = get_connection()
+    c = conn.cursor()
+    query = "SELECT COUNT(DISTINCT referred_by) FROM users WHERE referred_by IS NOT NULL"
+    c.execute(query)
+    count = c.fetchone()[0]
+    release_connection(conn)
+    return count
 
 def set_lang(uid, lang):
     conn = get_connection()

@@ -24,6 +24,7 @@ from app.db import (
     get_all_users, 
     search_users,
     get_user_count,
+    get_referrers_count,
     get_top_referrers,
     get_user_by_id,
     get_user_by_username
@@ -344,7 +345,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if referrer_id != uid: # Cannot refer self
                 referred_by = referrer_id
         
-        register_user(uid, username, referred_by=referred_by)
+        is_new = register_user(uid, username, referred_by=referred_by)
+
+        # Notify referrer if this is a new registration
+        if is_new and referred_by:
+            try:
+                ref_lang = get_lang(referred_by)
+                if ref_lang == "am":
+                    notif = f"🎉 <b>እንኳን ደስ አለዎት!</b>\n\n<b>{username}</b> በእርስዎ ግብዣ መሠረት ቦቱን ተቀላቅሏል።"
+                else:
+                    notif = f"🎉 <b>New Referral!</b>\n\n<b>{username}</b> has joined the bot using your invite link."
+                await context.bot.send_message(chat_id=referred_by, text=notif, parse_mode="HTML")
+            except Exception:
+                pass # Referrer might have blocked the bot or ID is invalid
 
         lang = get_lang(uid)
 
@@ -671,11 +684,15 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(text, parse_mode="HTML")
 
-async def ranks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def send_ranks_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int = 0):
+    per_page = 10
+    offset = page * per_page
+    
+    top_users = get_top_referrers(limit=per_page, offset=offset)
+    total_count = get_referrers_count()
+    
     uid = update.effective_user.id
     lang = get_lang(uid)
-    
-    top_users = get_top_referrers(10)
     
     if lang == "am":
         title = "🏆 <b>ጥሩ ጋባዦች (Top Referrers)</b>\n\n"
@@ -684,16 +701,47 @@ async def ranks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         title = "🏆 <b>Top Referrers Leaderboard</b>\n\n"
         empty = "No referrals yet. Be the first to invite!"
 
-    if not top_users:
-        await update.message.reply_text(title + empty, parse_mode="HTML")
+    if not top_users and page == 0:
+        if update.message:
+            await update.message.reply_text(title + empty, parse_mode="HTML")
+        else:
+            await update.callback_query.edit_message_text(title + empty, parse_mode="HTML")
         return
 
     msg = title
-    for i, (uid_r, uname, count) in enumerate(top_users, 1):
+    for i, (uid_r, uname, count) in enumerate(top_users, 1 + offset):
         medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else "🎖"
-        msg += f"{medal} <b>{uname}</b> — {count} invites\n"
+        msg += f"{i}. {medal} <b>{uname}</b> — {count} invites\n"
     
-    await update.message.reply_text(msg, parse_mode="HTML")
+    # Pagination buttons
+    buttons = []
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    if page > 0:
+        buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"r:{page-1}"))
+    if page < total_pages - 1:
+        buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"r:{page+1}"))
+        
+    reply_markup = InlineKeyboardMarkup([buttons]) if buttons else None
+    
+    if update.message:
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+    else:
+        try:
+            await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                raise e
+
+async def ranks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await send_ranks_page(update, context, page=0)
+
+async def ranks_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    data = query.data # format: r:{page}
+    page = int(data.split(":")[1])
+    await send_ranks_page(update, context, page=page)
+    await query.answer()
 
 async def process_e2g(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
     gd, gm, gy = eth_to_greg(d, m, y)
