@@ -1,29 +1,36 @@
 # Ethiopian Calendar Bot (@pagumebot)
 
-This is a simple but powerful Telegram bot that helps you convert dates between the Ethiopian and Gregorian calendars. It also calculates age precisely and provides historical info about the Ethiopian calendar.
+A powerful, role-aware Telegram bot that provides date conversion, age calculation, and detailed information about the Ethiopian calendar with a robust administrative system.
 
-## What it does
+## ✨ Core Features
 
-### For Everyone
-- **Convert Dates:** Quickly flip between Gregorian and Ethiopian dates.
-- **Check Today:** See what today's date is in both systems, including Amharic weekday and month names.
-- **Calculate Age:** Find out exactly how old you are in years, months, and days using either your Gregorian or Ethiopian birthdate.
-- **Learn:** Use `/info` to learn some interesting facts about how the Ethiopian calendar works.
-- **Two Languages:** Works in both English and Amharic (አማርኛ).
+### 👤 For Everyone
+- **📅 Accurate Date Conversion:** Seamlessly flip between Gregorian and Ethiopian calendars.
+- **📅 Today at a Glance:** Instant view of today's date in both systems, including Amharic weekday and month names.
+- **🎂 Precision Age Calculator:** Calculate your exact age (years, months, days) using either Gregorian or Ethiopian birthdates.
+- **🤝 Referral System:** Invite friends and earn rankings. Track your impact on the leaderboard!
+- **📖 Educational Content:** Learn the historical and structural facts behind the unique Ethiopian calendar.
+- **🌐 Multilingual:** Full support for **English** and **Amharic (አማርኛ)**.
 
-### For Admins
-- **Manage Users:** View stats and search for users directly through a dashboard.
-- **Admin Tools:** Add or remove other admins with simple commands.
-- **Direct Support:** Users can message the admin through the bot, and admins can reply back directly.
-- **Health Checks:** The bot automatically alerts admins if something goes wrong.
+### 👑 For Administrators (RBAC System)
+The bot uses a strict Role-Based Access Control (RBAC) hierarchy:
 
-## Tech Stack
+- **Standard Users:** Access to core conversion and info tools.
+- **Admins:** 
+  - **📊 Unified Dashboard:** Manage users with an interactive, paginated dashboard (Filter by Activity, Joined, Referrals, or Blocked status).
+  - **📢 Mass Broadcast:** Send messages to all users and group chats simultaneously.
+  - **🚫 Access Control:** Block or unblock problematic users and groups from interacting with the bot.
+  - **✉️ Direct Support:** Reply directly to user messages sent via the "Contact Admin" feature.
+- **Super-Admins:** 
+  - Full control over the administrative roster (Add/Remove/List admins).
+
+## 🛠 Tech Stack
 - **Python 3.12+**
-- **python-telegram-bot**
-- **SQLite3** for the database
-- **Docker** support for easy hosting
+- **python-telegram-bot** (High-level wrapper for Telegram Bot API)
+- **PostgreSQL / SQLite** (Flexible database support)
+- **Docker** support for containerized deployment
 
-## How to run it locally
+## 🚀 Getting Started
 
 1. **Clone the repo:**
    ```bash
@@ -31,41 +38,24 @@ This is a simple but powerful Telegram bot that helps you convert dates between 
    cd Ethio-Calendar-Bot
    ```
 
-2. **Set up a virtual environment:**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Add your tokens:**
-   Create a `.env` file and add your bot token and admin ID:
+2. **Set up Environment:**
+   Create a `.env` file from the provided template:
    ```env
    BOT_TOKEN=your_token_here
    ADMIN_ID=your_telegram_id
+   DATABASE_URL=your_db_url (optional, defaults to SQLite)
    ```
 
-5. **Run the bot:**
+3. **Run with Docker:**
    ```bash
-   python run.py
+   docker build -t ethio-calendar-bot .
+   docker run -d --name ethio-bot --env-file .env ethio-calendar-bot
    ```
 
-## Running with Docker
-If you prefer Docker, you can use:
-```bash
-docker build -t ethio-calendar-bot .
-docker run -d --name ethio-bot --env-file .env ethio-calendar-bot
-```
+## 🤝 Contributing
+Built for the Ethiopian community. Feel free to open issues or submit PRs!
 
-## Contact
+## 📬 Contact
 Developed by **ShademT**
 - Telegram: [@pagumebot](https://t.me/pagumebot)
-- Email: biluquick123@gmail.com
 - © May 2026
-
----
-*Built for the Ethiopian community.*
