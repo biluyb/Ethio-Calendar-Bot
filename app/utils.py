@@ -56,9 +56,17 @@ def eth_to_greg(d, m, y):
         raise ValueError(error_msg)
         
     try:
-        new_year = date(y + 7, 9, 11)
+        # Determine Gregorian New Year for the given Ethiopian year
+        # Ethiopian leap year is y % 4 == 3. 
+        # The GC New Year shift to Sept 12 happens when the PREVIOUS EC year was leap.
+        # So if (y-1) % 4 == 3, New Year is Sept 12.
+        if (y - 1) % 4 == 3:
+            gw = date(y + 7, 9, 12)
+        else:
+            gw = date(y + 7, 9, 11)
+            
         days = (m - 1) * 30 + (d - 1)
-        g = new_year + timedelta(days=days)
+        g = gw + timedelta(days=days)
         return g.day, g.month, g.year
     except OverflowError:
         raise ValueError("Date out of range")
@@ -68,15 +76,29 @@ def eth_to_greg(d, m, y):
 def greg_to_eth(d, m, y):
     try:
         g = date(y, m, d)
+        
+        # New Year in GC for EC (y-7)
+        # We need to know if (y-8) EC was leap to decide if New Year is Sept 11 or 12.
+        ec_year_approx = y - 8
+        if ec_year_approx % 4 == 3: # Previous EC year (y-8) was leap
+            new_year = date(y, 9, 12)
+        else:
+            new_year = date(y, 9, 11)
 
-        new_year = date(y, 9, 11)
         if g < new_year:
-            if y <= 1:
-                raise ValueError("Year out of range")
-            new_year = date(y - 1, 9, 11)
-
+            # We are in the previous EC year
+            # Check if (y-9) EC was leap
+            if (y - 9) % 4 == 3:
+                new_year = date(y - 1, 9, 12)
+            else:
+                new_year = date(y - 1, 9, 11)
+                
         delta = (g - new_year).days
         eth_year = new_year.year - 7
+        
+        # Adjust for the Sept 12 case in the mapping
+        # If new_year.day was 12, then eth_year is indeed new_year.year - 7
+        # e.g. Sept 12, 2023 -> Meskerem 1, 2016. 2023 - 7 = 2016. Correct.
 
         m_eth = delta // 30 + 1
         d_eth = delta % 30 + 1
