@@ -164,7 +164,7 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         per_page = 10
         
         # 1. Get total count from DB
-        count = get_user_count(query if query else None)
+        count = get_user_count(query if query else None, filter_blocked=(sort_by == "blocked"))
         
         if count == 0:
             text = "❌ No users found."
@@ -188,21 +188,30 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         else:
             display_users = get_all_users(sort_by=sort_by, limit=per_page, offset=offset)
     
+        sort_name = {
+            'last_active_at': '🔥 Most Active',
+            'joined_at': '🆕 Newest',
+            'referrals': '🤝 Referrals',
+            'blocked': '🚫 Blocked'
+        }.get(sort_by, '🔥 Most Active')
+        
         msg = f"👥 <b>Total Users:</b> {count}\n"
         if query:
             msg += f"🔍 <b>Search:</b> {query}\n"
-        msg += f"📊 <b>Sort:</b> {'Most Active' if sort_by == 'last_active_at' else ('Referrals' if sort_by == 'referrals' else 'Newest')}\n"
+        msg += f"📊 <b>View:</b> {sort_name}\n"
         msg += f"📄 Page {page+1} of {total_pages}\n\n"
         
         for user_data in display_users:
-            # DB returns: (id, username, lang, joined_at, last_active_at, referred_by, referral_count)
-            uid, uname, lang, joined, active, ref_by, ref_count = user_data[:7]
+            # DB returns: (id, username, lang, joined_at, last_active_at, referred_by, is_blocked, referral_count)
+            uid, uname, lang, joined, active, ref_by, is_blocked = user_data[:7]
+            ref_count = user_data[7]
             
             # Format timestamps if they are strings (SQLite)
             if isinstance(active, str) and len(active) > 16:
                 active = active[:16]
             
-            msg += f"• <code>{uname}</code> - {uid}\n"
+            block_icon = "🚫 " if is_blocked else ""
+            msg += f"• {block_icon}<code>{uname}</code> - {uid}\n"
             msg += f"   └>> Active: {active} | 🤝 Invites: <b>{ref_count}</b>\n"
         
         # Buttons
@@ -217,14 +226,19 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{q_part}"))
             
         sort_buttons = [
-            InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:last_active_at:{q_part}"),
-            InlineKeyboardButton("🆕 Newest", callback_data=f"u:0:joined_at:{q_part}"),
-            InlineKeyboardButton("🤝 Referrals", callback_data=f"u:0:referrals:{q_part}")
+            [
+                InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:last_active_at:{q_part}"),
+                InlineKeyboardButton("🆕 Newest", callback_data=f"u:0:joined_at:{q_part}")
+            ],
+            [
+                InlineKeyboardButton("🤝 Referrals", callback_data=f"u:0:referrals:{q_part}"),
+                InlineKeyboardButton("🚫 Blocked", callback_data=f"u:0:blocked:{q_part}")
+            ]
         ]
         
         keyboard = []
         if buttons: keyboard.append(buttons)
-        keyboard.append(sort_buttons)
+        keyboard.extend(sort_buttons)
         
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -756,8 +770,8 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("✅ ቋንቋ ወደ አማርኛ ተቀይሯል", reply_markup=get_menu(uid, "am"))
         return True
 
-    # Main Reply Keyboard Actions
-    if text in ["📆 Today", "📆 ዛሬ"]:
+    # Special Command Handling
+    if text in ["📅 Today", "📅 ዛሬ"]:
         await today(update, context)
         return True
 

@@ -192,28 +192,27 @@ def get_all_user_ids():
         release_connection(conn)
 
 def get_all_users(sort_by="last_active_at", limit=None, offset=None):
-    """
-    Retrieves a list of all users with their referral counts.
-    Supports sorting by last activity, join date, or referral count.
-    Supports pagination via limit and offset.
-    """
+    """Retrieves all users with optional filtering for blocked status."""
     conn = get_connection()
     try:
         c = conn.cursor()
-        
         order_clause = "last_active_at DESC"
         if sort_by == "joined_at":
             order_clause = "joined_at DESC"
         elif sort_by == "referrals":
             order_clause = "referral_count DESC"
             
+        where_clause = ""
+        if sort_by == "blocked":
+            where_clause = "WHERE u.is_blocked = TRUE" if DATABASE_URL else "WHERE u.is_blocked = 1"
+        
         query = f"""
             SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
             FROM users u 
+            {where_clause}
             ORDER BY {order_clause}
         """
         params = []
-        
         if limit is not None:
             query += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
             params.append(limit)
@@ -230,36 +229,33 @@ def get_all_users(sort_by="last_active_at", limit=None, offset=None):
         release_connection(conn)
 
 def search_users(query, sort_by="last_active_at", limit=None, offset=None):
-    """
-    Searches users by username or ID with support for sorting and pagination.
-    Uses case-insensitive search (ILIKE) on PostgreSQL.
-    """
+    """Searches users with support for blocked filtering and sorting."""
     conn = get_connection()
     try:
         c = conn.cursor()
         q = f"%{query}%"
-        
         order_clause = "last_active_at DESC"
         if sort_by == "joined_at":
             order_clause = "joined_at DESC"
         elif sort_by == "referrals":
             order_clause = "referral_count DESC"
+
+        filter_blocked = (sort_by == "blocked")
+        where_conds = []
+        if filter_blocked:
+            where_conds.append("u.is_blocked = TRUE" if DATABASE_URL else "u.is_blocked = 1")
         
+        search_part = f"(u.username {'ILIKE' if DATABASE_URL else 'LIKE'} %s OR CAST(u.id AS TEXT) LIKE %s)" if DATABASE_URL else "(u.username LIKE ? OR CAST(u.id AS TEXT) LIKE ?)"
+        where_conds.append(search_part)
+        where_clause = "WHERE " + " AND ".join(where_conds)
+            
         base_query = f"""
             SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
             FROM users u 
-            WHERE u.username {'ILIKE' if DATABASE_URL else 'LIKE'} %s 
-            OR CAST(u.id AS TEXT) LIKE %s
-        """ if DATABASE_URL else f"""
-            SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
-            FROM users u 
-            WHERE u.username LIKE ? 
-            OR CAST(u.id AS TEXT) LIKE ?
+            {where_clause}
         """
-        
         sql = f"{base_query} ORDER BY {order_clause}"
         params = [q, q]
-        
         if limit is not None:
             sql += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
             params.append(limit)
@@ -275,19 +271,28 @@ def search_users(query, sort_by="last_active_at", limit=None, offset=None):
     finally:
         release_connection(conn)
 
-def get_user_count(search_query=None):
-    """Returns the total number of users, optionally filtered by search."""
+def get_user_count(search_query=None, filter_blocked=False):
+    """Returns the total number of users, optionally filtered by search and block status."""
     conn = get_connection()
     try:
         c = conn.cursor()
+        where_conds = []
+        params = []
+        
+        if filter_blocked:
+            where_conds.append("is_blocked = TRUE" if DATABASE_URL else "is_blocked = 1")
+            
         if search_query:
             q = f"%{search_query}%"
-            if DATABASE_URL:
-                c.execute("SELECT COUNT(*) FROM users WHERE username ILIKE %s OR CAST(id AS TEXT) LIKE %s", (q, q))
-            else:
-                c.execute("SELECT COUNT(*) FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?", (q, q))
-        else:
-            c.execute("SELECT COUNT(*) FROM users")
+            search_cond = "(username ILIKE %s OR CAST(id AS TEXT) LIKE %s)" if DATABASE_URL else "(username LIKE ? OR CAST(id AS TEXT) LIKE ?)"
+            where_conds.append(search_cond)
+            params.extend([q, q])
+            
+        sql = "SELECT COUNT(*) FROM users"
+        if where_conds:
+            sql += " WHERE " + " AND ".join(where_conds)
+            
+        c.execute(sql, tuple(params))
         return c.fetchone()[0]
     except Exception as e:
         print(f"Error in get_user_count: {e}")
