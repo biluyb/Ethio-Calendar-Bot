@@ -75,6 +75,13 @@ def init_db():
         """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS groups (
+                id BIGINT PRIMARY KEY,
+                title TEXT,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
     else:
         c.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -88,6 +95,13 @@ def init_db():
         """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS groups (
+                id INTEGER PRIMARY KEY,
+                title TEXT,
+                joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
 
     # 2. ADMINS TABLE
     if DATABASE_URL:
@@ -395,4 +409,30 @@ def remove_admin_db(uid):
     else:
         c.execute("DELETE FROM admins WHERE id=?", (uid,))
     conn.commit()
+    release_connection(conn)
+
+# ================== GROUPS ==================
+
+def register_group(group_id, title):
+    conn = get_connection()
+    c = conn.cursor()
+    now = get_eth_now()
+    if DATABASE_URL:
+        c.execute("INSERT INTO groups (id, title, joined_at) VALUES (%s, %s, %s) ON CONFLICT (id) DO UPDATE SET title=%s", (group_id, title, now, title))
+    else:
+        c.execute("SELECT id FROM groups WHERE id=?", (group_id,))
+        if not c.fetchone():
+            c.execute("INSERT INTO groups (id, title, joined_at) VALUES (?, ?, ?)", (group_id, title, now))
+        else:
+            c.execute("UPDATE groups SET title=? WHERE id=?", (title, group_id))
+    conn.commit()
+    release_connection(conn)
+
+def get_all_group_ids():
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("SELECT id FROM groups")
+    rows = c.fetchall()
+    release_connection(conn)
+    return [r[0] for r in rows]
     release_connection(conn)

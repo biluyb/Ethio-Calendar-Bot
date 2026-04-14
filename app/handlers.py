@@ -22,7 +22,9 @@ from app.db import (
     add_admin_db, 
     remove_admin_db,
     get_all_user_ids,
-    get_all_users, 
+    get_all_users,
+    register_group,
+    get_all_group_ids, 
     search_users,
     get_user_count,
     get_referrers_count,
@@ -347,6 +349,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 referred_by = referrer_id
         
         is_new = register_user(uid, username, referred_by=referred_by)
+        track_group(update)
 
         # Notify referrer if this is a new registration
         if is_new and referred_by:
@@ -520,12 +523,20 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "help_command")
 
+def track_group(update: Update):
+    chat = update.effective_chat
+    if chat and chat.type in ["group", "supergroup"]:
+        register_group(chat.id, chat.title)
+
 # ================== HANDLE ==================
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
-        text = update.message.text.strip()
+        if not update.message or not update.message.text:
+            return
+
         uid = update.effective_user.id
+        track_group(update)
         
         await update.message.chat.send_action(action="typing")
         
@@ -755,23 +766,31 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     broadcast_msg = " ".join(context.args)
     user_ids = get_all_user_ids()
-    total = len(user_ids)
+    group_ids = get_all_group_ids()
     
-    status_msg = await update.message.reply_text(f"🚀 Starting broadcast to {total} users...")
+    all_targets = user_ids + group_ids
+    total = len(all_targets)
+    
+    status_msg = await update.message.reply_text(
+        f"🚀 Starting broadcast to {total} targets...\n"
+        f"(👤 Users: {len(user_ids)}, 👥 Groups: {len(group_ids)})"
+    )
     
     success = 0
     failed = 0
     blocked = 0
     
-    for i, user_id in enumerate(user_ids):
+    # Combine lists and start broadcasting
+    for i, target_id in enumerate(all_targets):
         try:
-            await context.bot.send_message(chat_id=user_id, text=broadcast_msg, parse_mode="HTML")
+            await context.bot.send_message(chat_id=target_id, text=broadcast_msg, parse_mode="HTML")
             success += 1
         except Exception as e:
             err_str = str(e).lower()
             if "bot was blocked by the user" in err_str or "user is deactivated" in err_str:
                 blocked += 1
             else:
+                # If it's a group, it might be that the bot was kicked
                 failed += 1
         
         # Rate limiting: ~20 messages per second
@@ -779,15 +798,21 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             import asyncio
             await asyncio.sleep(1)
             try:
-                await status_msg.edit_text(f"⏳ Broadcasting... {i}/{total}\n✅ Success: {success}\n❌ Failed: {failed+blocked}")
+                await status_msg.edit_text(
+                    f"⏳ Broadcasting... {i}/{total}\n"
+                    f"✅ Success: {success}\n"
+                    f"❌ Failed: {failed+blocked}"
+                )
             except Exception:
                 pass
 
     report = (
         f"📢 <b>Broadcast Complete</b>\n\n"
-        f"👥 Total Users: {total}\n"
+        f"👥 Total Targets: {total}\n"
+        f"👤 Individual Users: {len(user_ids)}\n"
+        f"🏘 Group Chats: {len(group_ids)}\n\n"
         f"✅ Successfully Sent: {success}\n"
-        f"🚫 Blocked/Deactivated: {blocked}\n"
+        f"🚫 Blocked/Kicked: {blocked}\n"
         f"❌ Other Failures: {failed}"
     )
     await update.message.reply_text(report, parse_mode="HTML")
