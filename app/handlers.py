@@ -74,7 +74,8 @@ ADMIN_CMDS = USER_CMDS + [
 
 SUPER_ADMIN_CMDS = ADMIN_CMDS + [
     BotCommand("addadmin", "Add new admin"),
-    BotCommand("deladmin", "Remove admin")
+    BotCommand("deladmin", "Remove admin"),
+    BotCommand("listadmins", "List all admins")
 ]
 
 # ================== ERROR NOTIFIER==================
@@ -611,12 +612,16 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_error(update, context, e, "info")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Provides a tailored help guide based on the user's role (User/Admin/Super-Admin)."""
     try:
         uid = update.effective_user.id
         lang = get_lang(uid)
-        
+        is_admin = is_admin_db(uid) or uid in ADMIN_IDS
+        is_super = uid in ADMIN_IDS
+
         if lang == "am":
             text = "<b>🆘 የቦቱ እርዳታ</b>\n\n"
+            text += "<b>👤 የተጠቃሚ ትዕዛዞች:</b>\n"
             text += "/start - ቦቱን ለመጀመር\n"
             text += "/lang - ቋንቋ ለመቀየር\n"
             text += "/today - የዛሬን ቀን ለማየት\n"
@@ -625,19 +630,23 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text += "/about - ስለ ቦቱ መረጃ (አድሚኑን ለማግኘት)\n"
             text += "/help - ይህንን የእርዳታ መልዕክት ለማሳየት\n"
             
-            if is_admin_db(uid) or uid in ADMIN_IDS:
+            if is_admin:
                 text += "\n<b>👑 የአስተዳዳሪ ትዕዛዞች:</b>\n"
                 text += "/users - ስለ ተጠቃሚዎች መረጃ\n"
                 text += "/send_msg - ለተጠቃሚ መልዕክት ለመላክ\n"
                 text += "/broadcast - ለሁሉም ተጠቃሚዎች መልዕክት ለመላክ\n"
+                text += "/block - ተጠቃሚን ወይም ግሩፕን ለማገድ\n"
+                text += "/unblock - የታገደን ተጠቃሚ ለማንሳት\n"
                 
-                if uid in ADMIN_IDS:
+                if is_super:
+                    text += "\n<b>🛡️ የሱፐር-አድሚን ትዕዛዞች:</b>\n"
                     text += "/addadmin - አዲስ አስተዳዳሪ ለመጨመር\n"
                     text += "/deladmin - አስተዳዳሪ ለመቀነስ\n"
                     text += "/listadmins - የአስተዳዳሪዎች ዝርዝር\n"
 
         else:
             text = "<b>🆘 Bot Help</b>\n\n"
+            text += "<b>👤 User Commands:</b>\n"
             text += "/start - Start the bot\n"
             text += "/lang - Change language\n"
             text += "/today - Show today's date\n"
@@ -646,13 +655,16 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text += "/about - Bot info (Contact Admin)\n"
             text += "/help - Show this help message\n"
             
-            if is_admin_db(uid) or uid in ADMIN_IDS:
+            if is_admin:
                 text += "\n<b>👑 Admin Commands:</b>\n"
                 text += "/users - User dashboard\n"
                 text += "/send_msg - Send DM to user\n"
                 text += "/broadcast - Send message to all users\n"
+                text += "/block - Block a user or group\n"
+                text += "/unblock - Unblock a user or group\n"
                 
-                if uid in ADMIN_IDS:
+                if is_super:
+                    text += "\n<b>🛡️ Super-Admin Commands:</b>\n"
                     text += "/addadmin - Add new admin\n"
                     text += "/deladmin - Remove admin\n"
                     text += "/listadmins - List all admins\n"
