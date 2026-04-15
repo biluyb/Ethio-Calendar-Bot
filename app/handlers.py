@@ -875,8 +875,8 @@ async def process_g2e(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int
     try:
         ed, em, ey = greg_to_eth(d, m, y)
         wk_day = datetime(y, m, d).weekday()
-        msg = f"🇺🇸 {y} - {m:02} - {d:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(m)-1]} - {y}\n"
-        msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed} - {ey}"
+        msg = f"🇺🇸 {d:02} - {m:02} - {y} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(m)-1]} - {d:02}\n"
+        msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]}, {AM_MONTHS[int(em)-1]} - {ed}"
         await update.message.reply_text(msg, reply_markup=get_menu(update.effective_user.id, lang))
         context.user_data.pop("mode", None)
     except ValueError as e:
@@ -1060,8 +1060,8 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def process_e2g(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str):
     gd, gm, gy = eth_to_greg(d, m, y)
     wk_day = datetime(gy, gm, gd).weekday()
-    msg = f"🇺🇸 {gy} - {gm:02} - {gd:02} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(gm)-1]} - {gy}\n"
-    msg += f"🇪🇹 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(m)-1]} - {d} - {y}"
+    msg = f"🇺🇸 {gd:02} - {gm:02} - {gy} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(gm)-1]} \n"
+    msg += f"🇪🇹 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(m)-1]} - {d} "
     await update.message.reply_text(msg, reply_markup=get_menu(update.effective_user.id, lang))
     context.user_data.pop("mode", None)
 
