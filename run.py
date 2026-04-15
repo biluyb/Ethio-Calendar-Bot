@@ -24,7 +24,6 @@ from app.handlers import (
     today,
     lang as lang_keyboard, 
     info as help_info, 
-    bot_info as dev_info,
     share_command,
     ranks_command,
     help_command,
@@ -39,7 +38,6 @@ from app.handlers import (
     add_admin, 
     del_admin, 
     list_admins, 
-    contact_admin_callback, 
     admin_reply_callback,
     send_msg_command,
     block_command,
@@ -109,7 +107,6 @@ def main():
     app.add_handler(CommandHandler("today", today))
     app.add_handler(CommandHandler("lang", lang_keyboard))
     app.add_handler(CommandHandler("info", help_info))
-    app.add_handler(CommandHandler("about", dev_info))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("share", share_command))
     app.add_handler(CommandHandler("ranks", ranks_command))
@@ -126,7 +123,6 @@ def main():
     app.add_handler(CallbackQueryHandler(users_callback, pattern="^u:"))
     app.add_handler(CallbackQueryHandler(ranks_callback, pattern="^r:"))
     app.add_handler(CallbackQueryHandler(age_mode_callback, pattern="^age_mode_"))
-    app.add_handler(CallbackQueryHandler(contact_admin_callback, pattern="^contact_admin_request$"))
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
 
     # Content Handlers

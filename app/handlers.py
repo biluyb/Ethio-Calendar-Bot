@@ -829,14 +829,15 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
         if lang == "am":
             info_prefix = "የቦት መረጃ\n\nበ ShademT የተሰራ\n\n© May 2026\n\n"
             msg = info_prefix + "<b>✍️ እባክዎን መልዕክትዎን እዚህ ይጻፉ...</b>"
+            add_text = "➕ ወደ ግሩፕ አስገባ"
         else:
             info_prefix = "<b>Bot Information:</b>\n\nDeveloped by ShademT\n\n© May 2026\n\n"
             msg = info_prefix + "<b>✍️ Please type your message below...</b>"
-        await update.message.reply_text(msg, parse_mode="HTML")
-        return True
+            add_text = "➕ Add to Group"
 
-    if text in ["ℹ️ About", "ℹ️ ስለ ቦቱ"]:
-        await bot_info(update, context)
+        add_url = f"https://t.me/{context.bot.username}?startgroup=true"
+        keyboard = [[InlineKeyboardButton(add_text, url=add_url)]]
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return True
 
     if text in ["🎂 Age Calculator", "🎂 የዕድሜ ስሌት"]:
@@ -1112,44 +1113,7 @@ async def lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     )
     
-async def bot_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        uid = update.effective_user.id
-        lang = get_lang(uid)
 
-        if lang == "am":
-            text = " የቦት መረጃ\n\n በ ShademT የተሰራ\n \n  © May 2026"
-            btn_text = "📩 አድሚኑን ያግኙ"
-            add_text = "➕ ወደ ግሩፕ አስገባ"
-        else:
-            text = " Bot Information\n\nDeveloped by ShademT\n\n   © May 2026"
-            btn_text = "📩 Contact Admin"
-            add_text = "➕ Add to Group"
-
-        add_url = f"https://t.me/{context.bot.username}?startgroup=true"
-        keyboard = [
-            [InlineKeyboardButton(add_text, url=add_url)],
-            [InlineKeyboardButton(btn_text, callback_data="contact_admin_request")]
-        ]
-        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-    
-    except Exception as e:
-        await send_error(update, context, e, "bot_info")    
-
-async def contact_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    uid = update.effective_user.id
-    lang = get_lang(uid)
-    
-    context.user_data["mode"] = "contact_admin"
-    
-    if lang == "am":
-        msg = "እባክዎን ለአድሚኑ መላክ የሚፈልጉትን መልዕክት ይጻፉ።"
-    else:
-        msg = "Please type the message you want to send to the admin."
-        
-    await query.message.reply_text(msg)
-    await query.answer()
 
 async def handle_admin_contact_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
