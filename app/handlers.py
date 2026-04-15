@@ -19,6 +19,9 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 
+# Constants
+REDIRECT_IMAGE_URL = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1000&auto=format&fit=crop"
+
 # Local imports
 from app.db import (
     register_user, 
@@ -608,10 +611,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 
             bot_username = context.bot.username
             dm_url = f"https://t.me/{bot_username}?start=from_group"
-            btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot in DM"
+            btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot"
             keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
             msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
-            await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+            await update.message.reply_photo(
+                photo=REDIRECT_IMAGE_URL, 
+                caption=msg, 
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
             return
 
         user = update.effective_user
@@ -836,10 +843,14 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 register_user(uid, update.effective_user.username or update.effective_user.full_name) if uid else None
                 bot_username = context.bot.username
                 dm_url = f"https://t.me/{bot_username}?start=from_group"
-                btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot in DM"
+                btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot"
                 keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
                 msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
-                await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+                await update.message.reply_photo(
+                    photo=REDIRECT_IMAGE_URL, 
+                    caption=msg, 
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
             return
 
         if not update.message or not update.message.text:
