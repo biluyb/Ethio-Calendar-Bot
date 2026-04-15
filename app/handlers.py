@@ -595,6 +595,25 @@ async def check_blocked(update: Update):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await check_blocked(update): return
     try:
+        # Redirect group chat messages to DM before any other processing
+        if update.effective_chat and update.effective_chat.type in ["group", "supergroup"]:
+            uid = update.effective_user.id if update.effective_user else None
+            lang = get_lang(uid) if uid else "en"
+            track_group(update)
+            if uid: register_user(uid, update.effective_user.username or update.effective_user.full_name)
+            
+            # Note: start group is only when adding bot, start from_group when redirecting
+            if context.args and "startgroup" in context.args:
+                return # Don't redirect if it's the automated message upon adding to group
+                
+            bot_username = context.bot.username
+            dm_url = f"https://t.me/{bot_username}?start=from_group"
+            btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot in DM"
+            keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
+            msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
+            await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+            return
+
         user = update.effective_user
         uid = user.id
 
@@ -1380,14 +1399,25 @@ async def send_msg_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if target_query.lstrip('-').isdigit():
         target_id = int(target_query)
         user_data = get_user_by_id(target_id)
-        if not user_data and target_id < 0:
-            # Negative ID - could be a group
+        if not user_data:
+            # Check if it's a group ID, trying both the raw target_id and negative version
+            potential_group_ids = [target_id]
+            if target_id > 0:
+                potential_group_ids.append(-target_id)
+                # Some groups are -100XXXX...
+                if not str(target_id).startswith("100"):
+                    potential_group_ids.append(int(f"-100{target_id}"))
+                    
             from app.db import get_all_groups
             groups = get_all_groups(limit=1000, offset=0)
-            matched = [(g[0], g[1]) for g in groups if g[0] == target_id]
-            if matched:
-                target_uid, target_name = matched[0]
-                is_group_target = True
+            
+            for pid in potential_group_ids:
+                matched = [(g[0], g[1]) for g in groups if g[0] == pid]
+                if matched:
+                    target_uid, target_name = matched[0]
+                    is_group_target = True
+                    break
+
     else:
         user_data = get_user_by_username(target_query)
         
