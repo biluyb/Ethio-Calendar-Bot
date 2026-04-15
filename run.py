@@ -45,6 +45,7 @@ from app.handlers import (
     send_msg_command,
     block_command,
     unblock_command,
+    leavegroup_command,
     USER_CMDS,
     refresh_user_commands
 )
@@ -122,6 +123,7 @@ def main():
     app.add_handler(CommandHandler("send_msg", send_msg_command))
     app.add_handler(CommandHandler("block", block_command))
     app.add_handler(CommandHandler("unblock", unblock_command))
+    app.add_handler(CommandHandler("leavegroup", leavegroup_command))
     
     # Callback Handlers (Inline Buttons)
     app.add_handler(CallbackQueryHandler(users_callback, pattern="^u:"))

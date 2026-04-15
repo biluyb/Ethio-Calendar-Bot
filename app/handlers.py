@@ -66,10 +66,12 @@ USER_CMDS = [
 
 ADMIN_CMDS = USER_CMDS + [
     BotCommand("users", "User dashboard"),
+    BotCommand("groups", "List groups the bot is in"),
     BotCommand("broadcast", "Send message to all users"),
     BotCommand("send_msg", "Send DM to a user by ID or username"),
     BotCommand("block", "Block a user or group"),
-    BotCommand("unblock", "Unblock a user or group")
+    BotCommand("unblock", "Unblock a user or group"),
+    BotCommand("leavegroup", "Force bot to leave a group")
 ]
 
 SUPER_ADMIN_CMDS = ADMIN_CMDS + [
@@ -547,6 +549,38 @@ async def unblock_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "unblock_command")
 
+async def leavegroup_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to force the bot to leave a specified group."""
+    try:
+        uid = update.effective_user.id
+        if not is_admin_db(uid):
+            return
+
+        if not context.args:
+            await update.message.reply_text(
+                "Usage: /leavegroup <group_id>\n\nUse /groups to find group IDs."
+            )
+            return
+
+        try:
+            group_id = int(context.args[0])
+        except ValueError:
+            await update.message.reply_text("❌ Invalid group ID. Must be a number.")
+            return
+
+        try:
+            await context.bot.leave_chat(chat_id=group_id)
+            await update.message.reply_text(
+                f"✅ Bot has left group <code>{group_id}</code>.", parse_mode="HTML"
+            )
+        except Exception as leave_err:
+            await update.message.reply_text(
+                f"❌ Could not leave group <code>{group_id}</code>: {leave_err}", parse_mode="HTML"
+            )
+    except Exception as e:
+        await send_error(update, context, e, "leavegroup_command")
+
+
 async def check_blocked(update: Update):
     """Checks if the user or chat is blocked. Returns True if blocked."""
     if not update or not update.effective_chat:
@@ -719,10 +753,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if is_admin:
                 text += "\n<b>👑 የአስተዳዳሪ ትዕዛዞች:</b>\n"
                 text += "/users - ስለ ተጠቃሚዎች መረጃ\n"
+                text += "/groups - ቦቱ ያለባቸው ግሩፖች ዝርዝር\n"
                 text += "/send_msg - ለተጠቃሚ መልዕክት ለመላክ\n"
                 text += "/broadcast - ለሁሉም ተጠቃሚዎች መልዕክት ለመላክ\n"
                 text += "/block - ተጠቃሚን ወይም ግሩፕን ለማገድ\n"
                 text += "/unblock - የታገደን ተጠቃሚ ለማንሳት\n"
+                text += "/leavegroup - ቦቱን ከግሩፕ ለማስወጣት (ID ያስፈልጋል)\n"
                 
                 if is_super:
                     text += "\n<b>🛡️ የሱፐር-አድሚን ትዕዛዞች:</b>\n"
@@ -744,10 +780,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if is_admin:
                 text += "\n<b>👑 Admin Commands:</b>\n"
                 text += "/users - User dashboard\n"
+                text += "/groups - List groups the bot is in\n"
                 text += "/send_msg - Send DM to user\n"
                 text += "/broadcast - Send message to all users\n"
                 text += "/block - Block a user or group\n"
                 text += "/unblock - Unblock a user or group\n"
+                text += "/leavegroup - Force bot to leave a group (requires group ID)\n"
                 
                 if is_super:
                     text += "\n<b>🛡️ Super-Admin Commands:</b>\n"
