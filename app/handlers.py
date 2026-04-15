@@ -288,6 +288,92 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "users_callback")
 
+async def send_groups_page(update, context, page=0):
+    """Helper to send or edit the groups paginated dashboard."""
+    try:
+        from app.db import get_all_groups, get_group_count
+        per_page = 10
+        count = get_group_count()
+        total_pages = (count + per_page - 1) // per_page
+        
+        if total_pages == 0:
+            msg = "🚫 No groups found."
+            if update.message:
+                await update.message.reply_text(msg)
+            else:
+                await update.callback_query.edit_message_text(msg)
+            return
+            
+        if page >= total_pages:
+            page = total_pages - 1
+        if page < 0:
+            page = 0
+            
+        offset = page * per_page
+        display_groups = get_all_groups(limit=per_page, offset=offset)
+        
+        msg = f"🏘️ <b>Total Groups:</b> {count}\n"
+        msg += f"📄 Page {page+1} of {total_pages}\n\n"
+        
+        for g_id, g_title, g_joined, g_blocked in display_groups:
+            if isinstance(g_joined, str) and len(g_joined) > 16:
+                g_joined = g_joined[:16]
+            block_icon = "🚫 " if g_blocked else ""
+            msg += f"• {block_icon}<code>{g_title}</code> - {g_id}\n"
+            msg += f"   └>> Added: {g_joined}\n"
+            
+        # Buttons
+        buttons = []
+        if isinstance(page, int) and page > 0:
+            buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"g:{page-1}"))
+        if isinstance(page, int) and isinstance(total_pages, int) and page < total_pages - 1:
+            buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"g:{page+1}"))
+            
+        keyboard = []
+        if buttons: keyboard.append(buttons)
+        reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
+        
+        if update.message:
+            await update.message.reply_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+        else:
+            try:
+                await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+            except Exception as e:
+                if "Message is not modified" not in str(e):
+                    raise e
+    except Exception as e:
+        await send_error(update, context, e, "send_groups_page")
+
+async def groups_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to list all groups the bot is in."""
+    try:
+        uid = update.effective_user.id
+        if not is_admin_db(uid):
+            await update.message.reply_text("❌ You are not authorized to use this command.")
+            return
+
+        await send_groups_page(update, context, page=0)
+    except Exception as e:
+        await send_error(update, context, e, "groups_command")
+
+async def groups_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles pagination for the groups list."""
+    try:
+        query_obj = update.callback_query
+        uid = update.effective_user.id
+        if not is_admin_db(uid):
+            await query_obj.answer("Unauthorized", show_alert=True)
+            return
+            
+        data = query_obj.data  
+        parts = data.split(":")
+        page = int(parts[1])
+        
+        await send_groups_page(update, context, page)
+        await query_obj.answer()
+    except Exception as e:
+        await send_error(update, context, e, "groups_callback")
+
 async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Super-Admin command to promote a user to Admin status."""
     try:

@@ -34,6 +34,8 @@ from app.handlers import (
     users_callback, 
     ranks_callback,
     broadcast_command,
+    groups_command,
+    groups_callback,
     age_mode_callback, 
     add_admin, 
     del_admin, 
@@ -112,6 +114,7 @@ def main():
     app.add_handler(CommandHandler("ranks", ranks_command))
     app.add_handler(CommandHandler("broadcast", broadcast_command))
     app.add_handler(CommandHandler("users", users))
+    app.add_handler(CommandHandler("groups", groups_command))
     app.add_handler(CommandHandler("addadmin", add_admin))
     app.add_handler(CommandHandler("deladmin", del_admin))
     app.add_handler(CommandHandler("listadmins", list_admins))
@@ -123,6 +126,7 @@ def main():
     app.add_handler(CallbackQueryHandler(users_callback, pattern="^u:"))
     app.add_handler(CallbackQueryHandler(ranks_callback, pattern="^r:"))
     app.add_handler(CallbackQueryHandler(age_mode_callback, pattern="^age_mode_"))
+    app.add_handler(CallbackQueryHandler(groups_callback, pattern="^g:"))
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
 
     # Content Handlers

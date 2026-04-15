@@ -517,6 +517,41 @@ def get_all_group_ids():
     finally:
         release_connection(conn)
 
+def get_all_groups(limit=10, offset=0):
+    """Retrieves all groups with their titles and join dates."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        query = "SELECT id, title, joined_at, is_blocked FROM groups ORDER BY joined_at DESC "
+        params = []
+        if limit is not None:
+            query += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
+            params.append(limit)
+        if offset is not None:
+            query += " OFFSET %s" if DATABASE_URL else " OFFSET ?"
+            params.append(offset)
+            
+        c.execute(query, tuple(params))
+        return c.fetchall()
+    except Exception as e:
+        print(f"Error in get_all_groups: {e}")
+        return []
+    finally:
+        release_connection(conn)
+
+def get_group_count():
+    """Returns total number of groups."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM groups")
+        return c.fetchone()[0]
+    except Exception as e:
+        print(f"Error in get_group_count: {e}")
+        return 0
+    finally:
+        release_connection(conn)
+
 def block_entity_db(entity_id, is_user=True):
     """Blocks a user or group."""
     conn = get_connection()
