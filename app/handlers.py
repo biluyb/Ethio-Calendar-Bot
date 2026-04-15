@@ -7,6 +7,7 @@ Uses a centralized error reporting system (`send_error`) to notify maintainers o
 import calendar
 import html
 import asyncio
+import os
 from datetime import datetime, timedelta, date
 
 from telegram import (
@@ -21,6 +22,7 @@ from telegram.ext import ContextTypes
 
 # Constants
 REDIRECT_IMAGE_URL = "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=1000&auto=format&fit=crop"
+INVITE_IMAGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "invite.jpg")
 
 # Local imports
 from app.db import (
@@ -605,20 +607,25 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             track_group(update)
             if uid: register_user(uid, update.effective_user.username or update.effective_user.full_name)
             
-            # Note: start group is only when adding bot, start from_group when redirecting
-            if context.args and "startgroup" in context.args:
-                return # Don't redirect if it's the automated message upon adding to group
-                
             bot_username = context.bot.username
             dm_url = f"https://t.me/{bot_username}?start=from_group"
             btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot"
             keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
             msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
-            await update.message.reply_photo(
-                photo=REDIRECT_IMAGE_URL, 
-                caption=msg, 
-                reply_markup=InlineKeyboardMarkup(keyboard)
-            )
+            
+            try:
+                with open(INVITE_IMAGE_PATH, "rb") as photo:
+                    await update.message.reply_photo(
+                        photo=photo, 
+                        caption=msg, 
+                        reply_markup=InlineKeyboardMarkup(keyboard)
+                    )
+            except Exception:
+                await update.message.reply_photo(
+                    photo=REDIRECT_IMAGE_URL, 
+                    caption=msg, 
+                    reply_markup=InlineKeyboardMarkup(keyboard)
+                )
             return
 
         user = update.effective_user
@@ -846,11 +853,20 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot"
                 keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
                 msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
-                await update.message.reply_photo(
-                    photo=REDIRECT_IMAGE_URL, 
-                    caption=msg, 
-                    reply_markup=InlineKeyboardMarkup(keyboard)
-                )
+                
+                try:
+                    with open(INVITE_IMAGE_PATH, "rb") as photo:
+                        await update.message.reply_photo(
+                            photo=photo, 
+                            caption=msg, 
+                            reply_markup=InlineKeyboardMarkup(keyboard)
+                        )
+                except Exception:
+                    await update.message.reply_photo(
+                        photo=REDIRECT_IMAGE_URL, 
+                        caption=msg, 
+                        reply_markup=InlineKeyboardMarkup(keyboard)
+                    )
             return
 
         if not update.message or not update.message.text:
@@ -1086,7 +1102,17 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             text = f"<b>Ethio Date Converter Bot</b>\n\nInvite your friends to use this bot! You can use it to convert between Gregorian and Ethiopian dates easily.\n\n<b>Referral Link:</b> {share_link}"
 
-        await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_menu(uid, lang))
+        try:
+            with open(INVITE_IMAGE_PATH, "rb") as photo:
+                await update.message.reply_photo(
+                    photo=photo, 
+                    caption=text, 
+                    parse_mode="HTML",
+                    reply_markup=get_menu(uid, lang)
+                )
+        except Exception:
+            await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_menu(uid, lang))
+
     except Exception as e:
         await send_error(update, context, e, "share_command")
 
