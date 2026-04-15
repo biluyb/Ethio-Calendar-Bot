@@ -1120,11 +1120,17 @@ async def bot_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if lang == "am":
             text = " የቦት መረጃ\n\n በ ShademT የተሰራ\n \n  © May 2026"
             btn_text = "📩 አድሚኑን ያግኙ"
+            add_text = "➕ ወደ ግሩፕ አስገባ"
         else:
             text = " Bot Information\n\nDeveloped by ShademT\n\n   © May 2026"
             btn_text = "📩 Contact Admin"
+            add_text = "➕ Add to Group"
 
-        keyboard = [[InlineKeyboardButton(btn_text, callback_data="contact_admin_request")]]
+        add_url = f"https://t.me/{context.bot.username}?startgroup=true"
+        keyboard = [
+            [InlineKeyboardButton(add_text, url=add_url)],
+            [InlineKeyboardButton(btn_text, callback_data="contact_admin_request")]
+        ]
         await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
     
     except Exception as e:
