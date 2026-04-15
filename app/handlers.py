@@ -611,7 +611,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             dm_url = f"https://t.me/{bot_username}?start=from_group"
             btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot"
             keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
-            msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
+            msg = "\n\n  📩 ቦቱን ለመጠቀም ወደ DM ይሂዱ።\n\n @pagumebot\n" if lang == "am" else "\n\n📩 Please use this bot in a private DM for the best experience.\n\n @pagumebot"
             
             try:
                 with open(INVITE_IMAGE_PATH, "rb") as photo:
