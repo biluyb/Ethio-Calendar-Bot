@@ -1072,7 +1072,7 @@ async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d
             err = "❌ የልደት ቀን ወደፊት መሆን አይችልም!"
         else:
             err = "❌ Birthdate cannot be in the future!"
-        await update.message.reply_text(err, reply_markup=get_menu(uid, lang))
+        await update.message.reply_text(err, reply_markup=get_menu(update.effective_user.id, lang))
         context.user_data.pop("mode", None)
         return
 
