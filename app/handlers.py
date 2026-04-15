@@ -808,6 +808,21 @@ def track_group(update: Update):
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await check_blocked(update): return
     try:
+        # Redirect group chat messages to DM before any other processing
+        if update.effective_chat and update.effective_chat.type in ["group", "supergroup"]:
+            if update.message and update.message.text:
+                uid = update.effective_user.id if update.effective_user else None
+                lang = get_lang(uid) if uid else "en"
+                track_group(update)
+                register_user(uid, update.effective_user.username or update.effective_user.full_name) if uid else None
+                bot_username = context.bot.username
+                dm_url = f"https://t.me/{bot_username}?start=from_group"
+                btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot in DM"
+                keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
+                msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
+                await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+            return
+
         if not update.message or not update.message.text:
             return
 
@@ -819,17 +834,6 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text.strip()
         lang = get_lang(uid)
         register_user(uid, update.effective_user.username or update.effective_user.full_name)
-        
-        # If message is from a group/supergroup, redirect user to Bot DM
-        chat_type = update.effective_chat.type
-        if chat_type in ["group", "supergroup"]:
-            bot_username = context.bot.username
-            dm_url = f"https://t.me/{bot_username}?start=from_group"
-            btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot in DM"
-            keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
-            msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
-            await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
-            return
         
 
     # =====================
@@ -1367,20 +1371,34 @@ async def send_msg_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     target_query = args[0]
     
-    # Try finding user
+    # Try finding user first, then group (group IDs are negative numbers)
     user_data = None
-    if target_query.isdigit():
-        user_data = get_user_by_id(int(target_query))
+    target_uid = None
+    target_name = None
+    is_group_target = False
+    
+    if target_query.lstrip('-').isdigit():
+        target_id = int(target_query)
+        user_data = get_user_by_id(target_id)
+        if not user_data and target_id < 0:
+            # Negative ID - could be a group
+            from app.db import get_all_groups
+            groups = get_all_groups(limit=1000, offset=0)
+            matched = [(g[0], g[1]) for g in groups if g[0] == target_id]
+            if matched:
+                target_uid, target_name = matched[0]
+                is_group_target = True
     else:
         user_data = get_user_by_username(target_query)
         
-    if not user_data:
-        msg = f"❌ User <code>{target_query}</code> not found in database." if lang == "en" else f"❌ ተጠቃሚ <code>{target_query}</code> በዳታቤዙ ውስጥ አልተገኘም።"
+    if user_data:
+        target_uid = user_data[0]
+        target_name = user_data[1] or "Unknown"
+        
+    if target_uid is None:
+        msg = f"❌ User/Group <code>{target_query}</code> not found in database." if lang == "en" else f"❌ ተጠቃሚ/ግሩፕ <code>{target_query}</code> በዳታቤዙ ውስጥ አልተገኘም።"
         await update.message.reply_text(msg, parse_mode="HTML")
         return
-
-    target_uid = user_data[0]
-    target_name = user_data[1] or "Unknown"
 
     if len(args) > 1:
         # Direct send mode
