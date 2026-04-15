@@ -847,6 +847,24 @@ async def process_g2e(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int
         msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(em)-1]} - {ed} - {ey}"
         await update.message.reply_text(msg, reply_markup=get_menu(update.effective_user.id, lang))
         context.user_data.pop("mode", None)
+    except ValueError as e:
+        err_msg = str(e)
+        user_msg = (
+            f"❌ Invalid date: {err_msg}\n\nExample: 21/12/2022" if lang == "en" else 
+            f"❌ የተሳሳተ ቀን: {err_msg}\n\nለምሳሌ: 21/12/2012"
+        )
+        if "day is out of range for month" in err_msg:
+             user_msg = (
+                "❌ The day you entered is not valid for that month." if lang == "en" else 
+                "❌ ያስገቡት ቀን ለዛ ወር ትክክል አይደለም።"
+            )
+        elif "month must be in 1..12" in err_msg.lower():
+             user_msg = (
+                "❌ Month must be between 1 and 12." if lang == "en" else 
+                "❌ ወር ከ 1 እስከ 12 መሆን አለበት።"
+            )
+        await update.message.reply_text(user_msg)
+        # Don't pop mode so they can try again
     except Exception as e:
         await send_error(update, context, e, "process_g2e")
 
