@@ -770,12 +770,23 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     if lang == "en" else
                     f"❌ ትክክለኛ ያልሆነ ቀን። ወር {m} 30 ቀናት ብቻ ነው ያለው።"
                 )
-            elif "Month must be between" in error_str or "day is out of range for month" in error_str:
+            elif "month must be in" in error_str.lower() or "Month must be between" in error_str:
                 user_msg = (
-                    "❌ Invalid date: Month does not exist."
+                    "❌ Invalid date: Month must be between 1 and 12."
                     if lang == "en" else
-                    "❌ ትክክለኛ ያልሆነ ቀን። ያስገቡት ወር አይገኝም።"
+                    "❌ ትክክለኛ ያልሆነ ቀን። ወር ከ 1 እስከ 12 መሆን አለበት።"
                 )
+            elif "day is out of range for month" in error_str:
+                import calendar
+                try:
+                    max_days = calendar.monthrange(y, m)[1]
+                    user_msg = (
+                        f"❌ Invalid date: Month {m} only has {max_days} days in {y}."
+                        if lang == "en" else
+                        f"❌ ትክክለኛ ያልሆነ ቀን። በ {y} ዓ.ም ወር {m} {max_days} ቀናት ብቻ ነው ያለው።"
+                    )
+                except Exception:
+                    user_msg = "❌ Invalid date range." if lang == "en" else "❌ ያስገቡት ቀን ለዛ ወር ትክክል አይደለም።"
             else:
                 # Fallback generic date error
                 user_msg = (
