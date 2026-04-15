@@ -830,7 +830,7 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
             info_prefix = "የቦት መረጃ\n\nበ ShademT የተሰራ\n\n© May 2026\n\n"
             msg = info_prefix + "<b>✍️ እባክዎን መልዕክትዎን እዚህ ይጻፉ...</b>"
         else:
-            info_prefix = "Bot Information\n\nDeveloped by ShademT\n\n© May 2026\n\n"
+            info_prefix = "<b>Bot Information:</b>\n\nDeveloped by ShademT\n\n© May 2026\n\n"
             msg = info_prefix + "<b>✍️ Please type your message below...</b>"
         await update.message.reply_text(msg, parse_mode="HTML")
         return True
