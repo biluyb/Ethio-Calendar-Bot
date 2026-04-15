@@ -40,6 +40,7 @@ from app.handlers import (
     add_admin, 
     del_admin, 
     list_admins, 
+    contact_admin_callback,
     admin_reply_callback,
     send_msg_command,
     block_command,
@@ -127,6 +128,7 @@ def main():
     app.add_handler(CallbackQueryHandler(ranks_callback, pattern="^r:"))
     app.add_handler(CallbackQueryHandler(age_mode_callback, pattern="^age_mode_"))
     app.add_handler(CallbackQueryHandler(groups_callback, pattern="^g:"))
+    app.add_handler(CallbackQueryHandler(contact_admin_callback, pattern="^contact_admin_request$"))
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
 
     # Content Handlers

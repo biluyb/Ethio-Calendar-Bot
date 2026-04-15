@@ -922,7 +922,10 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
             add_text = "➕ Add to Group"
 
         add_url = f"https://t.me/{context.bot.username}?startgroup=true"
-        keyboard = [[InlineKeyboardButton(add_text, url=add_url)]]
+        keyboard = [
+            [InlineKeyboardButton("📩 Contact Admin" if lang == "en" else "📩 አድሚኑን ያግኙ", callback_data="contact_admin_request")],
+            [InlineKeyboardButton(add_text, url=add_url)]
+        ]
         await update.message.reply_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return True
 
@@ -1200,6 +1203,21 @@ async def lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
 
+async def contact_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles the inline 'Contact Admin' button click - prompts user to type their message."""
+    query = update.callback_query
+    uid = update.effective_user.id
+    lang = get_lang(uid)
+
+    context.user_data["mode"] = "contact_admin"
+
+    if lang == "am":
+        msg = "✍️ <b>እባክዎን ለአድሚኑ መላክ የሚፈልጉትን መልዕክት ይጻፉ።</b>"
+    else:
+        msg = "✍️ <b>Please type the message you want to send to the admin.</b>"
+
+    await query.message.reply_text(msg, parse_mode="HTML")
+    await query.answer()
 
 async def handle_admin_contact_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
