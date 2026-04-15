@@ -754,15 +754,36 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await process_age_calc(update, context, d, m, y, lang, mode)
                 
         except ValueError as e:
-            # Expected range validation errors
-            user_msg = (
-                "❌ Invalid date range. \nEnter date DD/MM/YYYY\n\nExample: 21/12/2022." 
-                if lang == "en" else 
-                "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ በዚህ ቅርጽ ያስገቡ\nቀን/ወር/ዓመት\n\nለምሳሌ: 21/12/2012"
-            )
-            # We don't necessarily need to notify admin for simple user input errors, 
-            # but we keep it here using send_error for consistency if desired.
-            # In a real senior app, we might distinguish between UserError and SystemError.
+            error_str = str(e)
+            
+            # Smart Custom Error Messages
+            if "Pagume in" in error_str:
+                limit = 6 if "1-6" in error_str else 5
+                user_msg = (
+                    f"❌ Invalid date: Pagume only has {limit} days in {y}."
+                    if lang == "en" else 
+                    f"❌ ትክክለኛ ያልሆነ ቀን። ጳጉሜ በ {y} ዓ.ም {limit} ቀናት ብቻ ነው ያላት።"
+                )
+            elif "1-30 days" in error_str:
+                user_msg = (
+                    f"❌ Invalid date: Month {m} only has 30 days."
+                    if lang == "en" else
+                    f"❌ ትክክለኛ ያልሆነ ቀን። ወር {m} 30 ቀናት ብቻ ነው ያለው።"
+                )
+            elif "Month must be between" in error_str or "day is out of range for month" in error_str:
+                user_msg = (
+                    "❌ Invalid date: Month does not exist."
+                    if lang == "en" else
+                    "❌ ትክክለኛ ያልሆነ ቀን። ያስገቡት ወር አይገኝም።"
+                )
+            else:
+                # Fallback generic date error
+                user_msg = (
+                    "❌ Invalid date range. \nEnter date DD/MM/YYYY\n\nExample: 21/12/2022." 
+                    if lang == "en" else 
+                    "❌ ትክክለኛ ያልሆነ ቀን። እባክዎ በዚህ ቅርጽ ያስገቡ\nቀን/ወር/ዓመት\n\nለምሳሌ: 21/12/2012"
+                )
+                
             await update.message.reply_text(user_msg)
             
     except Exception as e:
