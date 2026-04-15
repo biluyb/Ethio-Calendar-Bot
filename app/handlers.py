@@ -580,7 +580,6 @@ async def leavegroup_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except Exception as e:
         await send_error(update, context, e, "leavegroup_command")
 
-
 async def check_blocked(update: Update):
     """Checks if the user or chat is blocked. Returns True if blocked."""
     if not update or not update.effective_chat:
@@ -820,6 +819,17 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text.strip()
         lang = get_lang(uid)
         register_user(uid, update.effective_user.username or update.effective_user.full_name)
+        
+        # If message is from a group/supergroup, redirect user to Bot DM
+        chat_type = update.effective_chat.type
+        if chat_type in ["group", "supergroup"]:
+            bot_username = context.bot.username
+            dm_url = f"https://t.me/{bot_username}?start=from_group"
+            btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot in DM"
+            keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
+            msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
+            await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+            return
         
 
     # =====================
@@ -1240,7 +1250,6 @@ async def lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     )
     
-
 async def contact_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the inline 'Contact Admin' button click - prompts user to type their message."""
     query = update.callback_query
