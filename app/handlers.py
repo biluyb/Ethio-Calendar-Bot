@@ -629,7 +629,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             uid = update.effective_user.id if update.effective_user else None
             lang = get_lang(uid) if uid else "en"
             track_group(update)
-            if uid: register_user(uid, update.effective_user.username or update.effective_user.full_name)
+            if uid: register_user(uid, update.effective_user.username or str(uid), full_name=update.effective_user.full_name, last_command="/start (Group)")
             
             bot_username = context.bot.username
             dm_url = f"https://t.me/{bot_username}?start=from_group"
@@ -666,7 +666,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if referrer_id != uid: # Cannot refer self
                 referred_by = referrer_id
         
-        is_new = register_user(uid, username, referred_by=referred_by)
+        is_new = register_user(uid, username, full_name=user.full_name, last_command="/start", referred_by=referred_by)
         track_group(update)
 
         # Notify referrer if this is a new registration
@@ -864,6 +864,11 @@ def track_group(update: Update):
 # ================== HANDLE ==================
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await check_blocked(update): return
+    
+    user = update.effective_user
+    if user:
+        register_user(user.id, user.username or str(user.id), full_name=user.full_name, last_command=update.message.text[:50] if update.message and update.message.text else "Interaction")
+
     try:
         # Redirect group chat messages to DM before any other processing
         if update.effective_chat and update.effective_chat.type in ["group", "supergroup"]:
