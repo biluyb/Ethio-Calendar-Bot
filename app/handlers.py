@@ -45,7 +45,8 @@ from app.db import (
     get_user_by_username,
     block_entity_db,
     unblock_entity_db,
-    is_blocked_db
+    is_blocked_db,
+    get_user_details
 )
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
