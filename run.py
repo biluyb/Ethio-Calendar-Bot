@@ -126,7 +126,7 @@ def main():
     app.add_handler(CommandHandler("leavegroup", leavegroup_command))
     
     # Callback Handlers (Inline Buttons)
-    app.add_handler(CallbackQueryHandler(users_callback, pattern="^u:"))
+    app.add_handler(CallbackQueryHandler(users_callback, pattern="^(u:|ud:|toggle_block_user:|send_msg_init:)"))
     app.add_handler(CallbackQueryHandler(ranks_callback, pattern="^r:"))
     app.add_handler(CallbackQueryHandler(age_mode_callback, pattern="^age_mode_"))
     app.add_handler(CallbackQueryHandler(groups_callback, pattern="^g:"))

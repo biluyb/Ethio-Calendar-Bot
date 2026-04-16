@@ -351,6 +351,43 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query_obj.answer()
             return
             
+        # Handle Block Toggle (toggle_block_user:uid:p:s:o:q)
+        if data.startswith("toggle_block_user:"):
+            parts = data.split(":", 6)
+            target_uid = int(parts[1])
+            p_back = int(parts[2])
+            s_back = parts[3]
+            o_back = parts[4]
+            q_back = parts[5] if len(parts) > 5 else ""
+            
+            # Toggle logic
+            if is_blocked_db(target_uid):
+                unblock_entity_db(target_uid)
+                await query_obj.answer("✅ User Unblocked", show_alert=True)
+            else:
+                block_entity_db(target_uid)
+                await query_obj.answer("🚫 User Blocked", show_alert=True)
+            
+            # Refresh detail view
+            await send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, q_back)
+            return
+
+        # Handle Direct Message Initialization (send_msg_init:uid)
+        if data.startswith("send_msg_init:"):
+            target_uid = int(data.split(":")[1])
+            user_data = get_user_details(target_uid)
+            target_name = user_data[1] or user_data[2] or str(target_uid) if user_data else str(target_uid)
+            
+            context.user_data["mode"] = "admin_dm_send"
+            context.user_data["target_uid"] = target_uid
+            context.user_data["target_name"] = target_name
+            
+            lang = get_lang(uid)
+            msg = f"✍️ <b>Sending to:</b> {target_name} [<code>{target_uid}</code>]\n\nPlease type your message below:" if lang=="en" else f"✍️ <b>ለመላክ የተመረጠው፦</b> {target_name} [<code>{target_uid}</code>]\n\nእባክዎን መልዕክትዎን ከታች ይጻፉ፦"
+            await query_obj.edit_message_text(msg, parse_mode="HTML")
+            await query_obj.answer()
+            return
+
         # Handle User List (u:p:s:o:q)
         parts = data.split(":", 4)
         page = int(parts[1])
@@ -361,7 +398,6 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_users_page(update, context, search_term, page, sort_by=sort_by, order=order)
         await query_obj.answer()
     except Exception as e:
-        await send_error(update, context, e, "users_callback")
         await send_error(update, context, e, "users_callback")
 
 async def send_groups_page(update, context, page=0, query=None):
