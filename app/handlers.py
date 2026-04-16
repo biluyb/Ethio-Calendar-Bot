@@ -213,17 +213,19 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         msg += f"📄 Page {page+1} of {total_pages}\n\n"
         
         for user_data in display_users:
-            # DB returns: (id, username, lang, joined_at, last_active_at, referred_by, is_blocked, referral_count)
-            uid, uname, lang, joined, active, ref_by, is_blocked = user_data[:7]
-            ref_count = user_data[7]
+            # DB returns: (id, username, full_name, lang, joined_at, last_active_at, last_command, total_actions, referred_by, is_blocked, referral_count)
+            uid, uname, fname, lang, joined, active, last_cmd, total_acts, ref_by, is_blocked, ref_count = user_data[:11]
             
             # Format timestamps if they are strings (SQLite)
-            if isinstance(active, str) and len(active) > 16:
-                active = active[:16]
+            active_str = str(active)[:16]
             
             block_icon = "🚫 " if is_blocked else ""
-            msg += f"• {block_icon}<code>{uname}</code> - {uid}\n"
-            msg += f"   └>> Active: {active} | 🤝 Invites: <b>{ref_count}</b>\n"
+            msg += f"• {block_icon}<b>{uname}</b> - <code>{uid}</code>\n"
+            msg += f"   └>> Active: {active_str} | Actions: <b>{total_acts}</b>\n"
+            
+            # Add a button to view this specific user
+            row_btns = [InlineKeyboardButton(f"👤 View {uname or uid}", callback_data=f"ud:{uid}:{page}:{sort_by}:{q_part}")]
+            keyboard.append(row_btns)
         
         # Buttons
         buttons = []
@@ -276,6 +278,43 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     except Exception as e:
         await send_error(update, context, e, "send_users_page")
 
+async def send_user_detail_view(update, context, target_uid, p_back=0, s_back="last_active_at", o_back="DESC", q_back=""):
+    """Displays a comprehensive profile for a single user."""
+    try:
+        user_data = get_user_details(target_uid)
+        if not user_data:
+            await update.callback_query.answer("❌ User not found.", show_alert=True)
+            return
+
+        # (id, username, full_name, lang, joined_at, last_active_at, last_command, total_actions, referred_by, is_blocked, referral_count)
+        uid, uname, fname, lang, joined, active, last_cmd, total_acts, ref_by, is_blocked, ref_count = user_data
+
+        msg = f"👤 <b>User Profile: {html.escape(fname or uname or str(uid))}</b>\n"
+        msg += f"━━━━━━━━━━━━━━━\n"
+        msg += f"🆔 <b>ID:</b> <code>{uid}</code>\n"
+        msg += f"📛 <b>Username:</b> @{uname if uname else '---'}\n"
+        msg += f"🌍 <b>Language:</b> {lang.upper()}\n"
+        msg += f"🗓️ <b>Joined:</b> {str(joined)[:16]}\n"
+        msg += f"🔥 <b>Last Seen:</b> {str(active)[:16]}\n"
+        msg += f"⌨️ <b>Last Action:</b> <code>{html.escape(last_cmd or '---')}</code>\n"
+        msg += f"📊 <b>Total Actions:</b> <b>{total_acts}</b>\n"
+        msg += f"🤝 <b>Referrals:</b> <b>{ref_count}</b>\n"
+        msg += f"🛡️ <b>Referred By:</b> <code>{ref_by or '---'}</code>\n"
+        msg += f"🚫 <b>Blocked:</b> {'Yes' if is_blocked else 'No'}\n"
+        
+        buttons = [
+            [
+                InlineKeyboardButton("📩 Send Message", callback_data=f"send_msg_init:{uid}"),
+                InlineKeyboardButton("🚫 Block" if not is_blocked else "✅ Unblock", callback_data=f"toggle_block_user:{uid}:{p_back}:{s_back}:{o_back}:{q_back}")
+            ],
+            [InlineKeyboardButton("⬅️ Back to List", callback_data=f"u:{p_back}:{s_back}:{o_back}:{q_back}")]
+        ]
+        
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+    except Exception as e:
+        await send_error(update, context, e, "send_user_detail_view")
+
 async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Admin command to launch the user dashboard."""
     try:
@@ -299,6 +338,20 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
             
         data = query_obj.data  
+        
+        # Handle User Detail View (ud:uid:p:s:o:q)
+        if data.startswith("ud:"):
+            parts = data.split(":", 6)
+            target_uid = int(parts[1])
+            p_back = int(parts[2])
+            s_back = parts[3]
+            o_back = parts[4]
+            q_back = parts[5] if len(parts) > 5 else ""
+            await send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, q_back)
+            await query_obj.answer()
+            return
+            
+        # Handle User List (u:p:s:o:q)
         parts = data.split(":", 4)
         page = int(parts[1])
         sort_by = parts[2]
@@ -308,6 +361,7 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_users_page(update, context, search_term, page, sort_by=sort_by, order=order)
         await query_obj.answer()
     except Exception as e:
+        await send_error(update, context, e, "users_callback")
         await send_error(update, context, e, "users_callback")
 
 async def send_groups_page(update, context, page=0, query=None):
