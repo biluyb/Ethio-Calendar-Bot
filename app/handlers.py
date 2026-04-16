@@ -293,7 +293,8 @@ async def send_user_detail_view(update, context, target_uid, p_back=0, s_back="l
         msg += f"━━━━━━━━━━━━━━━\n"
         msg += f"🆔 <b>ID:</b> <code>{uid}</code>\n"
         msg += f"📛 <b>Username:</b> @{uname if uname else '---'}\n"
-        msg += f"🌍 <b>Language:</b> {lang.upper()}\n"
+        lang_str = str(lang or "en").upper()
+        msg += f"🌍 <b>Language:</b> {lang_str}\n"
         msg += f"🗓️ <b>Joined:</b> {str(joined)[:16]}\n"
         msg += f"🔥 <b>Last Seen:</b> {str(active)[:16]}\n"
         msg += f"⌨️ <b>Last Action:</b> <code>{html.escape(last_cmd or '---')}</code>\n"
