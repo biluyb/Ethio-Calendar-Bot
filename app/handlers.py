@@ -9,6 +9,7 @@ import html
 import asyncio
 import os
 from datetime import datetime, timedelta, date
+from typing import Optional, List, Dict
 
 from telegram import (
     Update, 
@@ -51,6 +52,31 @@ from app.db import (
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
 from app.config import ADMIN_IDS, BOT_TOKEN
+
+# ================== HELPERS ==================
+
+def track_activity(update: Update, command_name: Optional[str] = None) -> bool:
+    """Refined helper to track user activity across all entry points. Returns is_new status."""
+    user = update.effective_user
+    if user:
+        # Use provided command name, or message text, or default to Interaction
+        last_cmd = command_name
+        if not last_cmd:
+            if update.message and update.message.text:
+                last_cmd = update.message.text[:50]
+            elif update.callback_query:
+                # Store the callback data as the last action
+                last_cmd = f"Button: {update.callback_query.data[:30]}"
+            else:
+                last_cmd = "Interaction"
+        
+        return register_user(
+            user.id, 
+            user.username or str(user.id), 
+            full_name=user.full_name, 
+            last_command=last_cmd
+        )
+    return False
 
 # ================== CONSTANTS ==================
 
@@ -219,14 +245,14 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             uid, uname, fname, lang, joined, active, last_cmd, total_acts, ref_by, is_blocked, ref_count = user_data[:11]
             
             # Format timestamps if they are strings (SQLite)
-            active_str = str(active)[:16]
+            active_str = str(active)[:16] if active else "Never"
             
             block_icon = "🚫 " if is_blocked else ""
             msg += f"• {block_icon}<b>{uname}</b> - <code>{uid}</code>\n"
-            msg += f"   └>> Active: {active_str} | Actions: <b>{total_acts}</b>\n"
+            msg += f"   └>> Active: {active_str} | Actions: <b>{total_acts or 0}</b>\n"
             
-            # Add a button to view this specific user
-            row_btns = [InlineKeyboardButton(f"👤 View {uname or uid}", callback_data=f"ud:{uid}:{page}:{sort_by}:{q_part}")]
+            # Add a button for the user (centered layout by default in Telegram)
+            row_btns = [InlineKeyboardButton(f"👤 {fname or uname or uid}", callback_data=f"ud:{uid}:{page}:{sort_by}:{q_part}")]
             keyboard.append(row_btns)
         
         # Buttons
@@ -332,6 +358,7 @@ async def users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles pagination and sorting button clicks for the user dashboard."""
     try:
+        track_activity(update)
         query_obj = update.callback_query
         uid = update.effective_user.id
         if not is_admin_db(uid):
@@ -721,7 +748,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             uid = update.effective_user.id if update.effective_user else None
             lang = get_lang(uid) if uid else "en"
             track_group(update)
-            if uid: register_user(uid, update.effective_user.username or str(uid), full_name=update.effective_user.full_name, last_command="/start (Group)")
+            if uid: track_activity(update, "/start (Group)")
             
             bot_username = context.bot.username
             dm_url = f"https://t.me/{bot_username}?start=from_group"
@@ -751,13 +778,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         username = user.username or user.full_name or str(uid)
         
-        # Check for referral payload in /start
         referred_by = None
         if context.args and context.args[0].isdigit():
             referrer_id = int(context.args[0])
             if referrer_id != uid: # Cannot refer self
                 referred_by = referrer_id
         
+        # Track activity and capture if user is new for referral logic
         is_new = register_user(uid, username, full_name=user.full_name, last_command="/start", referred_by=referred_by)
         track_group(update)
 
@@ -957,9 +984,7 @@ def track_group(update: Update):
 async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if await check_blocked(update): return
     
-    user = update.effective_user
-    if user:
-        register_user(user.id, user.username or str(user.id), full_name=user.full_name, last_command=update.message.text[:50] if update.message and update.message.text else "Interaction")
+    track_activity(update)
 
     try:
         # Redirect group chat messages to DM before any other processing

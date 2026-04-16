@@ -158,6 +158,11 @@ def init_db():
                 if "total_actions" not in existing_cols:
                     c.execute("ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0")
                 
+                # Backfill
+                c.execute("UPDATE users SET total_actions = 0 WHERE total_actions IS NULL")
+                c.execute("UPDATE users SET joined_at = CURRENT_TIMESTAMP WHERE joined_at IS NULL")
+                c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE last_active_at IS NULL")
+                
                 # Update groups table
                 c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='groups'")
                 group_cols = [row[0] for row in c.fetchall()]
@@ -180,6 +185,11 @@ def init_db():
                     c.execute("ALTER TABLE users ADD COLUMN last_command TEXT")
                 if "total_actions" not in existing_cols:
                     c.execute("ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0")
+
+                # Backfill
+                c.execute("UPDATE users SET total_actions = 0 WHERE total_actions IS NULL")
+                c.execute("UPDATE users SET joined_at = CURRENT_TIMESTAMP WHERE joined_at IS NULL")
+                c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE last_active_at IS NULL")
                 
                 # Update groups table
                 c.execute("PRAGMA table_info(groups)")
