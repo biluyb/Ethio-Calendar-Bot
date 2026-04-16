@@ -539,16 +539,46 @@ def get_all_groups(limit=10, offset=0):
     finally:
         release_connection(conn)
 
-def get_group_count():
-    """Returns total number of groups."""
+def get_group_count(query=None):
+    """Returns total number of groups, supporting optional search query."""
     conn = get_connection()
     try:
         c = conn.cursor()
-        c.execute("SELECT COUNT(*) FROM groups")
+        if query:
+            stmt = "SELECT COUNT(*) FROM groups WHERE title ILIKE %s OR id::text LIKE %s" if DATABASE_URL else "SELECT COUNT(*) FROM groups WHERE title LIKE ? OR CAST(id AS TEXT) LIKE ?"
+            search_param = f"%{query}%"
+            c.execute(stmt, (search_param, search_param))
+        else:
+            c.execute("SELECT COUNT(*) FROM groups")
         return c.fetchone()[0]
     except Exception as e:
         print(f"Error in get_group_count: {e}")
         return 0
+    finally:
+        release_connection(conn)
+
+def search_groups(query, limit=10, offset=0):
+    """Searches for groups by title or ID."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        search_param = f"%{query}%"
+        stmt = "SELECT id, title, joined_at, is_blocked FROM groups WHERE title ILIKE %s OR id::text LIKE %s ORDER BY joined_at DESC " if DATABASE_URL else "SELECT id, title, joined_at, is_blocked FROM groups WHERE title LIKE ? OR CAST(id AS TEXT) LIKE ? ORDER BY joined_at DESC "
+        
+        if limit is not None:
+            stmt += " LIMIT %s" if DATABASE_URL else " LIMIT ?"
+        if offset is not None:
+            stmt += " OFFSET %s" if DATABASE_URL else " OFFSET ?"
+            
+        params = (search_param, search_param)
+        if limit is not None: params += (limit,)
+        if offset is not None: params += (offset,)
+            
+        c.execute(stmt, params)
+        return c.fetchall()
+    except Exception as e:
+        print(f"Error searching groups: {e}")
+        return []
     finally:
         release_connection(conn)
 

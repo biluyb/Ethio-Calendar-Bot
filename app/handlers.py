@@ -295,20 +295,20 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "users_callback")
 
-async def send_groups_page(update, context, page=0):
-    """Helper to send or edit the groups paginated dashboard."""
+async def send_groups_page(update, context, page=0, query=None):
+    """Helper to send or edit the groups paginated dashboard, supporting search."""
     try:
-        from app.db import get_all_groups, get_group_count
+        from app.db import get_all_groups, get_group_count, search_groups
         per_page = 10
-        count = get_group_count()
+        count = get_group_count(query=query)
         total_pages = (count + per_page - 1) // per_page
         
         if total_pages == 0:
-            msg = "🚫 No groups found."
+            msg = f"🚫 No groups found{f' for <b>{query}</b>' if query else ''}."
             if update.message:
-                await update.message.reply_text(msg)
+                await update.message.reply_text(msg, parse_mode="HTML")
             else:
-                await update.callback_query.edit_message_text(msg)
+                await update.callback_query.edit_message_text(msg, parse_mode="HTML")
             return
             
         if page >= total_pages:
@@ -317,9 +317,14 @@ async def send_groups_page(update, context, page=0):
             page = 0
             
         offset = page * per_page
-        display_groups = get_all_groups(limit=per_page, offset=offset)
+        if query:
+            display_groups = search_groups(query, limit=per_page, offset=offset)
+        else:
+            display_groups = get_all_groups(limit=per_page, offset=offset)
         
         msg = f"🏘️ <b>Total Groups:</b> {count}\n"
+        if query:
+            msg += f"🔍 <b>Search:</b> {query}\n"
         msg += f"📄 Page {page+1} of {total_pages}\n\n"
         
         for g_id, g_title, g_joined, g_blocked in display_groups:
@@ -331,10 +336,12 @@ async def send_groups_page(update, context, page=0):
             
         # Buttons
         buttons = []
+        q_part = query[:20] if query else ""
+        
         if isinstance(page, int) and page > 0:
-            buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"g:{page-1}"))
+            buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"g:{page-1}:{q_part}"))
         if isinstance(page, int) and isinstance(total_pages, int) and page < total_pages - 1:
-            buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"g:{page+1}"))
+            buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"g:{page+1}:{q_part}"))
             
         keyboard = []
         if buttons: keyboard.append(buttons)
@@ -359,7 +366,8 @@ async def groups_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ You are not authorized to use this command.")
             return
 
-        await send_groups_page(update, context, page=0)
+        query = " ".join(context.args) if context.args else None
+        await send_groups_page(update, context, page=0, query=query)
     except Exception as e:
         await send_error(update, context, e, "groups_command")
 
@@ -373,10 +381,11 @@ async def groups_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
             
         data = query_obj.data  
-        parts = data.split(":")
+        parts = data.split(":", 2)
         page = int(parts[1])
+        query = parts[2] if len(parts) > 2 else None
         
-        await send_groups_page(update, context, page)
+        await send_groups_page(update, context, page, query=query)
         await query_obj.answer()
     except Exception as e:
         await send_error(update, context, e, "groups_callback")
