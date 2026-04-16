@@ -77,9 +77,12 @@ def init_db():
             CREATE TABLE IF NOT EXISTS users (
                 id BIGINT PRIMARY KEY,
                 username TEXT,
+                full_name TEXT,
                 lang TEXT DEFAULT 'en',
                 joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_command TEXT,
+                total_actions INTEGER DEFAULT 0,
                 referred_by BIGINT,
                 is_blocked BOOLEAN DEFAULT FALSE
             )
@@ -106,9 +109,12 @@ def init_db():
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY,
                 username TEXT,
+                full_name TEXT,
                 lang TEXT DEFAULT 'en',
                 joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_command TEXT,
+                total_actions INTEGER DEFAULT 0,
                 referred_by INTEGER,
                 is_blocked BOOLEAN DEFAULT FALSE
             )
@@ -145,6 +151,12 @@ def init_db():
                     c.execute("ALTER TABLE users ADD COLUMN referred_by BIGINT")
                 if "is_blocked" not in existing_cols:
                     c.execute("ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
+                if "full_name" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
+                if "last_command" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN last_command TEXT")
+                if "total_actions" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0")
                 
                 # Update groups table
                 c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='groups'")
@@ -162,6 +174,12 @@ def init_db():
                     c.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
                 if "is_blocked" not in existing_cols:
                     c.execute("ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
+                if "full_name" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
+                if "last_command" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN last_command TEXT")
+                if "total_actions" not in existing_cols:
+                    c.execute("ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0")
                 
                 # Update groups table
                 c.execute("PRAGMA table_info(groups)")
