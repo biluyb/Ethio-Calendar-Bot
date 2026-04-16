@@ -191,17 +191,23 @@ def get_all_user_ids():
     finally:
         release_connection(conn)
 
-def get_all_users(sort_by="last_active_at", limit=None, offset=None):
-    """Retrieves all users with optional filtering for blocked status."""
+def get_all_users(sort_by="last_active_at", order="DESC", limit=None, offset=None):
+    """Retrieves all users with optional filtering for blocked status and dynamic ordering."""
     conn = get_connection()
     try:
         c = conn.cursor()
-        order_clause = "last_active_at DESC"
+        
+        # Validate order to prevent SQL injection
+        order = "ASC" if order.upper() == "ASC" else "DESC"
+        
+        field = "last_active_at"
         if sort_by == "joined_at":
-            order_clause = "joined_at DESC"
+            field = "joined_at"
         elif sort_by == "referrals":
-            order_clause = "referral_count DESC"
+            field = "referral_count"
             
+        order_clause = f"{field} {order}"
+        
         where_clause = ""
         if sort_by == "blocked":
             where_clause = "WHERE u.is_blocked = TRUE" if DATABASE_URL else "WHERE u.is_blocked = 1"
@@ -228,17 +234,23 @@ def get_all_users(sort_by="last_active_at", limit=None, offset=None):
     finally:
         release_connection(conn)
 
-def search_users(query, sort_by="last_active_at", limit=None, offset=None):
-    """Searches users with support for blocked filtering and sorting."""
+def search_users(query, sort_by="last_active_at", order="DESC", limit=None, offset=None):
+    """Searches users with support for blocked filtering, sorting, and dynamic ordering."""
     conn = get_connection()
     try:
         c = conn.cursor()
         q = f"%{query}%"
-        order_clause = "last_active_at DESC"
+        
+        # Validate order to prevent SQL injection
+        order = "ASC" if order.upper() == "ASC" else "DESC"
+        
+        field = "last_active_at"
         if sort_by == "joined_at":
-            order_clause = "joined_at DESC"
+            field = "joined_at"
         elif sort_by == "referrals":
-            order_clause = "referral_count DESC"
+            field = "referral_count"
+            
+        order_clause = f"{field} {order}"
 
         filter_blocked = (sort_by == "blocked")
         where_conds = []

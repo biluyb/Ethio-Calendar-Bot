@@ -163,7 +163,7 @@ def format_error_report(error, func_name, user_info=None):
 
 # ================== ADMIN TOOLS ==================
 # ================== users ==================
-async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, query: str, page: int, sort_by: str = "last_active_at"):
+async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, query: str, page: int, sort_by: str = "last_active_at", order: str = "DESC"):
     """
     Core logic for the paginated user dashboard. 
     Fetches data from DB and constructs the visual report with interactive buttons.
@@ -192,9 +192,9 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         
         # 2. Fetch only the required page from DB
         if query:
-            display_users = search_users(query, sort_by=sort_by, limit=per_page, offset=offset)
+            display_users = search_users(query, sort_by=sort_by, order=order, limit=per_page, offset=offset)
         else:
-            display_users = get_all_users(sort_by=sort_by, limit=per_page, offset=offset)
+            display_users = get_all_users(sort_by=sort_by, order=order, limit=per_page, offset=offset)
     
         sort_name = {
             'last_active_at': '🔥 Most Active',
@@ -206,7 +206,9 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         msg = f"👥 <b>Total Users:</b> {count}\n"
         if query:
             msg += f"🔍 <b>Search:</b> {query}\n"
-        msg += f"📊 <b>View:</b> {sort_name}\n"
+        
+        order_icon = "🔼" if order == "ASC" else "🔽"
+        msg += f"📊 <b>View:</b> {sort_name} {order_icon}\n"
         msg += f"📄 Page {page+1} of {total_pages}\n\n"
         
         for user_data in display_users:
@@ -229,18 +231,29 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         q_part = query[:20] # Limit query length in callback
         
         if isinstance(page, int) and page > 0:
-            buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{q_part}"))
+            buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{order}:{q_part}"))
         if isinstance(page, int) and isinstance(total_pages, int) and page < total_pages - 1:
-            buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{q_part}"))
+            buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{order}:{q_part}"))
             
+        def get_sort_btn(label, target_sort, icon):
+            # If current sort is this one, toggle order, otherwise default to DESC
+            target_order = "ASC" if (sort_by == target_sort and order == "DESC") else "DESC"
+            
+            # Add icon if this is the active sort
+            indicator = ""
+            if sort_by == target_sort:
+                indicator = " 🔼" if order == "ASC" else " 🔽"
+            
+            return InlineKeyboardButton(f"{icon}{label}{indicator}", callback_data=f"u:0:{target_sort}:{target_order}:{q_part}")
+
         sort_buttons = [
             [
-                InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:last_active_at:{q_part}"),
-                InlineKeyboardButton("🆕 Newest", callback_data=f"u:0:joined_at:{q_part}")
+                get_sort_btn("Activity", "last_active_at", "🔥 "),
+                get_sort_btn("Newest", "joined_at", "🆕 ")
             ],
             [
-                InlineKeyboardButton("🤝 Referrals", callback_data=f"u:0:referrals:{q_part}"),
-                InlineKeyboardButton("🚫 Blocked", callback_data=f"u:0:blocked:{q_part}")
+                get_sort_btn("Referrals", "referrals", "🤝 "),
+                get_sort_btn("Blocked", "blocked", "🚫 ")
             ]
         ]
         
@@ -285,12 +298,13 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
             
         data = query_obj.data  
-        parts = data.split(":", 3)
+        parts = data.split(":", 4)
         page = int(parts[1])
         sort_by = parts[2]
-        search_term = parts[3] if len(parts) > 3 else ""
+        order = parts[3] if len(parts) > 3 else "DESC"
+        search_term = parts[4] if len(parts) > 4 else ""
         
-        await send_users_page(update, context, search_term, page, sort_by=sort_by)
+        await send_users_page(update, context, search_term, page, sort_by=sort_by, order=order)
         await query_obj.answer()
     except Exception as e:
         await send_error(update, context, e, "users_callback")
