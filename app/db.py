@@ -365,35 +365,82 @@ def get_user_by_username(username):
 
 # ================== USER ==================
 
-def register_user(uid, username, referred_by=None):
+def register_user(uid, username, full_name=None, last_command=None, referred_by=None):
     """
-    Upserts a user into the database.
-    Returns True if the user is newly registered, False otherwise.
+    Upserts a user into the database and tracks activity.
+    Increments total_actions and updates last_active_at/last_command.
     """
     conn = get_connection()
     try:
         c = conn.cursor()
         now = get_eth_now()
         is_new = False
+        
+        # PostgreSQL Logic
         if DATABASE_URL:
             c.execute("SELECT id FROM users WHERE id=%s", (uid,))
             if not c.fetchone():
-                c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (%s, %s, %s, %s, %s)", (uid, username, now, now, referred_by))
+                c.execute("""
+                    INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, total_actions, referred_by) 
+                    VALUES (%s, %s, %s, %s, %s, %s, 1, %s)
+                """, (uid, username, full_name, now, now, last_command, referred_by))
                 is_new = True
             else:
-                c.execute("UPDATE users SET username=%s, last_active_at=%s WHERE id=%s", (username, now, uid))
+                c.execute("""
+                    UPDATE users SET 
+                        username=%s, 
+                        full_name=%s, 
+                        last_active_at=%s, 
+                        last_command=%s, 
+                        total_actions = total_actions + 1 
+                    WHERE id=%s
+                """, (username, full_name, now, last_command, uid))
+        # SQLite Logic
         else:
             c.execute("SELECT id FROM users WHERE id=?", (uid,))
             if not c.fetchone():
-                c.execute("INSERT INTO users (id, username, joined_at, last_active_at, referred_by) VALUES (?, ?, ?, ?, ?)", (uid, username, now, now, referred_by))
+                c.execute("""
+                    INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, total_actions, referred_by) 
+                    VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                """, (uid, username, full_name, now, now, last_command, referred_by))
                 is_new = True
             else:
-                c.execute("UPDATE users SET username=?, last_active_at=? WHERE id=?", (username, now, uid))
+                c.execute("""
+                    UPDATE users SET 
+                        username=?, 
+                        full_name=?, 
+                        last_active_at=?, 
+                        last_command=?, 
+                        total_actions = total_actions + 1 
+                    WHERE id=?
+                """, (username, full_name, now, last_command, uid))
         conn.commit()
         return is_new
     except Exception as e:
         print(f"Error in register_user: {e}")
         return False
+    finally:
+        release_connection(conn)
+
+def get_user_details(uid):
+    """Retrieves full details for a specific user, including referral count."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        query = """
+            SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+            FROM users u 
+            WHERE u.id = %s
+        """ if DATABASE_URL else """
+            SELECT u.*, (SELECT (SELECT COUNT(*) FROM users WHERE referred_by = u.id)) as referral_count 
+            FROM users u 
+            WHERE u.id = ?
+        """
+        c.execute(query, (uid,))
+        return c.fetchone()
+    except Exception as e:
+        print(f"Error in get_user_details: {e}")
+        return None
     finally:
         release_connection(conn)
 
