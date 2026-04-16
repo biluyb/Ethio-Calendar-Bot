@@ -170,7 +170,9 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     Fetches data from DB and constructs the visual report with interactive buttons.
     """
     try:
+        q_part = query[:20] if query else ""
         per_page = 10
+        keyboard = []
         
         # 1. Get total count from DB
         count = get_user_count(query if query else None, filter_blocked=(sort_by == "blocked"))
@@ -231,7 +233,6 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         buttons = []
         # Shorten callback prefix to stay under 64 bytes
         # Format: u_{page}_{sort}_{query}
-        q_part = query[:20] # Limit query length in callback
         
         if isinstance(page, int) and page > 0:
             buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{order}:{q_part}"))
@@ -260,7 +261,6 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             ]
         ]
         
-        keyboard = []
         if buttons: keyboard.append(buttons)
         keyboard.extend(sort_buttons)
         
@@ -399,6 +399,7 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query_obj.answer()
     except Exception as e:
         await send_error(update, context, e, "users_callback")
+
 
 async def send_groups_page(update, context, page=0, query=None):
     """Helper to send or edit the groups paginated dashboard, supporting search."""
