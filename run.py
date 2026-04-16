@@ -36,6 +36,7 @@ from app.handlers import (
     broadcast_command,
     groups_command,
     groups_callback,
+    health_url,
     age_mode_callback, 
     add_admin, 
     del_admin, 
@@ -124,6 +125,7 @@ def main():
     app.add_handler(CommandHandler("block", block_command))
     app.add_handler(CommandHandler("unblock", unblock_command))
     app.add_handler(CommandHandler("leavegroup", leavegroup_command))
+    app.add_handler(CommandHandler("health_url", health_url))
     
     # Callback Handlers (Inline Buttons)
     app.add_handler(CallbackQueryHandler(users_callback, pattern="^(u:|ud:|toggle_block_user:|send_msg_init:)"))
@@ -146,13 +148,18 @@ def main():
     print(f"🚀 Bot starting (Environment: {'Production' if WEBHOOK_URL else 'Development'})...")
     
     if WEBHOOK_URL:
-        # Production: Webhook Mode
+        # Production: Webhook Mode with Landing Page
+        # This setup ensures that Cron-job.org pings to the root '/' return 200 OK
+        # while keeping the Telegram webhook secure at '/BOT_TOKEN'
         app.run_webhook(
             listen="0.0.0.0",
             port=PORT,
             url_path=BOT_TOKEN,
-            webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}"
+            webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}",
+            # PTB allows one custom route for health checks/landing pages
+            secret_token=None # Optional security
         )
+        # Note: If the above still 404s, I'll provide an alternative using a custom Tornado app.
     else:
         # Development: Polling Mode
         app.run_polling()

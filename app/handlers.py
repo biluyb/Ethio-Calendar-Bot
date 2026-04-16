@@ -50,7 +50,7 @@ from app.db import (
 )
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
-from app.config import ADMIN_IDS
+from app.config import ADMIN_IDS, BOT_TOKEN
 
 # ================== CONSTANTS ==================
 
@@ -1665,3 +1665,27 @@ async def unknown_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = "❌ Unknown command. Please use the menu below or type /help for help."
         
     await update.message.reply_text(text, reply_markup=get_menu(update.effective_user.id, lang))
+
+async def health_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to show the secret webhook URL for Cron-job.org."""
+    try:
+        uid = update.effective_user.id
+        if not is_admin_db(uid) and uid not in ADMIN_IDS:
+            return
+
+        webhook_url = os.getenv("WEBHOOK_URL")
+        if not webhook_url:
+            await update.message.reply_text("❌ <b>WEBHOOK_URL</b> is not set in environment variables.")
+            return
+
+        secret_link = f"{webhook_url}/{BOT_TOKEN}"
+        
+        msg = (
+            "🟢 <b>Cron-job Success Fix</b>\n\n"
+            "Use this secret link in Cron-job.org to get a <b>200 OK (Success)</b> response.\n\n"
+            f"🔗 <code>{secret_link}</code>\n\n"
+            "⚠️ <b>Note:</b> This link contains your bot token. Keep it private!"
+        )
+        await update.message.reply_text(msg, parse_mode="HTML")
+    except Exception as e:
+        await send_error(update, context, e, "health_url")
