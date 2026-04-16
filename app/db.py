@@ -231,7 +231,11 @@ def get_all_users(sort_by="last_active_at", order="DESC", limit=None, offset=Non
             where_clause = "WHERE u.is_blocked = TRUE" if DATABASE_URL else "WHERE u.is_blocked = 1"
         
         query = f"""
-            SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+            SELECT 
+                u.id, u.username, u.full_name, u.lang, u.joined_at, 
+                u.last_active_at, u.last_command, u.total_actions, 
+                u.referred_by, u.is_blocked,
+                (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
             FROM users u 
             {where_clause}
             ORDER BY {order_clause}
@@ -428,11 +432,19 @@ def get_user_details(uid):
     try:
         c = conn.cursor()
         query = """
-            SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+            SELECT 
+                u.id, u.username, u.full_name, u.lang, u.joined_at, 
+                u.last_active_at, u.last_command, u.total_actions, 
+                u.referred_by, u.is_blocked,
+                (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
             FROM users u 
             WHERE u.id = %s
         """ if DATABASE_URL else """
-            SELECT u.*, (SELECT (SELECT COUNT(*) FROM users WHERE referred_by = u.id)) as referral_count 
+            SELECT 
+                u.id, u.username, u.full_name, u.lang, u.joined_at, 
+                u.last_active_at, u.last_command, u.total_actions, 
+                u.referred_by, u.is_blocked,
+                (SELECT (SELECT COUNT(*) FROM users WHERE referred_by = u.id)) as referral_count 
             FROM users u 
             WHERE u.id = ?
         """
