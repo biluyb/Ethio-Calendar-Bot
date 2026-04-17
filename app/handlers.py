@@ -106,6 +106,7 @@ ADMIN_CMDS = USER_CMDS + [
     BotCommand("users", "User dashboard"),
     BotCommand("groups", "List groups the bot is in"),
     BotCommand("broadcast", "Send message to all users"),
+    BotCommand("api_stats", "API usage statistics and management"),
     BotCommand("send_msg", "Send DM to a user by ID or username"),
     BotCommand("block", "Block a user or group"),
     BotCommand("unblock", "Unblock a user or group"),
@@ -1120,6 +1121,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text += "/block - ተጠቃሚን ወይም ግሩፕን ለማገድ\n"
                 text += "/unblock - የታገደን ተጠቃሚ ለማንሳት\n"
                 text += "/leavegroup - ቦቱን ከግሩፕ ለማስወጣት (ID ያስፈልጋል)\n"
+                text += "/api_stats - የኤፒአይ ስታቲስቲክስ እና ማኔጅመንት\n"
                 
                 if is_super:
                     text += "\n<b>🛡️ የሱፐር-አድሚን ትዕዛዞች:</b>\n"
@@ -1147,6 +1149,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 text += "/block - Block a user or group\n"
                 text += "/unblock - Unblock a user or group\n"
                 text += "/leavegroup - Force bot to leave a group (requires group ID)\n"
+                text += "/api_stats - API statistics and management\n"
                 
                 if is_super:
                     text += "\n<b>🛡️ Super-Admin Commands:</b>\n"
