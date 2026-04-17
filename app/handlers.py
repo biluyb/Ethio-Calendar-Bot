@@ -48,7 +48,10 @@ from app.db import (
     unblock_entity_db,
     is_blocked_db,
     get_user_details,
-    get_or_create_api_key
+    get_or_create_api_key,
+    get_api_usage_stats,
+    get_total_api_users,
+    revoke_api_key_db
 )
 from app.utils import eth_to_greg, greg_to_eth, calculate_age
 from app.texts import INFO_EN, INFO_AM
@@ -511,6 +514,104 @@ async def groups_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "groups_command")
 
+# ================== API DASHBOARD ==================
+
+async def send_api_stats_page(update, context, page: int = 0):
+    """Displays a list of all users with API keys and their usage counts."""
+    try:
+        per_page = 10
+        offset = page * per_page
+        
+        stats = get_api_usage_stats(limit=per_page, offset=offset)
+        total_api_users = get_total_api_users()
+        
+        uid_admin = update.effective_user.id
+        lang = get_lang(uid_admin)
+
+        if lang == "am":
+             title = "📊 <b>የኤፒአይ ማኔጅመንት ዳሽቦርድ</b>\n"
+             total_str = f"<i>ጠቅላላ የኤፒአይ ተጠቃሚዎች: {total_api_users}</i>\n\n"
+             no_keys = "እስካሁን ምንም የኤፒአይ ቁልፎች አልተፈጠሩም።"
+        else:
+             title = "📊 <b>API Management Dashboard</b>\n"
+             total_str = f"<i>Total API Users: {total_api_users}</i>\n\n"
+             no_keys = "No API keys generated yet."
+
+        msg = title + total_str
+        
+        if not stats:
+            msg += no_keys
+            if update.message:
+                await update.message.reply_text(msg, parse_mode="HTML")
+            else:
+                await update.callback_query.edit_message_text(msg, parse_mode="HTML")
+            return
+
+        for i, (uid, uname, fname, key, count, created) in enumerate(stats, 1 + offset):
+            name = fname or uname or f"ID:{uid}"
+            short_key = f"{key[:6]}...{key[-4:]}"
+            msg += f"{i}. <b>{html.escape(name)}</b> (<code>{uid}</code>)\n"
+            msg += f"   └>> 🔑 <code>{short_key}</code> | 🚀 <b>{count}</b> requests\n"
+            msg += f"   └>> 🕒 Created: {str(created)[:16]}\n\n"
+            
+        # Pagination & Utility Buttons
+        buttons = []
+        total_pages = (total_api_users + per_page - 1) // per_page
+        
+        nav_row = []
+        if page > 0:
+            nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"api_dash:{page-1}"))
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"api_dash:{page+1}"))
+        if nav_row:
+            buttons.append(nav_row)
+            
+        # Add Revoke action button (prompt for ID)
+        revoke_text = "🚫 Revoke Key" if lang != "am" else "🚫 ቁልፉን ሰርዝ"
+        buttons.append([InlineKeyboardButton(revoke_text, callback_data="api_revoke_prompt")])
+        
+        reply_markup = InlineKeyboardMarkup(buttons)
+        
+        if update.message:
+            await update.message.reply_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+        else:
+            await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+            
+    except Exception as e:
+        await send_error(update, context, e, "send_api_stats_page")
+
+async def api_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Admin command to launch the API dashboard."""
+    try:
+        uid = update.effective_user.id
+        if not is_admin_db(uid):
+            return
+        await send_api_stats_page(update, context, page=0)
+    except Exception as e:
+        await send_error(update, context, e, "api_stats_command")
+
+async def api_stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles interaction with the API dashboard."""
+    try:
+        query = update.callback_query
+        uid = update.effective_user.id
+        if not is_admin_db(uid):
+            await query.answer("Unauthorized", show_alert=True)
+            return
+            
+        data = query.data
+        if data.startswith("api_dash:"):
+            page = int(data.split(":")[1])
+            await send_api_stats_page(update, context, page=page)
+            await query.answer()
+        elif data == "api_revoke_prompt":
+            context.user_data["mode"] = "admin_api_revoke_input"
+            await query.message.reply_text("🔢 Please enter the <b>User ID</b> you want to revoke API access for:")
+            await query.answer()
+            
+    except Exception as e:
+        await send_error(update, context, e, "api_stats_callback")
+
 async def groups_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles pagination for the groups list."""
     try:
@@ -640,6 +741,7 @@ def get_menu(uid, lang):
         ]
         if is_admin:
             kb.append(["📢 መልዕክት ማስተላለፊያ (Broadcast)"])
+            kb.append(["📊 ኤፒአይ ስታቲስቲክስ", "👥 ተጠቃሚዎች"])
     else:
         kb = [
             ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
@@ -649,6 +751,7 @@ def get_menu(uid, lang):
         ]
         if is_admin:
             kb.append(["📢 Broadcast Message"])
+            kb.append(["📊 API Stats", "👥 Users"])
             
     return ReplyKeyboardMarkup(kb, resize_keyboard=True)
         
@@ -1160,6 +1263,18 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         if mode == "admin_dm_send":
             return await handle_admin_dm_send(update, context)
+            
+        if mode == "admin_api_revoke_input":
+            try:
+                target_uid = int(text)
+                if revoke_api_key_db(target_uid):
+                    await update.message.reply_text(f"✅ API Key for User ID <code>{target_uid}</code> has been revoked.", parse_mode="HTML")
+                else:
+                    await update.message.reply_text("❌ Could not revoke key. Verify the User ID exists.")
+                context.user_data.pop("mode", None)
+            except ValueError:
+                await update.message.reply_text("❌ Please enter a valid numerical User ID.")
+            return
 
         # 3. Process Date Input (for conversions and age)
         try:
@@ -1306,6 +1421,10 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
 
     if text in ["🔐 API (Developer)", "🔐 ኤፒአይ (Developer)"]:
         await api_key_command(update, context)
+        return True
+
+    if text in ["📊 API Stats", "📊 ኤፒአይ ስታቲስቲክስ"]:
+        await api_stats_command(update, context)
         return True
 
     return False

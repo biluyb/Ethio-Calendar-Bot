@@ -817,3 +817,58 @@ def verify_and_track_api_key(api_key):
         return None
     finally:
         release_connection(conn)
+
+def get_api_usage_stats(limit=10, offset=0):
+    """Retrieves API usage statistics joined with user info."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        sql = """
+            SELECT u.id, u.username, u.full_name, ak.api_key, ak.requests_count, ak.created_at
+            FROM api_keys ak
+            JOIN users u ON ak.uid = u.id
+            ORDER BY ak.requests_count DESC
+            LIMIT %s OFFSET %s
+        """ if DATABASE_URL else """
+            SELECT u.id, u.username, u.full_name, ak.api_key, ak.requests_count, ak.created_at
+            FROM api_keys ak
+            JOIN users u ON ak.uid = u.id
+            ORDER BY ak.requests_count DESC
+            LIMIT ? OFFSET ?
+        """
+        c.execute(sql, (limit, offset))
+        return c.fetchall()
+    except Exception as e:
+        print(f"Error fetching API stats: {e}")
+        return []
+    finally:
+        release_connection(conn)
+
+def get_total_api_users():
+    """Returns the total number of users with API keys."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM api_keys")
+        res = c.fetchone()
+        return res[0] if res else 0
+    except Exception as e:
+        print(f"Error counting API users: {e}")
+        return 0
+    finally:
+        release_connection(conn)
+
+def revoke_api_key_db(uid):
+    """Deletes an API key for a specific user."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        sql = "DELETE FROM api_keys WHERE uid = %s" if DATABASE_URL else "DELETE FROM api_keys WHERE uid = ?"
+        c.execute(sql, (uid,))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error revoking API key: {e}")
+        return False
+    finally:
+        release_connection(conn)

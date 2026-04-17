@@ -53,6 +53,8 @@ from app.handlers import (
     unblock_command,
     leavegroup_command,
     api_key_command,
+    api_stats_command,
+    api_stats_callback,
     USER_CMDS,
     refresh_user_commands
 )
@@ -133,6 +135,7 @@ async def main():
     app.add_handler(CommandHandler("block", block_command))
     app.add_handler(CommandHandler("unblock", unblock_command))
     app.add_handler(CommandHandler("leavegroup", leavegroup_command))
+    app.add_handler(CommandHandler("api_stats", api_stats_command))
     app.add_handler(CommandHandler("health_url", health_url))
     
     # Callback Handlers (Inline Buttons)
@@ -140,6 +143,7 @@ async def main():
     app.add_handler(CallbackQueryHandler(ranks_callback, pattern="^r:"))
     app.add_handler(CallbackQueryHandler(age_mode_callback, pattern="^age_mode_"))
     app.add_handler(CallbackQueryHandler(groups_callback, pattern="^g:"))
+    app.add_handler(CallbackQueryHandler(api_stats_callback, pattern="^(api_dash:|api_revoke_prompt)"))
     app.add_handler(CallbackQueryHandler(contact_admin_callback, pattern="^contact_admin_request$"))
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
 
