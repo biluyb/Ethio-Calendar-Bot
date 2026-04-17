@@ -156,7 +156,42 @@ async def main():
         await app.start()
 
         async def root_handler(request):
-            return web.Response(text="Bot is running! ✅", content_type="text/plain")
+            html = """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Pagume Bot | Ethiopian Calendar</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 40px 20px; text-align: center; }
+                    .card { background: #f9f9f9; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                    h1 { color: #2c3e50; margin-bottom: 10px; }
+                    .features { text-align: left; display: inline-block; margin: 20px 0; }
+                    .features li { margin-bottom: 8px; list-style: none; }
+                    .btn { display: inline-block; background: #0088cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 25px; font-weight: bold; margin-top: 20px; }
+                    .status { color: #27ae60; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h1>📅 Pagume Bot</h1>
+                    <p class="status">● System Active & Online</p>
+                    <p>The most advanced Ethiopian Calendar & Date Converter on Telegram.</p>
+                    
+                    <ul class="features">
+                        <li>✅ <b>Precise Conversion:</b> Gregorian ↔ Ethiopian.</li>
+                        <li>✅ <b>Bilingual:</b> English & Amharic native support.</li>
+                        <li>✅ <b>Referral Rewards:</b> Advanced ranking system.</li>
+                        <li>✅ <b>Admin Suite:</b> Real-time user management.</li>
+                    </ul>
+                    <br>
+                    <a href="https://t.me/EthioCalendarBot" class="btn">Launch on Telegram</a>
+                </div>
+            </body>
+            </html>
+            """
+            return web.Response(text=html, content_type="text/html")
 
         async def webhook_handler(request):
             try:

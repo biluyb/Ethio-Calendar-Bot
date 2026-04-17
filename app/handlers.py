@@ -428,7 +428,6 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "users_callback")
 
-
 async def send_groups_page(update, context, page=0, query=None):
     """Helper to send or edit the groups paginated dashboard, supporting search."""
     try:
