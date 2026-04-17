@@ -8,9 +8,30 @@ import os
 import logging
 import asyncio
 import json
+import time
 from datetime import datetime, date
+from collections import defaultdict
 from aiohttp import web
 from telegram import Update, BotCommand
+
+# Rate limiting storage: {api_key: [timestamp1, timestamp2, ...]}
+# Allow 30 requests per minute per key
+API_RATE_LIMITS = defaultdict(list)
+RATE_LIMIT_STRICT = 30  # requests
+RATE_LIMIT_WINDOW = 60  # seconds
+
+def is_rate_limited(api_key):
+    """Check if an API key has exceeded the allowed request rate."""
+    now = time.time()
+    # Clean up old timestamps outside the window
+    API_RATE_LIMITS[api_key] = [t for t in API_RATE_LIMITS[api_key] if now - t < RATE_LIMIT_WINDOW]
+    
+    if len(API_RATE_LIMITS[api_key]) >= RATE_LIMIT_STRICT:
+        return True
+    
+    API_RATE_LIMITS[api_key].append(now)
+    return False
+
 from telegram.ext import (
     ApplicationBuilder, 
     CommandHandler, 
@@ -227,6 +248,9 @@ async def main():
                 uid = verify_and_track_api_key(api_key)
                 if not uid:
                     return web.json_response({"status": "error", "message": "Invalid API Key."}, status=403)
+                
+                if is_rate_limited(api_key):
+                    return web.json_response({"status": "error", "message": "Rate limit exceeded. Max 30 requests per minute."}, status=429)
                     
                 date_str = request.query.get("date")
                 to_cal = request.query.get("to_calendar", "").lower()
@@ -276,6 +300,9 @@ async def main():
                 if not verify_and_track_api_key(api_key):
                     return web.json_response({"status": "error", "message": "Invalid API Key."}, status=403)
                 
+                if is_rate_limited(api_key):
+                    return web.json_response({"status": "error", "message": "Rate limit exceeded."}, status=429)
+                
                 now = datetime.now()
                 from app.utils import greg_to_eth, format_eth, format_greg
                 ed, em, ey = greg_to_eth(now.day, now.month, now.year)
@@ -306,6 +333,9 @@ async def main():
                 from app.db import verify_and_track_api_key
                 if not verify_and_track_api_key(api_key):
                     return web.json_response({"status": "error", "message": "Invalid API Key."}, status=403)
+                
+                if is_rate_limited(api_key):
+                    return web.json_response({"status": "error", "message": "Rate limit exceeded."}, status=429)
                 
                 birth_date_str = request.query.get("birth_date")
                 calendar_type = request.query.get("calendar", "gregorian").lower()
