@@ -6,7 +6,10 @@ and manages the production/local lifecycle.
 
 import os
 import logging
-from telegram import BotCommand
+import asyncio
+import json
+from aiohttp import web
+from telegram import Update, BotCommand
 from telegram.ext import (
     ApplicationBuilder, 
     CommandHandler, 
@@ -71,7 +74,7 @@ async def global_error_handler(update, context):
         except Exception:
             pass # Prevent error loop if notification itself fails
 
-def main():
+async def main():
     """
     Initializes the system and starts the bot.
     Handles DB setup, role synchronization, and handler registration.
@@ -148,21 +151,48 @@ def main():
     print(f"🚀 Bot starting (Environment: {'Production' if WEBHOOK_URL else 'Development'})...")
     
     if WEBHOOK_URL:
-        # Production: Webhook Mode with Landing Page
-        # This setup ensures that Cron-job.org pings to the root '/' return 200 OK
-        # while keeping the Telegram webhook secure at '/BOT_TOKEN'
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            url_path=BOT_TOKEN,
-            webhook_url=f"{WEBHOOK_URL}/{BOT_TOKEN}",
-            # PTB allows one custom route for health checks/landing pages
-            secret_token=None # Optional security
-        )
-        # Note: If the above still 404s, I'll provide an alternative using a custom Tornado app.
+        # Production: Custom aiohttp handling for root landing page + webhook
+        await app.initialize()
+        await app.start()
+
+        async def root_handler(request):
+            return web.Response(text="Bot is running! ✅", content_type="text/plain")
+
+        async def webhook_handler(request):
+            try:
+                data = await request.json()
+                update = Update.de_json(data, app.bot)
+                await app.update_queue.put(update)
+                return web.Response(status=200)
+            except Exception as e:
+                logging.error(f"Webhook error: {e}")
+                return web.Response(status=500)
+
+        web_app = web.Application()
+        web_app.router.add_get("/", root_handler)
+        web_app.router.add_post(f"/{BOT_TOKEN}", webhook_handler)
+
+        runner = web.AppRunner(web_app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", PORT)
+        await site.start()
+        
+        print(f"🌍 Web server active on port {PORT}")
+        print(f"🔗 Health check at {WEBHOOK_URL}/")
+        
+        # Keep alive
+        try:
+            while True:
+                await asyncio.sleep(3600)
+        finally:
+            await app.stop()
+            await app.shutdown()
     else:
         # Development: Polling Mode
         app.run_polling()
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        pass
