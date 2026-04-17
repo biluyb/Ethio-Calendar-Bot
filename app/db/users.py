@@ -114,3 +114,39 @@ def search_users(query, sort_by="last_active_at", order="DESC", limit=None, offs
         return c.fetchall()
     finally:
         release_connection(conn)
+
+def get_top_referrers(limit=10, offset=0):
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        sql = """
+            SELECT referred_by as id, u.username, COUNT(*) as count
+            FROM users 
+            JOIN users u ON u.id = referred_by
+            WHERE referred_by IS NOT NULL
+            GROUP BY referred_by, u.username
+            ORDER BY count DESC
+            LIMIT %s OFFSET %s
+        """ if DATABASE_URL else """
+            SELECT referred_by as id, u.username, COUNT(*) as count
+            FROM users 
+            JOIN users u ON u.id = referred_by
+            WHERE referred_by IS NOT NULL
+            GROUP BY referred_by, u.username
+            ORDER BY count DESC
+            LIMIT ? OFFSET ?
+        """
+        c.execute(sql, (limit, offset))
+        return c.fetchall()
+    finally:
+        release_connection(conn)
+
+def get_referrers_count():
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        c.execute("SELECT COUNT(DISTINCT referred_by) FROM users WHERE referred_by IS NOT NULL")
+        res = c.fetchone()
+        return res[0] if res else 0
+    finally:
+        release_connection(conn)

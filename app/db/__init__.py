@@ -1,7 +1,8 @@
 from .base import init_db, get_connection, release_connection, get_eth_now, DATABASE_URL
 from .users import (
     register_user, get_user_details, get_lang, set_lang, 
-    get_all_user_ids, get_user_count, get_all_users, search_users
+    get_all_user_ids, get_user_count, get_all_users, search_users,
+    get_top_referrers, get_referrers_count
 )
 from .api import (
     get_or_create_api_key, verify_and_track_api_key, 
