@@ -1070,23 +1070,37 @@ async def api_key_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         if lang == "am":
             msg = (
-                "🔐 <b>የእርስዎ ኤፒአይ ቁልፍ (API Key)</b>\n\n"
+                "🔐 <b>የእርስዎ የግል ኤፒአይ ቁልፍ (Secure API Key)</b>\n\n"
                 f"<code>{api_key}</code>\n\n"
-                "⚠️ <i>ይህንን ቁልፍ ሚስጥራዊ አድርገው ይያዙት!</i>\n\n"
-                "<b>📚 አጭር መመሪያ (Documentation):</b>\n"
-                "• <b>ቀን ለመቀየር:</b> <code>/api/convert?date=DD/MM/YYYY&to_calendar=ethiopian&key=YOUR_KEY</code>\n"
-                "• <b>ዛሬን ለማየት:</b> <code>/api/today?key=YOUR_KEY</code>\n"
-                "• <b>ዕድሜ ለመቁጠር:</b> <code>/api/age?birth_date=DD/MM/YYYY&calendar=gregorian&key=YOUR_KEY</code>"
+                "⚠️ <b>ማስጠንቀቂያ:</b> ይህንን ቁልፍ ለማንም አሳልፈው አይስጡ! ቁልፉ ከጠፋብዎት ሌላ አዲስ ማመንጨት ይችላሉ።\n\n"
+                "<b>🚀 የኤፒአይ አጠቃቀም መመሪያ (API Guide)</b>\n\n"
+                "<b>1️⃣ ቀን ለመቀየር (Convert):</b>\n"
+                "<i>ከጎርጎርዮሳዊ ወደ ኢትዮጵያ ወይም በተቃራኒው ለመቀየር</i>\n"
+                f"<code>/api/convert?date=DD/MM/YYYY&to_calendar=ethiopian&key={api_key}</code>\n\n"
+                "<b>2️⃣ የዛሬን ቀን ለማግኘት (Today):</b>\n"
+                "<i>ሁለቱንም የዛሬ ቀናቶች በአንድ ጊዜ ለማግኘት</i>\n"
+                f"<code>/api/today?key={api_key}</code>\n\n"
+                "<b>3️⃣ ዕድሜ ለመቁጠር (Age Calculator):</b>\n"
+                "<i>በትክክለኛ የኢትዮጵያ ወራት ዕድሜን ለማስላት</i>\n"
+                f"<code>/api/age?birth_date=DD/MM/YYYY&calendar=gregorian&key={api_key}</code>\n\n"
+                "💡 <b>ማሳሰቢያ:</b> ለበለጠ መረጃ እና ለሙሉ ዳታ መልሶችን ለማየት የኤፒአይ ሰነዱን ይመልከቱ።"
             )
         else:
             msg = (
-                "🔐 <b>Your Secure API Key</b>\n\n"
+                "🔐 <b>Your Secure Developer API Key</b>\n\n"
                 f"<code>{api_key}</code>\n\n"
-                "⚠️ <i>Keep this key secret!</i>\n\n"
-                "<b>📚 Quick Documentation:</b>\n"
-                "• <b>Convert:</b> <code>/api/convert?date=DD/MM/YYYY&to_calendar=ethiopian&key=YOUR_KEY</code>\n"
-                "• <b>Today:</b> <code>/api/today?key=YOUR_KEY</code>\n"
-                "• <b>Age:</b> <code>/api/age?birth_date=DD/MM/YYYY&calendar=gregorian&key=YOUR_KEY</code>"
+                "⚠️ <b>IMPORTANT:</b> Keep this key secret. If compromised, you can regenerate a new one anytime.\n\n"
+                "<b>🚀 Quick Start Documentation</b>\n\n"
+                "<b>1️⃣ Date Conversion:</b>\n"
+                "<i>Convert between Gregorian and Ethiopian calendars.</i>\n"
+                f"<code>/api/convert?date=DD/MM/YYYY&to_calendar=ethiopian&key={api_key}</code>\n\n"
+                "<b>2️⃣ Get Today's Date:</b>\n"
+                "<i>Fetch both current dates in a single request.</i>\n"
+                f"<code>/api/today?key={api_key}</code>\n\n"
+                "<b>3️⃣ Age Calculator:</b>\n"
+                "<i>Calculates precise age including Ethiopian months.</i>\n"
+                f"<code>/api/age?birth_date=DD/MM/YYYY&calendar=gregorian&key={api_key}</code>\n\n"
+                "💡 <b>Tip:</b> You can use <code>Authorization: Bearer YOUR_KEY</code> header instead of the URL parameter for better security."
             )
             
         await update.message.reply_text(msg, parse_mode="HTML")
