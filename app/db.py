@@ -143,25 +143,28 @@ def init_db():
             if DATABASE_URL:
                 c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
                 existing_cols = [row[0] for row in c.fetchall()]
-                if "joined_at" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-                if "last_active_at" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-                if "referred_by" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN referred_by BIGINT")
-                if "is_blocked" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
-                if "full_name" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
-                if "last_command" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN last_command TEXT")
-                if "total_actions" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0")
+                for col, stmt in [
+                    ("joined_at", "ALTER TABLE users ADD COLUMN joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+                    ("last_active_at", "ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
+                    ("referred_by", "ALTER TABLE users ADD COLUMN referred_by BIGINT"),
+                    ("is_blocked", "ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE"),
+                    ("full_name", "ALTER TABLE users ADD COLUMN full_name TEXT"),
+                    ("last_command", "ALTER TABLE users ADD COLUMN last_command TEXT"),
+                    ("total_actions", "ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0"),
+                ]:
+                    try:
+                        if col not in existing_cols:
+                            c.execute(stmt)
+                    except Exception as e:
+                        print(f"Failed to add {col}: {e}")
                 
                 # Backfill
-                c.execute("UPDATE users SET total_actions = 0 WHERE total_actions IS NULL")
-                c.execute("UPDATE users SET joined_at = CURRENT_TIMESTAMP WHERE joined_at IS NULL")
-                c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE last_active_at IS NULL")
+                try:
+                    c.execute("UPDATE users SET total_actions = 0 WHERE total_actions IS NULL")
+                    c.execute("UPDATE users SET joined_at = CURRENT_TIMESTAMP WHERE joined_at IS NULL")
+                    c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE last_active_at IS NULL")
+                except Exception as e:
+                    print(f"Backfill error: {e}")
                 
                 # Update groups table
                 c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='groups'")
@@ -171,25 +174,28 @@ def init_db():
             else:
                 c.execute("PRAGMA table_info(users)")
                 existing_cols = [col[1] for col in c.fetchall()]
-                if "joined_at" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN joined_at DATETIME DEFAULT CURRENT_TIMESTAMP")
-                if "last_active_at" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP")
-                if "referred_by" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
-                if "is_blocked" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
-                if "full_name" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
-                if "last_command" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN last_command TEXT")
-                if "total_actions" not in existing_cols:
-                    c.execute("ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0")
+                for col, stmt in [
+                    ("joined_at", "ALTER TABLE users ADD COLUMN joined_at DATETIME DEFAULT CURRENT_TIMESTAMP"),
+                    ("last_active_at", "ALTER TABLE users ADD COLUMN last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP"),
+                    ("referred_by", "ALTER TABLE users ADD COLUMN referred_by INTEGER"),
+                    ("is_blocked", "ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE"),
+                    ("full_name", "ALTER TABLE users ADD COLUMN full_name TEXT"),
+                    ("last_command", "ALTER TABLE users ADD COLUMN last_command TEXT"),
+                    ("total_actions", "ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0"),
+                ]:
+                    try:
+                        if col not in existing_cols:
+                            c.execute(stmt)
+                    except Exception as e:
+                        print(f"Failed to add {col}: {e}")
 
                 # Backfill
-                c.execute("UPDATE users SET total_actions = 0 WHERE total_actions IS NULL")
-                c.execute("UPDATE users SET joined_at = CURRENT_TIMESTAMP WHERE joined_at IS NULL")
-                c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE last_active_at IS NULL")
+                try:
+                    c.execute("UPDATE users SET total_actions = 0 WHERE total_actions IS NULL")
+                    c.execute("UPDATE users SET joined_at = CURRENT_TIMESTAMP WHERE joined_at IS NULL")
+                    c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE last_active_at IS NULL")
+                except Exception as e:
+                    print(f"Backfill error: {e}")
                 
                 # Update groups table
                 c.execute("PRAGMA table_info(groups)")

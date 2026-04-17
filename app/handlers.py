@@ -250,7 +250,11 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             
             block_icon = "🚫 " if is_blocked else ""
             msg += f"• {block_icon}<b>{uname}</b> - <code>{uid}</code>\n"
-            msg += f"   └>> Active: {active_str} | Actions: <b>{total_acts or 0}</b>\n"
+            
+            if sort_by == "referrals":
+                msg += f"   └>> Referrals: <b>{ref_count or 0}</b> | Actions: {total_acts or 0}\n"
+            else:
+                msg += f"   └>> Active: {active_str} | Actions: <b>{total_acts or 0}</b>\n"
             
             # Add a button for the user (centered layout by default in Telegram)
             row_btns = [InlineKeyboardButton(f"👤 {fname or uname or uid}", callback_data=f"ud:{uid}:{page}:{sort_by}:{q_part}")]
