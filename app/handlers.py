@@ -1110,6 +1110,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text += "/info - ስለ ቀን መቁጠሪያው ግንዛቤ\n"
             text += "/share - ጓደኞችን ይጋብዙ\n"
             text += "/about - ስለ ቦቱ መረጃ (አድሚኑን ለማግኘት)\n"
+            text += "/api - የኤፒአይ ቁልፍ (API Key) ለመፍጠር\n"
             text += "/help - ይህንን የእርዳታ መልዕክት ለማሳየት\n"
             
             if is_admin:
@@ -1138,6 +1139,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text += "/info - Calendar information\n"
             text += "/share - Invite friends\n"
             text += "/about - Bot info (Contact Admin)\n"
+            text += "/api - Generate Developer API Key\n"
             text += "/help - Show this help message\n"
             
             if is_admin:
