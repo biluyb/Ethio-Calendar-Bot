@@ -11,5 +11,6 @@ from .api import (
 from .admin_db import (
     is_admin_db, get_admins_db, add_admin_db, remove_admin_db,
     register_group, get_all_groups, get_group_count,
-    block_entity_db, unblock_entity_db, is_blocked_db, get_all_group_ids
+    block_entity_db, unblock_entity_db, is_blocked_db, get_all_group_ids,
+    search_groups
 )

@@ -125,3 +125,17 @@ def get_all_group_ids():
         return [r[0] for r in c.fetchall()]
     finally:
         release_connection(conn)
+
+def search_groups(query, limit=10, offset=0):
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        q = f"%{query}%"
+        stmt = "SELECT id, title, joined_at, is_blocked FROM groups WHERE title ILIKE %s OR id::text LIKE %s ORDER BY joined_at DESC" if DATABASE_URL else "SELECT id, title, joined_at, is_blocked FROM groups WHERE title LIKE ? OR CAST(id AS TEXT) LIKE ? ORDER BY joined_at DESC"
+        params = [q, q]
+        if limit: stmt += " LIMIT %s" if DATABASE_URL else " LIMIT ?"; params.append(limit)
+        if offset: stmt += " OFFSET %s" if DATABASE_URL else " OFFSET ?"; params.append(offset)
+        c.execute(stmt, tuple(params))
+        return c.fetchall()
+    finally:
+        release_connection(conn)
