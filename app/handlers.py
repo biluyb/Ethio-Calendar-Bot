@@ -759,6 +759,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "<b>ጳጉሜ ቦት</b>\n"
                     "<i> የኢትዮጵያ ቀን መቁጠሪያ እና የቀን መቀየሪያ።</i>\n\n"
                     "• <b>ትክክለኛ መቀየሪያ:</b> ከፈረንጅ ↔ ኢትዮጵያ\n"
+                    "• <b>የዕድሜ ስሌት:</b> ፈጣን እና ትክክለኛ\n"
                     "• <b>በሁለት ቋንቋ:</b> አማርኛ እና እንግሊዝኛ\n"
                     "📩 <b>በተሟላ ሁኔታ ለመጠቀም ወደ ቦቱ ይሂዱ።</b>"
                 )
@@ -767,6 +768,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "<b>Pagume Bot</b>\n"
                     "<i>The most advanced Ethiopian Calendar & Date Converter.</i>\n\n"
                     "• <b>Precise Conversion:</b> Gregorian ↔ Ethiopian\n"
+                    "• <b>Age Calculator:</b> Fast and accurate\n"
                     "• <b>Bilingual Support:</b> English & Amharic\n"
                     "• <b>Referral Rewards:</b> Advanced ranking system\n"
                     "• <b>Admin Tools:</b> Real-time management\n\n"
@@ -1045,18 +1047,18 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 if lang == "am":
                     msg = (
                         "<b>ጳጉሜ ቦት</b>\n"
-                        "<i>ቀዳሚው የኢትዮጵያ ቀን መቁጠሪያ እና መለወጫ።</i>\n\n"
-                        "• <b>ትክክለኛ መለወጫ:</b> ከፈረንጅ ↔ ኢትዮጵያ\n"
-                        "• <b>ሁለት ቋንቋ:</b> አማርኛ እና እንግሊዝኛ\n"
-                        "• <b>የግብዣ ስጦታዎች:</b> የደረጃ እድገት ስርዓት\n"
-                        "• <b>የአስተዳዳሪ ክፍሎች:</b> የተቀላጠፈ ቁጥጥር\n\n"
-                        "📩 <b>ቦቱን በተሟላ ሁኔታ ለመጠቀም ወደ DM ይሂዱ።</b>"
+                        "<i>የኢትዮጵያ ቀን መቁጠሪያ እና ቀን መቀየሪያ ።</i>\n\n"
+                        "• <b>ትክክለኛ መቀየሪያ:</b> ከፈረንጅ ወደ  ኢትዮጵያ\n"
+                        "• <b>የዕድሜ ስሌት:</b> ፈጣን እና ትክክለኛ\n"
+                        "• <b>በሁለት ቋንቋ:</b> አማርኛ እና እንግሊዝኛ\n"
+                        "📩 <b>ተሟላ ሁኔታ ለመጠቀም ወደ ቦቱ ይሂዱ።</b>"
                     )
                 else:
                     msg = (
                         "<b>Pagume Bot</b>\n"
                         "<i>The most advanced Ethiopian Calendar & Date Converter.</i>\n\n"
                         "• <b>Precise Conversion:</b> Gregorian ↔ Ethiopian\n"
+                        "• <b>Age Calculator:</b> Fast & accurate\n"
                         "• <b>Bilingual Support:</b> English & Amharic\n"
                         "• <b>Referral Rewards:</b> Advanced ranking system\n"
                         "• <b>Admin Tools:</b> Real-time management\n\n"
@@ -1313,6 +1315,7 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "<b>ጳጉሜ ቦት</b>\n"
                 "<i>የኢትዮጵያ ቀን መቁጠሪያ እና ቀን መቀየሪያ ።</i>\n\n"
                 "• <b>ትክክለኛ የቀን መቀየሪያ:</b> ከፈረንጅ ወደ ኢትዮጵያ\n"
+                "• <b>የዕድሜ ስሌት:</b> ፈጣን እና ትክክለኛ\n"
                 "• <b>በሁለት ቋንቋ:</b> አማርኛ እና እንግሊዝኛ\n"
                 f"<b>መጋበዣ ሊንክ፦</b> {share_link}"
             )
@@ -1321,6 +1324,7 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "<b>Pagume Bot</b>\n"
                 "<i>The most advanced Ethiopian Calendar & Date Converter.</i>\n\n"
                 "• <b>Precise Conversion:</b> Gregorian ↔ Ethiopian\n"
+                "• <b>Age Calculator:</b> Fast & accurate\n"
                 "• <b>Bilingual Support:</b> English & Amharic\n"
                 "• <b>Referral Rewards:</b> Advanced ranking system\n"
                 "• <b>Admin Tools:</b> Real-time management\n\n"
