@@ -1424,11 +1424,14 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not is_admin_db(uid) and uid not in ADMIN_IDS:
             return
 
-        if not context.args:
-            await update.message.reply_text("Usage: /broadcast <message>")
+        cmd_text = update.message.text
+        parts = cmd_text.split(maxsplit=1)
+
+        if len(parts) < 2:
+            await update.message.reply_text("Usage: /broadcast <message>\n\nOr just type your message with the command.")
             return
 
-        broadcast_msg = " ".join(context.args)
+        broadcast_msg = parts[1]
         user_ids = get_all_user_ids()
         group_ids = get_all_group_ids()
         
