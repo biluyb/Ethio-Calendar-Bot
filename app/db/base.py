@@ -45,9 +45,15 @@ def release_connection(conn):
         conn.close()
 
 def init_db():
+    """
+    Initializes the database schema for both SQLite and PostgreSQL.
+    Creates users, admins, and groups tables and performs necessary column migrations.
+    """
     conn = get_connection()
     try:
         c = conn.cursor()
+
+        # Schema definition varies slightly between SQLite (INTEGER) and PostgreSQL (BIGINT)
         if DATABASE_URL:
             # PostgreSQL Schema
             c.execute("""
@@ -66,9 +72,28 @@ def init_db():
             """)
             c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
             c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
-            c.execute("CREATE TABLE IF NOT EXISTS groups (id BIGINT PRIMARY KEY, title TEXT, joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, is_blocked BOOLEAN DEFAULT FALSE)")
-            c.execute("CREATE TABLE IF NOT EXISTS admins (id BIGINT PRIMARY KEY, added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
-            c.execute("CREATE TABLE IF NOT EXISTS api_keys (uid BIGINT PRIMARY KEY, api_key TEXT UNIQUE, requests_count INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS groups (
+                    id BIGINT PRIMARY KEY,
+                    title TEXT,
+                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_blocked BOOLEAN DEFAULT FALSE
+                )
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS admins (
+                    id BIGINT PRIMARY KEY,
+                    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    uid BIGINT PRIMARY KEY,
+                    api_key TEXT UNIQUE,
+                    requests_count INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
         else:
             # SQLite Schema
             c.execute("""
@@ -87,14 +112,32 @@ def init_db():
             """)
             c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
             c.execute("CREATE INDEX IF NOT EXISTS idx_users_active ON users(last_active_at)")
-            c.execute("CREATE TABLE IF NOT EXISTS groups (id INTEGER PRIMARY KEY, title TEXT, joined_at DATETIME DEFAULT CURRENT_TIMESTAMP, is_blocked BOOLEAN DEFAULT FALSE)")
-            c.execute("CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY, added_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
-            c.execute("CREATE TABLE IF NOT EXISTS api_keys (uid INTEGER PRIMARY KEY, api_key TEXT UNIQUE, requests_count INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)")
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS groups (
+                    id INTEGER PRIMARY KEY,
+                    title TEXT,
+                    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    is_blocked BOOLEAN DEFAULT FALSE
+                )
+            """)
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS admins (
+                id INTEGER PRIMARY KEY,
+                added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                uid INTEGER PRIMARY KEY,
+                api_key TEXT UNIQUE,
+                requests_count INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
 
         conn.commit()
         
-        # Migration logic (simplified for modular version)
-        # In a real project, using Alembic or similar is better, but here we maintain compatibility with the original init_db
+        # Migration: Ensure all expected columns exist
         try:
             if DATABASE_URL:
                 c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
@@ -108,7 +151,25 @@ def init_db():
                     ("last_command", "ALTER TABLE users ADD COLUMN last_command TEXT"),
                     ("total_actions", "ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0"),
                 ]:
-                    if col not in existing_cols: c.execute(stmt)
+                    try:
+                        if col not in existing_cols:
+                            c.execute(stmt)
+                    except Exception as e:
+                        print(f"Failed to add {col}: {e}")
+                
+                # Backfill
+                try:
+                    c.execute("UPDATE users SET total_actions = 0 WHERE total_actions IS NULL")
+                    c.execute("UPDATE users SET joined_at = CURRENT_TIMESTAMP WHERE joined_at IS NULL")
+                    c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE last_active_at IS NULL")
+                except Exception as e:
+                    print(f"Backfill error: {e}")
+                
+                # Update groups table
+                c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='groups'")
+                group_cols = [row[0] for row in c.fetchall()]
+                if "is_blocked" not in group_cols:
+                    c.execute("ALTER TABLE groups ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
             else:
                 c.execute("PRAGMA table_info(users)")
                 existing_cols = [col[1] for col in c.fetchall()]
@@ -121,7 +182,25 @@ def init_db():
                     ("last_command", "ALTER TABLE users ADD COLUMN last_command TEXT"),
                     ("total_actions", "ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0"),
                 ]:
-                    if col not in existing_cols: c.execute(stmt)
+                    try:
+                        if col not in existing_cols:
+                            c.execute(stmt)
+                    except Exception as e:
+                        print(f"Failed to add {col}: {e}")
+
+                # Backfill
+                try:
+                    c.execute("UPDATE users SET total_actions = 0 WHERE total_actions IS NULL")
+                    c.execute("UPDATE users SET joined_at = CURRENT_TIMESTAMP WHERE joined_at IS NULL")
+                    c.execute("UPDATE users SET last_active_at = CURRENT_TIMESTAMP WHERE last_active_at IS NULL")
+                except Exception as e:
+                    print(f"Backfill error: {e}")
+                
+                # Update groups table
+                c.execute("PRAGMA table_info(groups)")
+                group_cols = [col[1] for col in c.fetchall()]
+                if "is_blocked" not in group_cols:
+                    c.execute("ALTER TABLE groups ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE")
         except Exception as e:
             print(f"Migration error: {e}")
 
