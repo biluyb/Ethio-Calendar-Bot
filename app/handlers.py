@@ -817,10 +817,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if is_new and referred_by:
             try:
                 ref_lang = get_lang(referred_by)
+                user_data = get_user_details(referred_by)
+                ref_count = user_data[10] if user_data else 1
+
                 if ref_lang == "am":
-                    notif = f"🎉 <b>እንኳን ደስ አለዎት!</b>\n\n<b>{username}</b> በእርስዎ ግብዣ መሠረት ቦቱን ተቀላቅሏል።"
+                    notif = (
+                        f"🎉 <b>እንኳን ደስ አለዎት!</b>\n\n"
+                        f"<b>{username}</b> በእርስዎ ግብዣ መሠረት ቦቱን ተቀላቅሏል።\n\n"
+                        f"📊 <b>ያጋበዙት ሰዎች ብዛት:</b> {ref_count}"
+                    )
                 else:
-                    notif = f"🎉 <b>New Referral!</b>\n\n<b>{username}</b> has joined the bot using your invite link."
+                    notif = (
+                        f"🎉 <b>New Referral!</b>\n\n"
+                        f"<b>{username}</b> has joined the bot using your invite link.\n\n"
+                        f"📊 <b>Total invited:</b> {ref_count} people"
+                    )
                 await context.bot.send_message(chat_id=referred_by, text=notif, parse_mode="HTML")
             except Exception:
                 pass # Referrer might have blocked the bot or ID is invalid
