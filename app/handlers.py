@@ -50,7 +50,7 @@ from app.db import (
     get_user_details,
     get_or_create_api_key
 )
-from app.utils import eth_to_greg, greg_to_eth
+from app.utils import eth_to_greg, greg_to_eth, calculate_age
 from app.texts import INFO_EN, INFO_AM
 from app.config import ADMIN_IDS, BOT_TOKEN
 
@@ -621,25 +621,6 @@ async def age_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
     except Exception as e:
         await send_error(update, context, e, "age_mode_callback")
-
-def calculate_age(birth_date, current_date):
-    years = current_date.year - birth_date.year
-    months = current_date.month - birth_date.month
-    days = current_date.day - birth_date.day
-    
-    if days < 0:
-        months -= 1
-        # Get days in the previous month
-        prev_month = (current_date.month - 2) % 12 + 1
-        prev_year = current_date.year if current_date.month > 1 else current_date.year - 1
-        _, days_in_prev = calendar.monthrange(prev_year, prev_month)
-        days += days_in_prev
-        
-    if months < 0:
-        years -= 1
-        months += 12
-        
-    return years, months, days
 
 # ================== KEYBOARD ==================
 def get_menu(uid, lang):

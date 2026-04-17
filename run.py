@@ -8,6 +8,7 @@ import os
 import logging
 import asyncio
 import json
+from datetime import datetime, date
 from aiohttp import web
 from telegram import Update, BotCommand
 from telegram.ext import (
@@ -259,9 +260,88 @@ async def main():
                 logging.error(f"API error: {e}")
                 return web.json_response({"status": "error", "message": "Internal server error"}, status=500)
 
+        async def api_today_handler(request):
+            try:
+                auth_header = request.headers.get("Authorization", "")
+                api_key = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else request.query.get("key")
+                
+                if not api_key:
+                    return web.json_response({"status": "error", "message": "Missing API Key."}, status=401)
+                
+                from app.db import verify_and_track_api_key
+                if not verify_and_track_api_key(api_key):
+                    return web.json_response({"status": "error", "message": "Invalid API Key."}, status=403)
+                
+                now = datetime.now()
+                from app.utils import greg_to_eth, format_eth, format_greg
+                ed, em, ey = greg_to_eth(now.day, now.month, now.year)
+                
+                return web.json_response({
+                    "status": "success",
+                    "gregorian": {
+                        "day": now.day, "month": now.month, "year": now.year,
+                        "formatted": format_greg(now.day, now.month, now.year)
+                    },
+                    "ethiopian": {
+                        "day": ed, "month": em, "year": ey,
+                        "formatted": format_eth(ed, em, ey)
+                    }
+                })
+            except Exception as e:
+                logging.error(f"API Today error: {e}")
+                return web.json_response({"status": "error", "message": "Internal server error"}, status=500)
+
+        async def api_age_handler(request):
+            try:
+                auth_header = request.headers.get("Authorization", "")
+                api_key = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else request.query.get("key")
+                
+                if not api_key:
+                    return web.json_response({"status": "error", "message": "Missing API Key."}, status=401)
+                
+                from app.db import verify_and_track_api_key
+                if not verify_and_track_api_key(api_key):
+                    return web.json_response({"status": "error", "message": "Invalid API Key."}, status=403)
+                
+                birth_date_str = request.query.get("birth_date")
+                calendar_type = request.query.get("calendar", "gregorian").lower()
+                
+                if not birth_date_str:
+                    return web.json_response({"status": "error", "message": "Missing 'birth_date' parameter."}, status=400)
+                
+                from app.utils import parse_date, eth_to_greg, calculate_age
+                parsed_birth = parse_date(birth_date_str)
+                if not parsed_birth:
+                    return web.json_response({"status": "error", "message": "Invalid date format. Use DD/MM/YYYY."}, status=400)
+                
+                bd, bm, by = parsed_birth
+                if calendar_type == "ethiopian":
+                    # Convert birth date to Gregorian for calculation
+                    bd, bm, by = eth_to_greg(bd, bm, by)
+                
+                birth_dt = date(by, bm, bd)
+                today_dt = date.today()
+                
+                if birth_dt > today_dt:
+                    return web.json_response({"status": "error", "message": "Birth date cannot be in the future."}, status=400)
+                
+                years, months, days = calculate_age(birth_dt, today_dt)
+                
+                return web.json_response({
+                    "status": "success",
+                    "age": {"years": years, "months": months, "days": days}
+                })
+            except ValueError as e:
+                return web.json_response({"status": "error", "message": str(e)}, status=400)
+            except Exception as e:
+                logging.error(f"API Age error: {e}")
+                return web.json_response({"status": "error", "message": "Internal server error"}, status=500)
+
         web_app = web.Application()
         web_app.router.add_get("/", root_handler)
         web_app.router.add_get("/api/convert", api_convert_handler)
+        web_app.router.add_get("/api/today", api_today_handler)
+        web_app.router.add_get("/api/age", api_age_handler)
         web_app.router.add_post(f"/{BOT_TOKEN}", webhook_handler)
 
         runner = web.AppRunner(web_app)

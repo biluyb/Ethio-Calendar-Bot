@@ -4,7 +4,8 @@ Provides algorithms for converting between Ethiopian (EC) and Gregorian (GC) cal
 as well as date validation and parsing logic.
 """
 
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+import calendar
 
 ETHIOPIAN_MONTHS = [
     "መስከረም","ጥቅምት","ኅዳር","ታኅሣሥ","ጥር","የካቲት",
@@ -135,3 +136,23 @@ def format_greg(d, m, y):
 
 def format_eth(d, m, y):
     return f"{d}-{m}-{y} | {ETHIOPIAN_MONTHS[m-1]}"
+
+def calculate_age(birth_date, current_date):
+    """Calculates age in years, months, and days."""
+    years = current_date.year - birth_date.year
+    months = current_date.month - birth_date.month
+    days = current_date.day - birth_date.day
+    
+    if days < 0:
+        months -= 1
+        # Get days in the previous month
+        prev_month = (current_date.month - 2) % 12 + 1
+        prev_year = current_date.year if current_date.month > 1 else current_date.year - 1
+        _, days_in_prev = calendar.monthrange(prev_year, prev_month)
+        days += days_in_prev
+        
+    if months < 0:
+        years -= 1
+        months += 12
+        
+    return years, months, days
