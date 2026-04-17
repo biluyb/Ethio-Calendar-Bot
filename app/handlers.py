@@ -92,6 +92,7 @@ USER_CMDS = [
     BotCommand("start", "Start the bot"),
     BotCommand("lang", "Change language"),
     BotCommand("info", "Information about the calendar"),
+    BotCommand("about", "Bot info & Contact Admin"),
     BotCommand("share", "Invite friends"),
     BotCommand("help", "How to use the bot")
 ]
@@ -753,19 +754,38 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             dm_url = f"https://t.me/{bot_username}?start=from_group"
             btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot"
             keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
-            msg = "\n\n  📩 ቦቱን ለመጠቀም ወደ DM ይሂዱ።\n\n @pagumebot\n" if lang == "am" else "\n\n📩 Please use this bot in a private DM for the best experience.\n\n @pagumebot"
+            if lang == "am":
+                msg = (
+                    "<b>ጳጉሜ ቦት</b>\n"
+                    "<i> የኢትዮጵያ ቀን መቁጠሪያ እና የቀን መቀየሪያ።</i>\n\n"
+                    "• <b>ትክክለኛ መቀየሪያ:</b> ከፈረንጅ ↔ ኢትዮጵያ\n"
+                    "• <b>በሁለት ቋንቋ:</b> አማርኛ እና እንግሊዝኛ\n"
+                    "📩 <b>በተሟላ ሁኔታ ለመጠቀም ወደ ቦቱ ይሂዱ።</b>"
+                )
+            else:
+                msg = (
+                    "<b>Pagume Bot</b>\n"
+                    "<i>The most advanced Ethiopian Calendar & Date Converter.</i>\n\n"
+                    "• <b>Precise Conversion:</b> Gregorian ↔ Ethiopian\n"
+                    "• <b>Bilingual Support:</b> English & Amharic\n"
+                    "• <b>Referral Rewards:</b> Advanced ranking system\n"
+                    "• <b>Admin Tools:</b> Real-time management\n\n"
+                    "📩 <b>Please use the bot in DM for the full experience.</b>"
+                )
             
             try:
                 with open(INVITE_IMAGE_PATH, "rb") as photo:
                     await update.message.reply_photo(
                         photo=photo, 
                         caption=msg, 
+                        parse_mode="HTML",
                         reply_markup=InlineKeyboardMarkup(keyboard)
                     )
             except Exception:
                 await update.message.reply_photo(
                     photo=REDIRECT_IMAGE_URL, 
                     caption=msg, 
+                    parse_mode="HTML",
                     reply_markup=InlineKeyboardMarkup(keyboard)
                 )
             return
@@ -905,6 +925,31 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "info")
 
+async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Provides information about the bot and developer."""
+    try:
+        uid = update.effective_user.id
+        lang = get_lang(uid)
+        
+        if lang == "am":
+            info_prefix = "የቦት መረጃ\n\nበ ShademT የተሰራ\n\n© May 2026\n\n"
+            add_text = "➕ ወደ ግሩፕ አስገባ"
+            contact_text = "📩 አድሚኑን ያግኙ"
+        else:
+            info_prefix = "<b>Bot Information:</b>\n\nDeveloped by ShademT\n\n© May 2026\n\n"
+            add_text = "➕ Add to Group"
+            contact_text = "📩 Contact Admin"
+
+        add_url = f"https://t.me/{context.bot.username}?startgroup=true"
+        keyboard = [
+            [InlineKeyboardButton(contact_text, callback_data="contact_admin_request")],
+            [InlineKeyboardButton(add_text, url=add_url)]
+        ]
+        
+        await update.message.reply_text(info_prefix, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+    except Exception as e:
+        await send_error(update, context, e, "about_command")
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Provides a tailored help guide based on the user's role (User/Admin/Super-Admin)."""
     try:
@@ -997,19 +1042,40 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 dm_url = f"https://t.me/{bot_username}?start=from_group"
                 btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot"
                 keyboard = [[InlineKeyboardButton(btn_text, url=dm_url)]]
-                msg = "📩 ቦቱን ለመጠቀም ወደ ቀጥታ መልዕክት (DM) ይሂዱ።" if lang == "am" else "📩 Please use this bot in a private DM for the best experience."
+                if lang == "am":
+                    msg = (
+                        "<b>ጳጉሜ ቦት</b>\n"
+                        "<i>ቀዳሚው የኢትዮጵያ ቀን መቁጠሪያ እና መለወጫ።</i>\n\n"
+                        "• <b>ትክክለኛ መለወጫ:</b> ከፈረንጅ ↔ ኢትዮጵያ\n"
+                        "• <b>ሁለት ቋንቋ:</b> አማርኛ እና እንግሊዝኛ\n"
+                        "• <b>የግብዣ ስጦታዎች:</b> የደረጃ እድገት ስርዓት\n"
+                        "• <b>የአስተዳዳሪ ክፍሎች:</b> የተቀላጠፈ ቁጥጥር\n\n"
+                        "📩 <b>ቦቱን በተሟላ ሁኔታ ለመጠቀም ወደ DM ይሂዱ።</b>"
+                    )
+                else:
+                    msg = (
+                        "<b>Pagume Bot</b>\n"
+                        "<i>The most advanced Ethiopian Calendar & Date Converter.</i>\n\n"
+                        "• <b>Precise Conversion:</b> Gregorian ↔ Ethiopian\n"
+                        "• <b>Bilingual Support:</b> English & Amharic\n"
+                        "• <b>Referral Rewards:</b> Advanced ranking system\n"
+                        "• <b>Admin Tools:</b> Real-time management\n\n"
+                        "📩 <b>Please use the bot in DM for the full experience.</b>"
+                    )
                 
                 try:
                     with open(INVITE_IMAGE_PATH, "rb") as photo:
                         await update.message.reply_photo(
                             photo=photo, 
                             caption=msg, 
+                            parse_mode="HTML",
                             reply_markup=InlineKeyboardMarkup(keyboard)
                         )
                 except Exception:
                     await update.message.reply_photo(
                         photo=REDIRECT_IMAGE_URL, 
                         caption=msg, 
+                        parse_mode="HTML",
                         reply_markup=InlineKeyboardMarkup(keyboard)
                     )
             return
@@ -1243,9 +1309,23 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         share_link = f"https://t.me/{bot_username}?start={uid}"
         
         if lang == "am":
-            text = f"<b>የኢትዮጵያ ቀን መለወጫ ቦት</b>\n\nይህንን ቦት ለጓደኞችዎ እንዲጠቀሙ ይጋብዙ! ቦቱን ተጠቅመው የፈረንጅን ቀን ወደ ኢትዮጵያ፣ የኢትዮጵያን ደግሞ ወደ ፈረንጅ መቀየር ይችላሉ።\n\n<b>መጋበዣ ሊንክ፦</b> {share_link}"
+            text = (
+                "<b>ጳጉሜ ቦት</b>\n"
+                "<i>የኢትዮጵያ ቀን መቁጠሪያ እና ቀን መቀየሪያ ።</i>\n\n"
+                "• <b>ትክክለኛ የቀን መቀየሪያ:</b> ከፈረንጅ ወደ ኢትዮጵያ\n"
+                "• <b>በሁለት ቋንቋ:</b> አማርኛ እና እንግሊዝኛ\n"
+                f"<b>መጋበዣ ሊንክ፦</b> {share_link}"
+            )
         else:
-            text = f"<b>Ethio Date Converter Bot</b>\n\nInvite your friends to use this bot! You can use it to convert between Gregorian and Ethiopian dates easily.\n\n<b>Referral Link:</b> {share_link}"
+            text = (
+                "<b>Pagume Bot</b>\n"
+                "<i>The most advanced Ethiopian Calendar & Date Converter.</i>\n\n"
+                "• <b>Precise Conversion:</b> Gregorian ↔ Ethiopian\n"
+                "• <b>Bilingual Support:</b> English & Amharic\n"
+                "• <b>Referral Rewards:</b> Advanced ranking system\n"
+                "• <b>Admin Tools:</b> Real-time management\n\n"
+                f"<b>Referral Link:</b> {share_link}"
+            )
 
         try:
             with open(INVITE_IMAGE_PATH, "rb") as photo:

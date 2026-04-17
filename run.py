@@ -27,6 +27,7 @@ from app.handlers import (
     today,
     lang as lang_keyboard, 
     info as help_info, 
+    about_command,
     share_command,
     ranks_command,
     help_command,
@@ -115,6 +116,7 @@ async def main():
     app.add_handler(CommandHandler("today", today))
     app.add_handler(CommandHandler("lang", lang_keyboard))
     app.add_handler(CommandHandler("info", help_info))
+    app.add_handler(CommandHandler("about", about_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("share", share_command))
     app.add_handler(CommandHandler("ranks", ranks_command))
