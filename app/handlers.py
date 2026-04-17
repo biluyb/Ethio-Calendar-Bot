@@ -633,8 +633,8 @@ def get_menu(uid, lang):
         kb = [
             ["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"],
             ["📅 ዛሬ", "🎂 የዕድሜ ስሌት"],
-            ["🌐 ቋንቋ", "🤝 ጓደኞችን ይጋብዙ"],
-            ["📩 አድሚኑን ያግኙ"]
+            ["🔐 ኤፒአይ (Developer)", "🌐 ቋንቋ"],
+            ["🤝 ጓደኞችን ይጋብዙ", "📩 አድሚኑን ያግኙ"]
         ]
         if is_admin:
             kb.append(["📢 መልዕክት ማስተላለፊያ (Broadcast)"])
@@ -642,8 +642,8 @@ def get_menu(uid, lang):
         kb = [
             ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
             ["📅 Today", "🎂 Age Calculator"],
-            ["🌐 Language", "🤝 Invite Friends"],
-            ["📩 Contact Admin"]
+            ["🔐 API (Developer)", "🌐 Language"],
+            ["🤝 Invite Friends", "📩 Contact Admin"]
         ]
         if is_admin:
             kb.append(["📢 Broadcast Message"])
@@ -966,15 +966,21 @@ async def api_key_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg = (
                 "🔐 <b>የእርስዎ ኤፒአይ ቁልፍ (API Key)</b>\n\n"
                 f"<code>{api_key}</code>\n\n"
-                "⚠️ <i>ይህንን ቁልፍ ሚስጥራዊ አድርገው ይያዙት!</i>\n"
-                "ይህንን ቁልፍ በመጠቀም የቀን መቀየሪያ ኤፒአይ (API) መጠቀም ይችላሉ።\n"
+                "⚠️ <i>ይህንን ቁልፍ ሚስጥራዊ አድርገው ይያዙት!</i>\n\n"
+                "<b>📚 አጭር መመሪያ (Documentation):</b>\n"
+                "• <b>ቀን ለመቀየር:</b> <code>/api/convert?date=DD/MM/YYYY&to_calendar=ethiopian&key=YOUR_KEY</code>\n"
+                "• <b>ዛሬን ለማየት:</b> <code>/api/today?key=YOUR_KEY</code>\n"
+                "• <b>ዕድሜ ለመቁጠር:</b> <code>/api/age?birth_date=DD/MM/YYYY&calendar=gregorian&key=YOUR_KEY</code>"
             )
         else:
             msg = (
                 "🔐 <b>Your Secure API Key</b>\n\n"
                 f"<code>{api_key}</code>\n\n"
-                "⚠️ <i>Keep this key secret! Do not share it!</i>\n"
-                "You can use this key to authenticate with the remote API endpoint for programmatic date conversion.\n"
+                "⚠️ <i>Keep this key secret!</i>\n\n"
+                "<b>📚 Quick Documentation:</b>\n"
+                "• <b>Convert:</b> <code>/api/convert?date=DD/MM/YYYY&to_calendar=ethiopian&key=YOUR_KEY</code>\n"
+                "• <b>Today:</b> <code>/api/today?key=YOUR_KEY</code>\n"
+                "• <b>Age:</b> <code>/api/age?birth_date=DD/MM/YYYY&calendar=gregorian&key=YOUR_KEY</code>"
             )
             
         await update.message.reply_text(msg, parse_mode="HTML")
@@ -1296,6 +1302,10 @@ async def process_menu_commands(update: Update, context: ContextTypes.DEFAULT_TY
     if text in ["📢 Broadcast Message", "📢 መልዕክት ማስተላለፊያ (Broadcast)"]:
         if is_admin_db(uid) or uid in ADMIN_IDS:
             await update.message.reply_text("Usage: /broadcast <message>\n\nOr just type your message with the command.")
+        return True
+
+    if text in ["🔐 API (Developer)", "🔐 ኤፒአይ (Developer)"]:
+        await api_key_command(update, context)
         return True
 
     return False
