@@ -2,7 +2,7 @@ from .base import init_db, get_connection, release_connection, get_eth_now, DATA
 from .users import (
     register_user, get_user_details, get_lang, set_lang, 
     get_all_user_ids, get_user_count, get_all_users, search_users,
-    get_top_referrers, get_referrers_count
+    get_top_referrers, get_referrers_count, get_user_by_id, get_user_by_username
 )
 from .api import (
     get_or_create_api_key, verify_and_track_api_key, 
@@ -11,5 +11,5 @@ from .api import (
 from .admin_db import (
     is_admin_db, get_admins_db, add_admin_db, remove_admin_db,
     register_group, get_all_groups, get_group_count,
-    block_entity_db, unblock_entity_db, is_blocked_db
+    block_entity_db, unblock_entity_db, is_blocked_db, get_all_group_ids
 )

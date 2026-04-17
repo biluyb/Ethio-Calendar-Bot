@@ -116,3 +116,12 @@ def is_blocked_db(entity_id):
         return bool(row and row[0])
     finally:
         release_connection(conn)
+
+def get_all_group_ids():
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        c.execute("SELECT id FROM groups")
+        return [r[0] for r in c.fetchall()]
+    finally:
+        release_connection(conn)

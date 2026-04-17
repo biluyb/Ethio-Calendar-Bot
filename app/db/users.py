@@ -150,3 +150,22 @@ def get_referrers_count():
         return res[0] if res else 0
     finally:
         release_connection(conn)
+
+def get_user_by_id(uid):
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        c.execute("SELECT id, username, full_name FROM users WHERE id = %s" if DATABASE_URL else "SELECT id, username, full_name FROM users WHERE id = ?", (uid,))
+        return c.fetchone()
+    finally:
+        release_connection(conn)
+
+def get_user_by_username(username):
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        if username.startswith("@"): username = username[1:]
+        c.execute("SELECT id, username, full_name FROM users WHERE username = %s" if DATABASE_URL else "SELECT id, username, full_name FROM users WHERE username = ?", (username,))
+        return c.fetchone()
+    finally:
+        release_connection(conn)
