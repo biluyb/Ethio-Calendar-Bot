@@ -47,7 +47,7 @@ from app.handlers import (
     start, 
     handle, 
     today,
-    lang as lang_keyboard, 
+    lang, 
     info as help_info, 
     about_command,
     share_command,
@@ -139,7 +139,7 @@ async def main():
     # Command Handlers
     app.add_handler(CommandHandler(["start", "menu"], start))
     app.add_handler(CommandHandler("today", today))
-    app.add_handler(CommandHandler("lang", lang_keyboard))
+    app.add_handler(CommandHandler("lang", lang))
     app.add_handler(CommandHandler("info", help_info))
     app.add_handler(CommandHandler("about", about_command))
     app.add_handler(CommandHandler("api", api_key_command))
