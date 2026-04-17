@@ -47,7 +47,8 @@ from app.db import (
     block_entity_db,
     unblock_entity_db,
     is_blocked_db,
-    get_user_details
+    get_user_details,
+    get_or_create_api_key
 )
 from app.utils import eth_to_greg, greg_to_eth
 from app.texts import INFO_EN, INFO_AM
@@ -93,6 +94,7 @@ USER_CMDS = [
     BotCommand("lang", "Change language"),
     BotCommand("info", "Information about the calendar"),
     BotCommand("about", "Bot info & Contact Admin"),
+    BotCommand("api", "Generate developer API key"),
     BotCommand("share", "Invite friends"),
     BotCommand("help", "How to use the bot")
 ]
@@ -966,6 +968,37 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(info_prefix, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
     except Exception as e:
         await send_error(update, context, e, "about_command")
+
+async def api_key_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Allows a user to generate or view their API key."""
+    try:
+        uid = update.effective_user.id
+        lang = get_lang(uid)
+        api_key = get_or_create_api_key(uid)
+        
+        if not api_key:
+            err = "❌ Failed to generate API Key." if lang == "en" else "❌ የኤፒአይ (API) ቁልፍ መፍጠር አልተቻለም።"
+            await update.message.reply_text(err)
+            return
+            
+        if lang == "am":
+            msg = (
+                "🔐 <b>የእርስዎ ኤፒአይ ቁልፍ (API Key)</b>\n\n"
+                f"<code>{api_key}</code>\n\n"
+                "⚠️ <i>ይህንን ቁልፍ ሚስጥራዊ አድርገው ይያዙት!</i>\n"
+                "ይህንን ቁልፍ በመጠቀም የቀን መቀየሪያ ኤፒአይ (API) መጠቀም ይችላሉ።\n"
+            )
+        else:
+            msg = (
+                "🔐 <b>Your Secure API Key</b>\n\n"
+                f"<code>{api_key}</code>\n\n"
+                "⚠️ <i>Keep this key secret! Do not share it!</i>\n"
+                "You can use this key to authenticate with the remote API endpoint for programmatic date conversion.\n"
+            )
+            
+        await update.message.reply_text(msg, parse_mode="HTML")
+    except Exception as e:
+        await send_error(update, context, e, "api_key_command")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Provides a tailored help guide based on the user's role (User/Admin/Super-Admin)."""

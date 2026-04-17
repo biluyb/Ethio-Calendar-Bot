@@ -8,6 +8,7 @@ import sqlite3
 import os
 import psycopg2
 import socket
+import secrets
 from psycopg2.extras import RealDictCursor
 from datetime import datetime, timedelta, timezone
 
@@ -103,6 +104,14 @@ def init_db():
                     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    uid BIGINT PRIMARY KEY,
+                    api_key TEXT UNIQUE,
+                    requests_count INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
         else:
             # SQLite Schema
             c.execute("""
@@ -133,6 +142,14 @@ def init_db():
             CREATE TABLE IF NOT EXISTS admins (
                 id INTEGER PRIMARY KEY,
                 added_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS api_keys (
+                uid INTEGER PRIMARY KEY,
+                api_key TEXT UNIQUE,
+                requests_count INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
             """)
 
@@ -733,5 +750,70 @@ def is_blocked_db(entity_id):
     except Exception as e:
         print(f"Error checking block status for {entity_id}: {e}")
         return False
+    finally:
+        release_connection(conn)
+
+# ================== API KEYS ==================
+
+def get_or_create_api_key(uid):
+    """Retrieves the user's existing API key or creates a new one."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        if DATABASE_URL:
+            c.execute("SELECT api_key FROM api_keys WHERE uid = %s", (uid,))
+        else:
+            c.execute("SELECT api_key FROM api_keys WHERE uid = ?", (uid,))
+        
+        row = c.fetchone()
+        if row:
+            return row[0]
+            
+        # Create a new key
+        new_key = "ec_" + secrets.token_hex(16)
+        
+        if DATABASE_URL:
+            c.execute(
+                "INSERT INTO api_keys (uid, api_key) VALUES (%s, %s)",
+                (uid, new_key)
+            )
+        else:
+            c.execute(
+                "INSERT INTO api_keys (uid, api_key) VALUES (?, ?)",
+                (uid, new_key)
+            )
+        conn.commit()
+        return new_key
+    except Exception as e:
+        print(f"Error in get_or_create_api_key: {e}")
+        return None
+    finally:
+        release_connection(conn)
+
+def verify_and_track_api_key(api_key):
+    """Verifies an API key and increments its request count if valid. Returns uid if valid, None otherwise."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        if DATABASE_URL:
+            c.execute("SELECT uid FROM api_keys WHERE api_key = %s", (api_key,))
+            row = c.fetchone()
+            if row:
+                uid = row[0]
+                c.execute("UPDATE api_keys SET requests_count = requests_count + 1 WHERE uid = %s", (uid,))
+                conn.commit()
+                return uid
+        else:
+            c.execute("SELECT uid FROM api_keys WHERE api_key = ?", (api_key,))
+            row = c.fetchone()
+            if row:
+                uid = row[0]
+                c.execute("UPDATE api_keys SET requests_count = requests_count + 1 WHERE uid = ?", (uid,))
+                conn.commit()
+                return uid
+        return None
+    except Exception as e:
+        print(f"Error tracking API key: {e}")
+        return None
     finally:
         release_connection(conn)

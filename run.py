@@ -51,6 +51,7 @@ from app.handlers import (
     block_command,
     unblock_command,
     leavegroup_command,
+    api_key_command,
     USER_CMDS,
     refresh_user_commands
 )
@@ -117,6 +118,7 @@ async def main():
     app.add_handler(CommandHandler("lang", lang_keyboard))
     app.add_handler(CommandHandler("info", help_info))
     app.add_handler(CommandHandler("about", about_command))
+    app.add_handler(CommandHandler("api", api_key_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("share", share_command))
     app.add_handler(CommandHandler("ranks", ranks_command))
@@ -205,8 +207,61 @@ async def main():
                 logging.error(f"Webhook error: {e}")
                 return web.Response(status=500)
 
+        async def api_convert_handler(request):
+            try:
+                auth_header = request.headers.get("Authorization", "")
+                if auth_header.startswith("Bearer "):
+                    api_key = auth_header.split(" ")[1]
+                else:
+                    api_key = request.query.get("key")
+                    
+                if not api_key:
+                    return web.json_response({"status": "error", "message": "Missing API Key. Include ?key= or Authorization: Bearer header."}, status=401)
+                
+                from app.db import verify_and_track_api_key
+                uid = verify_and_track_api_key(api_key)
+                if not uid:
+                    return web.json_response({"status": "error", "message": "Invalid API Key."}, status=403)
+                    
+                date_str = request.query.get("date")
+                to_cal = request.query.get("to_calendar", "").lower()
+                
+                if not date_str or to_cal not in ["ethiopian", "gregorian"]:
+                    return web.json_response({"status": "error", "message": "Missing or invalid parameters. Require 'date' (DD/MM/YYYY) and 'to_calendar' ('ethiopian' or 'gregorian')."}, status=400)
+                
+                from app.utils import parse_date, greg_to_eth, eth_to_greg, format_eth, format_greg
+                parsed = parse_date(date_str)
+                if not parsed:
+                    return web.json_response({"status": "error", "message": "Invalid date format. Use DD/MM/YYYY."}, status=400)
+                    
+                d, m, y = parsed
+                
+                if to_cal == "ethiopian":
+                    res_d, res_m, res_y = greg_to_eth(d, m, y)
+                    fmt = format_eth(res_d, res_m, res_y)
+                else:
+                    res_d, res_m, res_y = eth_to_greg(d, m, y)
+                    fmt = format_greg(res_d, res_m, res_y)
+                    
+                return web.json_response({
+                    "status": "success",
+                    "input": {"date": date_str, "target": to_cal},
+                    "result": {
+                        "day": res_d,
+                        "month": res_m,
+                        "year": res_y,
+                        "formatted": fmt
+                    }
+                })
+            except ValueError as e:
+                return web.json_response({"status": "error", "message": str(e)}, status=400)
+            except Exception as e:
+                logging.error(f"API error: {e}")
+                return web.json_response({"status": "error", "message": "Internal server error"}, status=500)
+
         web_app = web.Application()
         web_app.router.add_get("/", root_handler)
+        web_app.router.add_get("/api/convert", api_convert_handler)
         web_app.router.add_post(f"/{BOT_TOKEN}", webhook_handler)
 
         runner = web.AppRunner(web_app)
