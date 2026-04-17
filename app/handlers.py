@@ -514,6 +514,7 @@ async def groups_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def groups_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles pagination for the groups list."""
     try:
+        track_activity(update)
         query_obj = update.callback_query
         uid = update.effective_user.id
         if not is_admin_db(uid):
@@ -603,6 +604,7 @@ async def list_admins(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def age_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the selection of Gregorian vs Ethiopian birthdate input."""
     try:
+        track_activity(update)
         query = update.callback_query
         uid = update.effective_user.id
         lang = get_lang(uid)
@@ -857,7 +859,7 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         lang = get_lang(uid)
         username = update.effective_user.username or update.effective_user.full_name or str(uid)
-        register_user(uid, username)
+        track_activity(update, "Command: /today")
 
         now = datetime.now()
 
@@ -1074,7 +1076,6 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 uid = update.effective_user.id if update.effective_user else None
                 lang = get_lang(uid) if uid else "en"
                 track_group(update)
-                register_user(uid, update.effective_user.username or update.effective_user.full_name) if uid else None
                 bot_username = context.bot.username
                 dm_url = f"https://t.me/{bot_username}?start=from_group"
                 btn_text = "▶️ ቦቱን ክፈት" if lang == "am" else "▶️ Open Bot"
@@ -1127,7 +1128,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         text = update.message.text.strip()
         lang = get_lang(uid)
-        register_user(uid, update.effective_user.username or update.effective_user.full_name)
+        
         
 
     # =====================
@@ -1139,7 +1140,6 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
             
         username = user.username or user.full_name or "Unknown"
-        register_user(uid, str(username))
 
         # 1. Handle Menu Buttons & Navigation
         if await process_menu_commands(update, context, text, uid, lang):
@@ -1448,6 +1448,7 @@ async def ranks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def ranks_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles pagination for the leaderboard."""
     try:
+        track_activity(update)
         query = update.callback_query
         data = query.data # format: r:{page}
         page = int(data.split(":")[1])
@@ -1583,6 +1584,7 @@ async def lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
 async def contact_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the inline 'Contact Admin' button click - prompts user to type their message."""
+    track_activity(update)
     query = update.callback_query
     uid = update.effective_user.id
     lang = get_lang(uid)
@@ -1643,6 +1645,7 @@ async def handle_admin_contact_message(update: Update, context: ContextTypes.DEF
         await send_error(update, context, e, "handle_admin_contact_message")
 
 async def admin_reply_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    track_activity(update)
     query = update.callback_query
     uid = update.effective_user.id
     
