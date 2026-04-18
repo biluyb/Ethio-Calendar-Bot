@@ -210,6 +210,8 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             info_text = (
                 "<b>ℹ️ ስለ ጳጉሜ ቦት</b>\n\n"
                 "ጳጉሜ ቦት እጅግ ዘመናዊ እና ትክክለኛ የኢትዮጵያ ቀን መቁጠሪያ እና የቀን መቀየሪያ ቦት ነው።\n\n"
+                "<b>📧 ኢሜይል:</b> support@pagumebot.com\n"
+                "<b>📫 አድሚን:</b> biluquick123@gmail.com\n"
                 "<b>🛠 የተሰራው፦</b> በ ShademT\n"
                 "<b>📅 የተለቀቀው፦</b> ግንቦት 2018 ዓ.ም\n\n"
                 "ለማንኛውም ጥያቄ ወይም አስተያየት ከታች ያለውን 'መልዕክት ላክ' የሚለውን ይጫኑ።"
@@ -220,9 +222,11 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             info_text = (
                 "<b>ℹ️ About Pagume Bot</b>\n\n"
                 "Pagume Bot is the most advanced and precise Ethiopian Calendar & Date Converter on Telegram.\n\n"
+                "<b>📧 Email:</b> support@pagumebot.com\n"
+                "<b>📫 Support:</b> biluquick123@gmail.com\n"
                 "<b>🛠 Developed by:</b> ShademT\n"
                 "<b>📅 Version:</b> May 2026\n\n"
-                "For support, feedback, or inquiries, please use the button below."
+                "For support, feedback, or inquiries, please use the button below or email us directly."
             )
             btn_contact = "✍️ Send Message to Admin"
             btn_add = "➕ Add Bot to Group"

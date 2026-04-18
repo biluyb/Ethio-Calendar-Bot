@@ -49,8 +49,11 @@ async def api_key_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "💡 <b>Security Tip:</b> Use <code>Authorization: Bearer</code> header instead of URL parameters for production apps.\n\n"
                 "🔗 <b>Developer Portal:</b> <i>For full JSON schemas and examples, refer to our official API Guide.</i>"
             )
+        keyboard = [
+            [InlineKeyboardButton("📄 Download API Guide (PDF)", callback_data="api_download_guide")]
+        ]
             
-        await update.message.reply_text(msg, parse_mode="HTML")
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
     except Exception as e:
         await send_error(update, context, e, "api_key_command")
 
@@ -85,6 +88,20 @@ async def api_stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
             else:
                 msg = "✍️ <b>API Revocation Mode Active.</b>\n\nPlease enter the <b>User ID</b> you want to revoke API access for:"
             await query.message.reply_text(msg, parse_mode="HTML")
+            await query.answer()
+        elif data == "api_download_guide":
+            import os
+            pdf_path = "assets/api_guide.pdf"
+            if os.path.exists(pdf_path):
+                await query.message.reply_document(
+                    document=open(pdf_path, "rb"),
+                    filename="Pagume_API_Guide.pdf",
+                    caption="📄 <b>Pagume Bot API - Full Documentation (v1.0)</b>\n\nIncluded: JSON Schemas, Examples, and Support contact details.",
+                    parse_mode="HTML"
+                )
+            else:
+                msg = "❌ Documentation file not found on server. Please contact support@pagumebot.com" if get_lang(uid) == "en" else "❌ የሰነድ ፋይሉ አልተገኘም። እባክዎን support@pagumebot.com ያግኙ።"
+                await query.message.reply_text(msg)
             await query.answer()
             
     except Exception as e:
