@@ -151,6 +151,7 @@ def init_db():
                     ("is_blocked", "ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE"),
                     ("full_name", "ALTER TABLE users ADD COLUMN full_name TEXT"),
                     ("last_command", "ALTER TABLE users ADD COLUMN last_command TEXT"),
+                    ("last_3_commands", "ALTER TABLE users ADD COLUMN last_3_commands TEXT"),
                     ("total_actions", "ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0"),
                 ]:
                     try:
@@ -182,6 +183,7 @@ def init_db():
                     ("is_blocked", "ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE"),
                     ("full_name", "ALTER TABLE users ADD COLUMN full_name TEXT"),
                     ("last_command", "ALTER TABLE users ADD COLUMN last_command TEXT"),
+                    ("last_3_commands", "ALTER TABLE users ADD COLUMN last_3_commands TEXT"),
                     ("total_actions", "ALTER TABLE users ADD COLUMN total_actions INTEGER DEFAULT 0"),
                 ]:
                     try:

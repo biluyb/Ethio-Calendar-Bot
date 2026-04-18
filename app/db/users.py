@@ -7,33 +7,56 @@ def register_user(uid, username, full_name=None, last_command=None, referred_by=
         now = get_eth_now()
         is_new = False
         if DATABASE_URL:
-            c.execute("SELECT last_3_commands FROM users WHERE id=%s", (uid,))
-            row = c.fetchone()
-            history = row[0].split("||") if row and row[0] else []
-            history = [last_command] + history
-            history = history[:3]
-            history_str = "||".join(history)
+            # Safety: check if column exists before trying to use it
+            c.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='last_3_commands'")
+            has_history_col = c.fetchone() is not None
+            
+            history_str = None
+            if has_history_col:
+                c.execute("SELECT last_3_commands FROM users WHERE id=%s", (uid,))
+                row = c.fetchone()
+                history = row[0].split("||") if row and row[0] else []
+                history = ([last_command] + history)[:3]
+                history_str = "||".join(history)
 
             c.execute("SELECT id FROM users WHERE id=%s", (uid,))
             if not c.fetchone():
-                c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by) VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s)", (uid, username, full_name, now, now, last_command, history_str, referred_by))
+                if has_history_col:
+                    c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by) VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s)", (uid, username, full_name, now, now, last_command, history_str, referred_by))
+                else:
+                    c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, total_actions, referred_by) VALUES (%s, %s, %s, %s, %s, %s, 1, %s)", (uid, username, full_name, now, now, last_command, referred_by))
                 is_new = True
             else:
-                c.execute("UPDATE users SET username=%s, full_name=%s, last_active_at=%s, last_command=%s, last_3_commands=%s, total_actions = total_actions + 1 WHERE id=%s", (username, full_name, now, last_command, history_str, uid))
+                if has_history_col:
+                    c.execute("UPDATE users SET username=%s, full_name=%s, last_active_at=%s, last_command=%s, last_3_commands=%s, total_actions = total_actions + 1 WHERE id=%s", (username, full_name, now, last_command, history_str, uid))
+                else:
+                    c.execute("UPDATE users SET username=%s, full_name=%s, last_active_at=%s, last_command=%s, total_actions = total_actions + 1 WHERE id=%s", (username, full_name, now, last_command, uid))
         else:
-            c.execute("SELECT last_3_commands FROM users WHERE id=?", (uid,))
-            row = c.fetchone()
-            history = row[0].split("||") if row and row[0] else []
-            history = [last_command] + history
-            history = history[:3]
-            history_str = "||".join(history)
+            # SQLite safety check
+            c.execute("PRAGMA table_info(users)")
+            cols = [col[1] for col in c.fetchall()]
+            has_history_col = "last_3_commands" in cols
+            
+            history_str = None
+            if has_history_col:
+                c.execute("SELECT last_3_commands FROM users WHERE id=?", (uid,))
+                row = c.fetchone()
+                history = row[0].split("||") if row and row[0] else []
+                history = ([last_command] + history)[:3]
+                history_str = "||".join(history)
 
             c.execute("SELECT id FROM users WHERE id=?", (uid,))
             if not c.fetchone():
-                c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)", (uid, username, full_name, now, now, last_command, history_str, referred_by))
+                if has_history_col:
+                    c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)", (uid, username, full_name, now, now, last_command, history_str, referred_by))
+                else:
+                    c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, total_actions, referred_by) VALUES (?, ?, ?, ?, ?, ?, 1, ?)", (uid, username, full_name, now, now, last_command, referred_by))
                 is_new = True
             else:
-                c.execute("UPDATE users SET username=?, full_name=?, last_active_at=?, last_command=?, last_3_commands=?, total_actions = total_actions + 1 WHERE id=?", (username, full_name, now, last_command, history_str, uid))
+                if has_history_col:
+                    c.execute("UPDATE users SET username=?, full_name=?, last_active_at=?, last_command=?, last_3_commands=?, total_actions = total_actions + 1 WHERE id=?", (username, full_name, now, last_command, history_str, uid))
+                else:
+                    c.execute("UPDATE users SET username=?, full_name=?, last_active_at=?, last_command=?, total_actions = total_actions + 1 WHERE id=?", (username, full_name, now, last_command, uid))
         conn.commit()
         return is_new
     finally:
@@ -142,7 +165,7 @@ def get_all_users(sort_by="last_active_at", order="DESC", limit=None, offset=Non
         query = f"""
             SELECT 
                 u.id, u.username, u.full_name, u.lang, u.joined_at, 
-                u.last_active_at, u.last_command, u.total_actions, 
+                u.last_active_at, u.last_command, u.last_3_commands, u.total_actions, 
                 u.referred_by, u.is_blocked,
                 (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
             FROM users u 
@@ -179,7 +202,14 @@ def search_users(query, sort_by="last_active_at", order="DESC", limit=None, offs
         search_part = f"(u.username {'ILIKE' if DATABASE_URL else 'LIKE'} %s OR CAST(u.id AS TEXT) LIKE %s)" if DATABASE_URL else "(u.username LIKE ? OR CAST(u.id AS TEXT) LIKE ?)"
         where_conds.append(search_part)
         where_clause = "WHERE " + " AND ".join(where_conds)
-        base_query = f"SELECT u.*, (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count FROM users u {where_clause}"
+        base_query = f"""
+            SELECT 
+                u.id, u.username, u.full_name, u.lang, u.joined_at, 
+                u.last_active_at, u.last_command, u.last_3_commands, u.total_actions, 
+                u.referred_by, u.is_blocked,
+                (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
+            FROM users u {where_clause}
+        """
         sql = f"{base_query} ORDER BY {order_clause}"
         params = [q, q]
         if limit is not None:
@@ -234,10 +264,11 @@ def get_user_by_id(uid):
     conn = get_connection()
     try:
         c = conn.cursor()
+        cols = "id, username, full_name, lang, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by, is_blocked"
         if DATABASE_URL:
-            c.execute("SELECT * FROM users WHERE id=%s", (uid,))
+            c.execute(f"SELECT {cols} FROM users WHERE id=%s", (uid,))
         else:
-            c.execute("SELECT * FROM users WHERE id=?", (uid,))
+            c.execute(f"SELECT {cols} FROM users WHERE id=?", (uid,))
         return c.fetchone()
     finally:
         release_connection(conn)
@@ -247,11 +278,12 @@ def get_user_by_username(username):
     conn = get_connection()
     try:
         c = conn.cursor()
+        cols = "id, username, full_name, lang, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by, is_blocked"
         uname = username.lstrip("@")
         if DATABASE_URL:
-            c.execute("SELECT * FROM users WHERE username ILIKE %s", (uname,))
+            c.execute(f"SELECT {cols} FROM users WHERE username ILIKE %s", (uname,))
         else:
-            c.execute("SELECT * FROM users WHERE username LIKE ?", (uname,))
+            c.execute(f"SELECT {cols} FROM users WHERE username LIKE ?", (uname,))
         return c.fetchone()
     finally:
         release_connection(conn)
