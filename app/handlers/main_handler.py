@@ -6,8 +6,9 @@ from .common import (
     track_activity, get_lang, send_error, get_menu, check_blocked, track_group,
     EN_DAYS, EN_MONTHS, AM_DAYS, AM_MONTHS, INVITE_IMAGE_PATH, REDIRECT_IMAGE_URL
 )
-from .user import today, share_command
+from .user import today, share_command, calendar_command, about_command
 from .api import api_key_command, api_stats_command
+from .callbacks import contact_admin_callback
 from app.db import (
     set_lang, get_lang, is_admin_db, revoke_api_key_db, get_admins_db, 
     get_user_by_id, get_user_by_username
@@ -233,6 +234,15 @@ async def process_menu_commands(update, context, text, uid, lang):
     if text in ["📚 Calendar Info", "📚 ስነ-ቀን መቁጠሪያ (Calendar)"]:
         from .user import calendar_command
         await calendar_command(update, context)
+        return True
+
+    if text in ["📅 Today", "📅 ዛሬ"]:
+        from .user import today
+        await today(update, context)
+        return True
+
+    if text in ["📩 Contact Admin", "📩 ለአድሚን መልዕክት ለመላክ"]:
+        await contact_admin_callback(update, context)
         return True
 
     if text in ["ℹ️ About & Support", "ℹ️ ስለ ቦቱ እና እርዳታ"]:

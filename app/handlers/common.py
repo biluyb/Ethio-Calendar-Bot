@@ -57,12 +57,12 @@ def track_activity(update: Update, command_name: str = None) -> bool:
 def get_menu(uid, lang):
     is_admin = is_admin_db(uid) or uid in ADMIN_IDS
     if lang == "am":
-        kb = [["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"], ["📅 ዛሬ", "🎂 የዕድሜ ስሌት"], ["🔐 ኤፒአይ (Developer)", "🌐 ቋንቋ"], ["🤝 ጓደኞችን ይጋብዙ", "📚 ስነ-ቀን መቁጠሪያ (Calendar)"]]
+        kb = [["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"], ["📅 ዛሬ", "🎂 የዕድሜ ስሌት"], ["🔐 ኤፒአይ (Developer)", "🌐 ቋንቋ"], ["🤝 ጓደኞችን ይጋብዙ", "📩 ለአድሚን መልዕክት ለመላክ"]]
         if is_admin:
             kb.append(["📢 መልዕክት ማስተላለፊያ (Broadcast)"])
             kb.append(["📊 ኤፒአይ ስታቲስቲክስ", "👥 ተጠቃሚዎች"])
     else:
-        kb = [["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"], ["📅 Today", "🎂 Age Calculator"], ["🔐 API (Developer)", "🌐 Language"], ["🤝 Invite Friends", "📚 Calendar Info"]]
+        kb = [["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"], ["📅 Today", "🎂 Age Calculator"], ["🔐 API (Developer)", "🌐 Language"], ["🤝 Invite Friends", "📩 Contact Admin"]]
         if is_admin:
             kb.append(["📢 Broadcast Message"])
             kb.append(["📊 API Stats", "👥 Users"])
