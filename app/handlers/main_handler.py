@@ -85,10 +85,10 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Cancel any active input mode if a menu command is detected
         if text.startswith("/") or text in [
             "📅 Today", "📅 ዛሬ", "🌐 Language", "🌐 ቋንቋ", 
-            "📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ",
             "🎂 Age Calculator", "🎂 የዕድሜ ስሌት",
             "📅 Gregorian ➜ Ethiopian", "📅 ከፈረንጅ ወደ ኢትዮጵያ",
             "📆 Ethiopian ➜ Gregorian", "📆 ከኢትዮጵያ ወደ ፈረንጅ",
+            "ℹ️ About & Support", "ℹ️ ስለ ቦቱ እና እርዳታ",
             "📢 Broadcast Message", "📢 መልዕክት ማስተላለፊያ (Broadcast)",
             "🔐 API (Developer)", "🔐 ኤፒአይ (Developer)",
             "📊 API Stats", "📊 ኤፒአይ ስታቲስቲክስ",
@@ -223,23 +223,9 @@ async def process_menu_commands(update, context, text, uid, lang):
         await update.message.reply_text("Choose language / ቋንቋ ይምረጡ", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
         return True
 
-    if text in ["📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ"]:
-        context.user_data["mode"] = "contact_admin"
-        if lang == "am":
-            info_prefix = "የቦት መረጃ\n\nበ ShademT የተሰራ\n\n© May 2026\n\n"
-            msg = info_prefix + "<b>✍️ እባክዎን መልዕክትዎን እዚህ ይጻፉ...</b>"
-            add_text = "➕ ወደ ግሩፕ አስገባ"
-        else:
-            info_prefix = "<b>Bot Information:</b>\n\nDeveloped by ShademT\n\n© May 2026\n\n"
-            msg = info_prefix + "<b>✍️ Please type your message below...</b>"
-            add_text = "➕ Add to Group"
-
-        add_url = f"https://t.me/{context.bot.username}?startgroup=true"
-        keyboard = [
-            [InlineKeyboardButton("📩 Contact Admin" if lang == "en" else "📩 አድሚኑን ያግኙ", callback_data="contact_admin_request")],
-            [InlineKeyboardButton(add_text, url=add_url)]
-        ]
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+    if text in ["ℹ️ About & Support", "ℹ️ ስለ ቦቱ እና እርዳታ"]:
+        from .user import about_command
+        await about_command(update, context)
         return True
 
     if text in ["🎂 Age Calculator", "🎂 የዕድሜ ስሌት"]:

@@ -208,21 +208,33 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lang = get_lang(uid)
         
         if lang == "am":
-            info_prefix = "የቦት መረጃ\n\nበ ShademT የተሰራ\n\n© May 2026\n\n"
-            add_text = "➕ ወደ ግሩፕ አስገባ"
-            contact_text = "📩 አድሚኑን ያግኙ"
+            info_text = (
+                "<b>ℹ️ ስለ ጳጉሜ ቦት</b>\n\n"
+                "ጳጉሜ ቦት እጅግ ዘመናዊ እና ትክክለኛ የኢትዮጵያ ቀን መቁጠሪያ እና የቀን መቀየሪያ ቦት ነው።\n\n"
+                "<b>🛠 የተሰራው፦</b> በ ShademT\n"
+                "<b>📅 የተለቀቀው፦</b> ግንቦት 2018 ዓ.ም\n\n"
+                "ለማንኛውም ጥያቄ ወይም አስተያየት ከታች ያለውን 'መልዕክት ላክ' የሚለውን ይጫኑ።"
+            )
+            btn_contact = "✍️ መልዕክት ላክ (Support)"
+            btn_add = "➕ ቦቱን ወደ ግሩፕ አስገባ"
         else:
-            info_prefix = "<b>Bot Information:</b>\n\nDeveloped by ShademT\n\n© May 2026\n\n"
-            add_text = "➕ Add to Group"
-            contact_text = "📩 Contact Admin"
+            info_text = (
+                "<b>ℹ️ About Pagume Bot</b>\n\n"
+                "Pagume Bot is the most advanced and precise Ethiopian Calendar & Date Converter on Telegram.\n\n"
+                "<b>🛠 Developed by:</b> ShademT\n"
+                "<b>📅 Version:</b> May 2026\n\n"
+                "For support, feedback, or inquiries, please use the button below."
+            )
+            btn_contact = "✍️ Send Message to Admin"
+            btn_add = "➕ Add Bot to Group"
 
         add_url = f"https://t.me/{context.bot.username}?startgroup=true"
         keyboard = [
-            [InlineKeyboardButton(contact_text, callback_data="contact_admin_request")],
-            [InlineKeyboardButton(add_text, url=add_url)]
+            [InlineKeyboardButton(btn_contact, callback_data="contact_admin_request")],
+            [InlineKeyboardButton(btn_add, url=add_url)]
         ]
         
-        await update.message.reply_text(info_prefix, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+        await update.message.reply_text(info_text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
     except Exception as e:
         await send_error(update, context, e, "about_command")
 
