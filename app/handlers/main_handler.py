@@ -243,10 +243,19 @@ async def process_menu_commands(update, context, text, uid, lang):
         return True
 
     if text in ["🎂 Age Calculator", "🎂 የዕድሜ ስሌት"]:
-        prompt = "Choose birthdate calendar:" if lang == "en" else "የልደት ቀን መቁጠሪያ ይምረጡ፦"
-        keyboard = [[InlineKeyboardButton("Gregorian", callback_data="age_mode_gc"), 
-                     InlineKeyboardButton("Ethiopian", callback_data="age_mode_et")]]
-        await update.message.reply_text(prompt, reply_markup=InlineKeyboardMarkup(keyboard))
+        if lang == "am":
+            prompt = "<b>🎂 የዕድሜ ስሌት</b>\n\nእባክዎን የልደት ቀንዎ የተመዘገበበትን የቀን አቆጣጠር ይምረጡ፦"
+            keyboard = [[
+                InlineKeyboardButton("🇺🇸 Gregorian", callback_data="age_mode_gc"),
+                InlineKeyboardButton("🇪🇹 Ethiopian", callback_data="age_mode_et")
+            ]]
+        else:
+            prompt = "<b>🎂 Age Calculator</b>\n\nSelect the calendar system used for your birthdate:"
+            keyboard = [[
+                InlineKeyboardButton("🇺🇸 Gregorian", callback_data="age_mode_gc"),
+                InlineKeyboardButton("🇪🇹 Ethiopian", callback_data="age_mode_et")
+            ]]
+        await update.message.reply_text(prompt, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
         return True
 
     if text in ["🤝 Invite Friends", "🤝 ጓደኞችን ይጋብዙ"]:
@@ -395,11 +404,10 @@ async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d
         
         if birth_date > now:
             if lang == "am":
-                err = "❌ የልደት ቀን ወደፊት መሆን አይችልም!"
+                err = "❌ <b>የልደት ቀን የወደፊት ሊሆን አይችልም!</b>\n\n✍️ እባክዎን ትክክለኛ የልደት ቀን ያስገቡ (ቀን/ወር/ዓመት)፦"
             else:
-                err = "❌ Birthdate cannot be in the future!"
-            await update.message.reply_text(err, reply_markup=get_menu(update.effective_user.id, lang))
-            context.user_data.pop("mode", None)
+                err = "❌ <b>Birthdate cannot be in the future!</b>\n\n✍️ Please enter a valid birthdate (DD/MM/YYYY):"
+            await update.message.reply_text(err, parse_mode="HTML")
             return
 
         years, months, days = calculate_age(birth_date, now)
