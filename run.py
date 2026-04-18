@@ -202,6 +202,7 @@ from app.handlers import (
     api_key_command,
     api_stats_command,
     api_stats_callback,
+    api_download_guide_handler,
     USER_CMDS,
     refresh_user_commands
 )
@@ -290,7 +291,8 @@ async def main():
     app.add_handler(CallbackQueryHandler(ranks_callback, pattern="^r:"))
     app.add_handler(CallbackQueryHandler(age_mode_callback, pattern="^age_mode_"))
     app.add_handler(CallbackQueryHandler(groups_callback, pattern="^g:"))
-    app.add_handler(CallbackQueryHandler(api_stats_callback, pattern="^(api_dash:|api_revoke_prompt|api_download_guide)"))
+    app.add_handler(CallbackQueryHandler(api_stats_callback, pattern="^(api_dash:|api_revoke_prompt)"))
+    app.add_handler(CallbackQueryHandler(api_download_guide_handler, pattern="^api_download_guide$"))
     app.add_handler(CallbackQueryHandler(contact_admin_callback, pattern="^contact_admin_request$"))
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
 

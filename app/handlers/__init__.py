@@ -6,7 +6,7 @@ from .user import (
     start, today, language as lang, calendar_command, about_command, share_command, 
     ranks_command, ranks_callback, refresh_user_commands, help_command
 )
-from .api import api_key_command, api_stats_command, api_stats_callback
+from .api import api_key_command, api_stats_command, api_stats_callback, api_download_guide_handler
 from .admin import (
     users, users_callback, groups_command, groups_callback, 
     broadcast_command, send_msg_command, handle_admin_dm_send,

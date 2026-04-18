@@ -90,22 +90,31 @@ async def api_stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await query.message.reply_text(msg, parse_mode="HTML")
             await query.answer()
         elif data == "api_download_guide":
-            import os
-            pdf_path = "assets/api_guide.pdf"
-            if os.path.exists(pdf_path):
-                await query.message.reply_document(
-                    document=open(pdf_path, "rb"),
-                    filename="Pagume_API_Guide.pdf",
-                    caption="📄 <b>Pagume Bot API - Full Documentation (v1.0)</b>\n\nIncluded: JSON Schemas, Examples, and Support contact details.",
-                    parse_mode="HTML"
-                )
-            else:
-                msg = "❌ Documentation file not found on server. Please contact support@pagumebot.com" if get_lang(uid) == "en" else "❌ የሰነድ ፋይሉ አልተገኘም። እባክዎን support@pagumebot.com ያግኙ።"
-                await query.message.reply_text(msg)
-            await query.answer()
+            await api_download_guide_handler(update, context)
             
     except Exception as e:
         await send_error(update, context, e, "api_stats_callback")
+
+async def api_download_guide_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles the API guide download request."""
+    try:
+        query = update.callback_query
+        uid = update.effective_user.id
+        import os
+        pdf_path = "assets/api_guide.pdf"
+        if os.path.exists(pdf_path):
+            await query.message.reply_document(
+                document=open(pdf_path, "rb"),
+                filename="Pagume_API_Guide.pdf",
+                caption="📄 <b>Pagume Bot API - Full Documentation (v1.0)</b>\n\nIncluded: JSON Schemas, Examples, and Support contact details.",
+                parse_mode="HTML"
+            )
+        else:
+            msg = "❌ Documentation file not found on server. Please contact support@pagumebot.com" if get_lang(uid) == "en" else "❌ የሰነድ ፋይሉ አልተገኘም። እባክዎን support@pagumebot.com ያግኙ።"
+            await query.message.reply_text(msg)
+        await query.answer()
+    except Exception as e:
+        await send_error(update, context, e, "api_download_guide_handler")
 
 async def send_api_stats_page(update, context, page: int = 0):
     """Displays a list of all users with API keys and their usage counts."""
