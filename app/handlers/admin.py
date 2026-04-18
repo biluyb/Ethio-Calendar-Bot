@@ -18,80 +18,93 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         if not per_page or per_page not in [5, 10, 15, 20]:
             per_page = 15
         
+        # Sort display mappings
+        sort_text = "Newest" if sort_by in ["joined_at", "newest"] else \
+                    "Activity" if sort_by == "activity" else \
+                    "Blocked" if sort_by == "blocked" else \
+                    "Invites" if sort_by == "referrals" else "Activity"
+        order_icon = "🔽" if order == "DESC" else "🔼"
+
         # Calculate totals
         filter_blocked = (sort_by == "blocked")
         total_count = get_user_count(query or None, filter_blocked=filter_blocked)
-        
-        if total_count == 0:
-            msg = f"❌ <b>No users found</b>"
-            if query: msg += f" matching '<code>{query}</code>'"
-            if update.message: await update.message.reply_text(msg, parse_mode="HTML")
-            else: await update.callback_query.edit_message_text(msg, parse_mode="HTML")
-            return
-
-        total_pages = (total_count + per_page - 1) // per_page
-        page = max(0, min(page, total_pages - 1))
+        total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 0
         offset = page * per_page
-        
+
         # Fetch users
         if query:
             users = search_users(query, sort_by=sort_by, order=order, limit=per_page, offset=offset)
         else:
             users = get_all_users(sort_by=sort_by, order=order, limit=per_page, offset=offset)
-
-        # Build Message
+           
+        # Header
         msg = f"👥 <b>User Management</b> (Total: {total_count})\n"
+        msg += f"📊 Sort: <b>{sort_text}</b> {order_icon}\n"
+        msg += f"📄 Page: <b>{page+1}/{total_pages or 1}</b>\n"
+        msg += "━━━━━━━━━━━━━━━━━\n\n"
+
+        if not users:
+            msg += "<i>No users found matching your criteria.</i>"
         
-        # Sort indicator
-        sort_text = "Newest" if sort_by in ["joined_at", "newest"] else "Activity" if sort_by == "activity" else "Last Active" if sort_by == "last_active_at" else "Invites" if sort_by == "referrals" else "Blocked"
-        order_icon = "⬇️" if order == "DESC" else "⬆️"
-        msg += f"📊 Sort: <b>{sort_text} {order_icon}</b>\n"
-        
-        if query: msg += f"🔍 Search: <code>{query}</code>\n"
-        msg += f"📄 Page: <b>{page + 1}/{total_pages}</b>\n"
-        msg += f"━━━━━━━━━━━━━━━━━\n\n"
-        
+        # User List (Dynamic Metrics & Grid)
         keyboard = []
+        user_row = []
         for user in users:
             uid, uname, fname, u_lang, joined, last_act, last_cmd, last_3, actions, ref_by, is_blocked, ref_count = user
+            display_name = fname or uname or f"User-{uid}"
             
-            display_name = fname or uname or f"User {uid}"
-            status_ico = "🚫" if is_blocked else "👤"
+            # Dynamic Metric
+            if sort_by == "newest":
+                metric = joined.strftime("%Y-%m-%d") if hasattr(joined, 'strftime') else str(joined)[:10]
+                label = f"👤 {display_name} ({metric})"
+            elif sort_by == "referrals":
+                label = f"👤 {display_name} ({ref_count} 🤝)"
+            else:
+                label = f"👤 {display_name} ({actions} 🖱)"
             
-            # Show name and compact metrics
-            msg += f"{status_ico} <b>{html.escape(display_name)}</b> (@{uname})\n"
-            msg += f"└── ID: <code>{uid}</code> | {actions} acts\n"
+            user_row.append(InlineKeyboardButton(label, callback_data=f"ud:{uid}:{page}:{sort_by}:{order}:{per_page}:{query[:15] if query else ''}"))
             
-            keyboard.append([InlineKeyboardButton(f"👤 {display_name}", callback_data=f"ud:{uid}:{page}:{sort_by}:{order}:{query[:20] if query else ''}")])
+            if len(user_row) == 2:
+                keyboard.append(user_row)
+                user_row = []
+        
+        if user_row:
+            keyboard.append(user_row)
 
         # Pagination & Sorting Buttons
-        # Row 1: ⬅️ Prev | Page | Next ➡️
-        nav_row = []
-        if page > 0:
-            nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{order}:{per_page}:{query[:20] if query else ''}"))
-        
-        nav_row.append(InlineKeyboardButton(f"Page {page+1}", callback_data="none"))
-        
-        if page < total_pages - 1:
-            nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{order}:{per_page}:{query[:20] if query else ''}"))
-        keyboard.append(nav_row)
+        if total_pages > 1:
+            nav_row = []
+            if page > 0:
+                nav_row.append(InlineKeyboardButton("⬅️", callback_data=f"u:{page-1}:{sort_by}:{order}:{per_page}:{query[:15] if query else ''}"))
+            
+            start_p = max(0, page - 2)
+            end_p = min(total_pages, start_p + 5)
+            if end_p - start_p < 5: start_p = max(0, end_p - 5)
+            
+            for i in range(start_p, end_p):
+                label = f"·{i+1}·" if i == page else str(i+1)
+                nav_row.append(InlineKeyboardButton(label, callback_data=f"u:{i}:{sort_by}:{order}:{per_page}:{query[:15] if query else ''}"))
+                
+            if page < total_pages - 1:
+                nav_row.append(InlineKeyboardButton("➡️", callback_data=f"u:{page+1}:{sort_by}:{order}:{per_page}:{query[:15] if query else ''}"))
+            keyboard.append(nav_row)
 
         # Row 2: Sort Toggle (Asc/Desc)
         new_order = "ASC" if order == "DESC" else "DESC"
         keyboard.append([
-            InlineKeyboardButton(f"Sorting Order: {order_icon}", callback_data=f"u:0:{sort_by}:{new_order}:{per_page}:{query[:20] if query else ''}")
+            InlineKeyboardButton(f"Order: {order_icon}", callback_data=f"u:0:{sort_by}:{new_order}:{per_page}:{query[:15] if query else ''}")
         ])
 
         # Row 3: Sort Categories
         keyboard.append([
-            InlineKeyboardButton("✨ Newest", callback_data=f"u:0:newest:DESC:{per_page}:{query[:20] if query else ''}"),
-            InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:activity:DESC:{per_page}:{query[:20] if query else ''}"),
-            InlineKeyboardButton("🤝 Invites", callback_data=f"u:0:referrals:DESC:{per_page}:{query[:20] if query else ''}"),
-            InlineKeyboardButton("🚫 Blocked", callback_data=f"u:0:blocked:DESC:{per_page}:{query[:20] if query else ''}")
+            InlineKeyboardButton("✨ Newest", callback_data=f"u:0:newest:DESC:{per_page}:{query[:15] if query else ''}"),
+            InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:activity:DESC:{per_page}:{query[:15] if query else ''}"),
+            InlineKeyboardButton("🤝 Invites", callback_data=f"u:0:referrals:DESC:{per_page}:{query[:15] if query else ''}"),
+            InlineKeyboardButton("🚫 Blocked", callback_data=f"u:0:blocked:DESC:{per_page}:{query[:15] if query else ''}")
         ])
 
         # Row 4: Page Size selection
-        size_row = [InlineKeyboardButton(f"📄 {s}/page", callback_data=f"u:0:{sort_by}:{order}:{s}:{query[:20] if query else ''}") for s in [5, 10, 15, 20]]
+        size_row = [InlineKeyboardButton(f"📄 {s}/p", callback_data=f"u:0:{sort_by}:{order}:{s}:{query[:15] if query else ''}") for s in [5, 10, 15, 20]]
         keyboard.append(size_row)
 
         if update.message:
@@ -119,18 +132,19 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("Unauthorized access.", show_alert=True)
         return
 
-    # User Detail View
+    # User Detail View (ud:uid:p:s:o:l:q)
     if data.startswith("ud:"):
         parts = data.split(":")
         target_uid = int(parts[1])
-        p_back, s_back, o_back, q_back = int(parts[2]), parts[3], parts[4], parts[5]
-        await send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, q_back)
+        # Persistence: p_back, s_back, o_back, l_back, q_back
+        p_back, s_back, o_back, l_back, q_back = int(parts[2]), parts[3], parts[4], int(parts[5]), parts[6]
+        await send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, l_back, q_back)
         
     # Block/Unblock Toggle
     elif data.startswith("toggle_block_user:"):
         parts = data.split(":")
         target_uid = int(parts[1])
-        p_back, s_back, o_back, q_back = int(parts[2]), parts[3], parts[4], parts[5]
+        p_back, s_back, o_back, l_back, q_back = int(parts[2]), parts[3], parts[4], int(parts[5]), parts[6]
         
         if is_blocked_db(target_uid):
             unblock_entity_db(target_uid)
@@ -139,7 +153,7 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             block_entity_db(target_uid)
             await query.answer(f"User {target_uid} blocked.")
             
-        await send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, q_back)
+        await send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, l_back, q_back)
 
     # Navigation / Paging (u:page:sort:order:limit:query)
     elif data.startswith("u:"):
@@ -172,7 +186,7 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.answer()
 
-async def send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, q_back):
+async def send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, l_back, q_back):
     """Detailed view for a specific user."""
     try:
         u = get_user_details(target_uid)
@@ -210,9 +224,9 @@ async def send_user_detail_view(update, context, target_uid, p_back, s_back, o_b
             [
                 InlineKeyboardButton("📩 Send Message", callback_data=f"send_msg_init:{uid}"),
                 InlineKeyboardButton("✅ Unblock" if is_blocked else "🚫 Block", 
-                                     callback_data=f"toggle_block_user:{target_uid}:{p_back}:{s_back}:{o_back}:{q_back}")
+                                     callback_data=f"toggle_block_user:{target_uid}:{p_back}:{s_back}:{o_back}:{l_back}:{q_back}")
             ],
-            [InlineKeyboardButton("⬅️ Back to List", callback_data=f"u:{p_back}:{s_back}:{o_back}:{q_back}")]
+            [InlineKeyboardButton("⬅️ Back to List", callback_data=f"u:{p_back}:{s_back}:{o_back}:{l_back}:{q_back}")]
         ]
 
         await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
