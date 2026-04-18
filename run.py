@@ -31,6 +31,132 @@ def is_rate_limited(api_key):
     
     API_RATE_LIMITS[api_key].append(now)
     return False
+def standard_response(success, data=None, error=None, status=200, meta=None):
+    """Standardized JSON response format for all API endpoints."""
+    body = {"success": success}
+    if data is not None: body["data"] = data
+    if error is not None: body["error"] = error
+    if meta is not None: body["meta"] = meta
+    else: body["meta"] = {"timestamp": datetime.now().isoformat()}
+    return web.json_response(body, status=status)
+
+async def get_api_user(request):
+    """Helper to authenticate API keys from header or query."""
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        key = auth_header.split(" ")[1]
+    else:
+        key = request.query.get("key")
+    
+    if not key: return None, None
+    
+    from app.db import verify_and_track_api_key
+    uid = verify_and_track_api_key(key)
+    return uid, key
+
+async def api_convert_handler(request):
+    user_data = await get_api_user(request)
+    uid, key = user_data
+    if not uid:
+        return standard_response(False, error={"code": "UNAUTHORIZED", "message": "Missing or invalid API Key."}, status=401)
+    
+    if is_rate_limited(key):
+        return standard_response(False, error={"code": "RATE_LIMIT_EXCEEDED", "message": "Max 30 requests per minute."}, status=429)
+        
+    date_str = request.query.get("date")
+    to_cal = (request.query.get("to") or request.query.get("to_calendar", "")).lower()
+    
+    if not date_str or to_cal not in ["ethiopian", "gregorian", "eth", "gc"]:
+        return standard_response(False, error={"code": "INVALID_PARAMS", "message": "Require 'date' (DD/MM/YYYY) and 'to' ('ethiopian' or 'gregorian')."}, status=400)
+    
+    # Normalize to_cal
+    if to_cal == "eth": to_cal = "ethiopian"
+    if to_cal == "gc": to_cal = "gregorian"
+
+    from app.utils import parse_date, greg_to_eth, eth_to_greg, format_eth, format_greg
+    try:
+        parsed = parse_date(date_str)
+        if not parsed:
+            return standard_response(False, error={"code": "INVALID_DATE_FORMAT", "message": "Use DD/MM/YYYY."}, status=400)
+        
+        d, m, y = parsed
+        if to_cal == "ethiopian":
+            res_d, res_m, res_y = greg_to_eth(d, m, y)
+            fmt = format_eth(res_d, res_m, res_y)
+        else:
+            res_d, res_m, res_y = eth_to_greg(d, m, y)
+            fmt = format_greg(res_d, res_m, res_y)
+        
+        return standard_response(True, data={
+            "input": {"date": date_str, "target": to_cal},
+            "result": {"day": res_d, "month": res_m, "year": res_y, "formatted": fmt}
+        })
+    except ValueError as e:
+        return standard_response(False, error={"code": "VALIDATION_ERROR", "message": str(e)}, status=400)
+    except Exception as e:
+        logging.error(f"API error: {e}")
+        return standard_response(False, error={"code": "SERVER_ERROR", "message": "Internal server error"}, status=500)
+
+async def api_today_handler(request):
+    user_data = await get_api_user(request)
+    uid, key = user_data
+    if not uid:
+        return standard_response(False, error={"code": "UNAUTHORIZED", "message": "Invalid API Key."}, status=401)
+    
+    if is_rate_limited(key):
+        return standard_response(False, error={"code": "RATE_LIMIT_EXCEEDED", "message": "Rate limit exceeded."}, status=429)
+    
+    try:
+        now = datetime.now()
+        from app.utils import greg_to_eth, format_eth, format_greg
+        ed, em, ey = greg_to_eth(now.day, now.month, now.year)
+        
+        return standard_response(True, data={
+            "gregorian": {"day": now.day, "month": now.month, "year": now.year, "formatted": format_greg(now.day, now.month, now.year)},
+            "ethiopian": {"day": ed, "month": em, "year": ey, "formatted": format_eth(ed, em, ey)}
+        })
+    except Exception as e:
+        logging.error(f"API Today error: {e}")
+        return standard_response(False, error={"code": "SERVER_ERROR", "message": "Internal server error"}, status=500)
+
+async def api_age_handler(request):
+    user_data = await get_api_user(request)
+    uid, key = user_data
+    if not uid:
+        return standard_response(False, error={"code": "UNAUTHORIZED", "message": "Invalid API Key."}, status=401)
+    
+    if is_rate_limited(key):
+        return standard_response(False, error={"code": "RATE_LIMIT_EXCEEDED", "message": "Rate limit exceeded."}, status=429)
+    
+    birth_date_str = request.query.get("birth_date") or request.query.get("date")
+    calendar_type = (request.query.get("calendar") or request.query.get("from", "gregorian")).lower()
+    
+    if not birth_date_str:
+        return standard_response(False, error={"code": "INVALID_PARAMS", "message": "Missing 'birth_date' (DD/MM/YYYY)."}, status=400)
+    
+    from app.utils import parse_date, eth_to_greg, calculate_age
+    try:
+        parsed_birth = parse_date(birth_date_str)
+        if not parsed_birth:
+            return standard_response(False, error={"code": "INVALID_DATE_FORMAT", "message": "Use DD/MM/YYYY."}, status=400)
+        
+        bd, bm, by = parsed_birth
+        if calendar_type in ["ethiopian", "eth"]:
+            bd, bm, by = eth_to_greg(bd, bm, by)
+        
+        birth_dt = date(by, bm, bd)
+        today_dt = date.today()
+        
+        if birth_dt > today_dt:
+            return standard_response(False, error={"code": "FUTURE_DATE", "message": "Birth date cannot be in the future."}, status=400)
+        
+        years, months, days = calculate_age(birth_dt, today_dt)
+        return standard_response(True, data={"years": years, "months": months, "days": days})
+    except ValueError as e:
+        return standard_response(False, error={"code": "VALIDATION_ERROR", "message": str(e)}, status=400)
+    except Exception as e:
+        logging.error(f"API Age error: {e}")
+        return standard_response(False, error={"code": "SERVER_ERROR", "message": "Internal server error"}, status=500)
 
 from telegram.ext import (
     ApplicationBuilder, 
@@ -233,149 +359,20 @@ async def main():
                 logging.error(f"Webhook error: {e}")
                 return web.Response(status=500)
 
-        async def api_convert_handler(request):
-            try:
-                auth_header = request.headers.get("Authorization", "")
-                if auth_header.startswith("Bearer "):
-                    api_key = auth_header.split(" ")[1]
-                else:
-                    api_key = request.query.get("key")
-                    
-                if not api_key:
-                    return web.json_response({"status": "error", "message": "Missing API Key. Include ?key= or Authorization: Bearer header."}, status=401)
-                
-                from app.db import verify_and_track_api_key
-                uid = verify_and_track_api_key(api_key)
-                if not uid:
-                    return web.json_response({"status": "error", "message": "Invalid API Key."}, status=403)
-                
-                if is_rate_limited(api_key):
-                    return web.json_response({"status": "error", "message": "Rate limit exceeded. Max 30 requests per minute."}, status=429)
-                    
-                date_str = request.query.get("date")
-                to_cal = request.query.get("to_calendar", "").lower()
-                
-                if not date_str or to_cal not in ["ethiopian", "gregorian"]:
-                    return web.json_response({"status": "error", "message": "Missing or invalid parameters. Require 'date' (DD/MM/YYYY) and 'to_calendar' ('ethiopian' or 'gregorian')."}, status=400)
-                
-                from app.utils import parse_date, greg_to_eth, eth_to_greg, format_eth, format_greg
-                parsed = parse_date(date_str)
-                if not parsed:
-                    return web.json_response({"status": "error", "message": "Invalid date format. Use DD/MM/YYYY."}, status=400)
-                    
-                d, m, y = parsed
-                
-                if to_cal == "ethiopian":
-                    res_d, res_m, res_y = greg_to_eth(d, m, y)
-                    fmt = format_eth(res_d, res_m, res_y)
-                else:
-                    res_d, res_m, res_y = eth_to_greg(d, m, y)
-                    fmt = format_greg(res_d, res_m, res_y)
-                    
-                return web.json_response({
-                    "status": "success",
-                    "input": {"date": date_str, "target": to_cal},
-                    "result": {
-                        "day": res_d,
-                        "month": res_m,
-                        "year": res_y,
-                        "formatted": fmt
-                    }
-                })
-            except ValueError as e:
-                return web.json_response({"status": "error", "message": str(e)}, status=400)
-            except Exception as e:
-                logging.error(f"API error: {e}")
-                return web.json_response({"status": "error", "message": "Internal server error"}, status=500)
-
-        async def api_today_handler(request):
-            try:
-                auth_header = request.headers.get("Authorization", "")
-                api_key = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else request.query.get("key")
-                
-                if not api_key:
-                    return web.json_response({"status": "error", "message": "Missing API Key."}, status=401)
-                
-                from app.db import verify_and_track_api_key
-                if not verify_and_track_api_key(api_key):
-                    return web.json_response({"status": "error", "message": "Invalid API Key."}, status=403)
-                
-                if is_rate_limited(api_key):
-                    return web.json_response({"status": "error", "message": "Rate limit exceeded."}, status=429)
-                
-                now = datetime.now()
-                from app.utils import greg_to_eth, format_eth, format_greg
-                ed, em, ey = greg_to_eth(now.day, now.month, now.year)
-                
-                return web.json_response({
-                    "status": "success",
-                    "gregorian": {
-                        "day": now.day, "month": now.month, "year": now.year,
-                        "formatted": format_greg(now.day, now.month, now.year)
-                    },
-                    "ethiopian": {
-                        "day": ed, "month": em, "year": ey,
-                        "formatted": format_eth(ed, em, ey)
-                    }
-                })
-            except Exception as e:
-                logging.error(f"API Today error: {e}")
-                return web.json_response({"status": "error", "message": "Internal server error"}, status=500)
-
-        async def api_age_handler(request):
-            try:
-                auth_header = request.headers.get("Authorization", "")
-                api_key = auth_header.split(" ")[1] if auth_header.startswith("Bearer ") else request.query.get("key")
-                
-                if not api_key:
-                    return web.json_response({"status": "error", "message": "Missing API Key."}, status=401)
-                
-                from app.db import verify_and_track_api_key
-                if not verify_and_track_api_key(api_key):
-                    return web.json_response({"status": "error", "message": "Invalid API Key."}, status=403)
-                
-                if is_rate_limited(api_key):
-                    return web.json_response({"status": "error", "message": "Rate limit exceeded."}, status=429)
-                
-                birth_date_str = request.query.get("birth_date")
-                calendar_type = request.query.get("calendar", "gregorian").lower()
-                
-                if not birth_date_str:
-                    return web.json_response({"status": "error", "message": "Missing 'birth_date' parameter."}, status=400)
-                
-                from app.utils import parse_date, eth_to_greg, calculate_age
-                parsed_birth = parse_date(birth_date_str)
-                if not parsed_birth:
-                    return web.json_response({"status": "error", "message": "Invalid date format. Use DD/MM/YYYY."}, status=400)
-                
-                bd, bm, by = parsed_birth
-                if calendar_type == "ethiopian":
-                    # Convert birth date to Gregorian for calculation
-                    bd, bm, by = eth_to_greg(bd, bm, by)
-                
-                birth_dt = date(by, bm, bd)
-                today_dt = date.today()
-                
-                if birth_dt > today_dt:
-                    return web.json_response({"status": "error", "message": "Birth date cannot be in the future."}, status=400)
-                
-                years, months, days = calculate_age(birth_dt, today_dt)
-                
-                return web.json_response({
-                    "status": "success",
-                    "age": {"years": years, "months": months, "days": days}
-                })
-            except ValueError as e:
-                return web.json_response({"status": "error", "message": str(e)}, status=400)
-            except Exception as e:
-                logging.error(f"API Age error: {e}")
-                return web.json_response({"status": "error", "message": "Internal server error"}, status=500)
 
         web_app = web.Application()
         web_app.router.add_get("/", root_handler)
+        
+        # v1 Standard Routes
+        web_app.router.add_get("/v1/convert", api_convert_handler)
+        web_app.router.add_get("/v1/today", api_today_handler)
+        web_app.router.add_get("/v1/age", api_age_handler)
+        
+        # Legacy Support (pointing to the improved logic)
         web_app.router.add_get("/api/convert", api_convert_handler)
         web_app.router.add_get("/api/today", api_today_handler)
         web_app.router.add_get("/api/age", api_age_handler)
+        
         web_app.router.add_post(f"/{BOT_TOKEN}", webhook_handler)
 
         runner = web.AppRunner(web_app)
