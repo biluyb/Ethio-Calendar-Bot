@@ -153,7 +153,14 @@ async def send_api_stats_page(update, context, page: int = 0):
         if update.message:
             await update.message.reply_text(msg, parse_mode="HTML", reply_markup=reply_markup)
         else:
-            await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+            try:
+                await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=reply_markup)
+            except Exception as e:
+                # Catch "Message is not modified" which happens when refreshing data that hasn't changed
+                if "Message is not modified" in str(e):
+                    await update.callback_query.answer("Already up to date.")
+                else:
+                    raise e
             
     except Exception as e:
         await send_error(update, context, e, "send_api_stats_page")

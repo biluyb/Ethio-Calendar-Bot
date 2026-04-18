@@ -11,10 +11,12 @@ from app.db import (
 )
 from app.config import ADMIN_IDS
 
-async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, query: str = None, page: int = 0, sort_by: str = "last_active_at", order: str = "DESC"):
+async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, query: str = None, page: int = 0, sort_by: str = "last_active_at", order: str = "DESC", per_page: int = 15):
     """Displays a list of users with pagination and search functionality."""
     try:
-        per_page = 20
+        # Normalize per_page
+        if not per_page or per_page not in [5, 10, 15, 20]:
+            per_page = 15
         
         # Calculate totals
         filter_blocked = (sort_by == "blocked")
@@ -66,26 +68,31 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         # Row 1: ⬅️ Prev | Page | Next ➡️
         nav_row = []
         if page > 0:
-            nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{order}:{query[:20] if query else ''}"))
+            nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{order}:{per_page}:{query[:20] if query else ''}"))
         
         nav_row.append(InlineKeyboardButton(f"Page {page+1}", callback_data="none"))
         
         if page < total_pages - 1:
-            nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{order}:{query[:20] if query else ''}"))
+            nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{order}:{per_page}:{query[:20] if query else ''}"))
         keyboard.append(nav_row)
 
         # Row 2: Sort Toggle (Asc/Desc)
         new_order = "ASC" if order == "DESC" else "DESC"
         keyboard.append([
-            InlineKeyboardButton(f"Sorting Order: {order_icon}", callback_data=f"u:0:{sort_by}:{new_order}:{query[:20] if query else ''}")
+            InlineKeyboardButton(f"Sorting Order: {order_icon}", callback_data=f"u:0:{sort_by}:{new_order}:{per_page}:{query[:20] if query else ''}")
         ])
 
         # Row 3: Sort Categories
         keyboard.append([
-            InlineKeyboardButton("✨ Newest", callback_data=f"u:0:newest:DESC:{query[:20] if query else ''}"),
-            InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:activity:DESC:{query[:20] if query else ''}"),
-            InlineKeyboardButton("🤝 Invites", callback_data=f"u:0:referrals:DESC:{query[:20] if query else ''}")
+            InlineKeyboardButton("✨ Newest", callback_data=f"u:0:newest:DESC:{per_page}:{query[:20] if query else ''}"),
+            InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:activity:DESC:{per_page}:{query[:20] if query else ''}"),
+            InlineKeyboardButton("🤝 Invites", callback_data=f"u:0:referrals:DESC:{per_page}:{query[:20] if query else ''}"),
+            InlineKeyboardButton("🚫 Blocked", callback_data=f"u:0:blocked:DESC:{per_page}:{query[:20] if query else ''}")
         ])
+
+        # Row 4: Page Size selection
+        size_row = [InlineKeyboardButton(f"📄 {s}/page", callback_data=f"u:0:{sort_by}:{order}:{s}:{query[:20] if query else ''}") for s in [5, 10, 15, 20]]
+        keyboard.append(size_row)
 
         if update.message:
             await update.message.reply_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
@@ -134,11 +141,34 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         await send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, q_back)
 
-    # Navigation / Paging
+    # Navigation / Paging (u:page:sort:order:limit:query)
     elif data.startswith("u:"):
         parts = data.split(":")
-        page, sort_by, order, search_q = int(parts[1]), parts[2], parts[3], parts[4]
-        await send_users_page(update, context, query=search_q, page=page, sort_by=sort_by, order=order)
+        # Check if we have the new 5-part format or old 4-part format
+        if len(parts) >= 6:
+            page, sort_by, order, limit, search_q = int(parts[1]), parts[2], parts[3], int(parts[4]), parts[5]
+        else:
+            page, sort_by, order, search_q = int(parts[1]), parts[2], parts[3], parts[4]
+            limit = 15
+        await send_users_page(update, context, query=search_q, page=page, sort_by=sort_by, order=order, per_page=limit)
+
+    # Message User Initialization
+    elif data.startswith("send_msg_init:"):
+        target_uid = int(data.split(":")[1])
+        context.user_data["mode"] = "admin_dm_send"
+        context.user_data["target_uid"] = target_uid
+        
+        from app.db import get_user_by_id
+        u_info = get_user_by_id(target_uid)
+        target_name = (u_info[2] or u_info[1] or str(target_uid)) if u_info else str(target_uid)
+        context.user_data["target_name"] = target_name
+        
+        await query.message.reply_text(
+            f"✍️ <b>Direct Message Mode</b>\n"
+            f"👤 Target: <b>{html.escape(target_name)}</b> (<code>{target_uid}</code>)\n\n"
+            "Please type your message below. It will be sent directly to this user.",
+            parse_mode="HTML"
+        )
 
     await query.answer()
 
