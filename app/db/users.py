@@ -7,19 +7,33 @@ def register_user(uid, username, full_name=None, last_command=None, referred_by=
         now = get_eth_now()
         is_new = False
         if DATABASE_URL:
+            c.execute("SELECT last_3_commands FROM users WHERE id=%s", (uid,))
+            row = c.fetchone()
+            history = row[0].split("||") if row and row[0] else []
+            history = [last_command] + history
+            history = history[:3]
+            history_str = "||".join(history)
+
             c.execute("SELECT id FROM users WHERE id=%s", (uid,))
             if not c.fetchone():
-                c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, total_actions, referred_by) VALUES (%s, %s, %s, %s, %s, %s, 1, %s)", (uid, username, full_name, now, now, last_command, referred_by))
+                c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by) VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s)", (uid, username, full_name, now, now, last_command, history_str, referred_by))
                 is_new = True
             else:
-                c.execute("UPDATE users SET username=%s, full_name=%s, last_active_at=%s, last_command=%s, total_actions = total_actions + 1 WHERE id=%s", (username, full_name, now, last_command, uid))
+                c.execute("UPDATE users SET username=%s, full_name=%s, last_active_at=%s, last_command=%s, last_3_commands=%s, total_actions = total_actions + 1 WHERE id=%s", (username, full_name, now, last_command, history_str, uid))
         else:
+            c.execute("SELECT last_3_commands FROM users WHERE id=?", (uid,))
+            row = c.fetchone()
+            history = row[0].split("||") if row and row[0] else []
+            history = [last_command] + history
+            history = history[:3]
+            history_str = "||".join(history)
+
             c.execute("SELECT id FROM users WHERE id=?", (uid,))
             if not c.fetchone():
-                c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, total_actions, referred_by) VALUES (?, ?, ?, ?, ?, ?, 1, ?)", (uid, username, full_name, now, now, last_command, referred_by))
+                c.execute("INSERT INTO users (id, username, full_name, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)", (uid, username, full_name, now, now, last_command, history_str, referred_by))
                 is_new = True
             else:
-                c.execute("UPDATE users SET username=?, full_name=?, last_active_at=?, last_command=?, total_actions = total_actions + 1 WHERE id=?", (username, full_name, now, last_command, uid))
+                c.execute("UPDATE users SET username=?, full_name=?, last_active_at=?, last_command=?, last_3_commands=?, total_actions = total_actions + 1 WHERE id=?", (username, full_name, now, last_command, history_str, uid))
         conn.commit()
         return is_new
     finally:
@@ -33,7 +47,7 @@ def get_user_details(uid):
         query = """
             SELECT 
                 u.id, u.username, u.full_name, u.lang, u.joined_at, 
-                u.last_active_at, u.last_command, u.total_actions, 
+                u.last_active_at, u.last_command, u.last_3_commands, u.total_actions, 
                 u.referred_by, u.is_blocked,
                 (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
             FROM users u 
@@ -41,7 +55,7 @@ def get_user_details(uid):
         """ if DATABASE_URL else """
             SELECT 
                 u.id, u.username, u.full_name, u.lang, u.joined_at, 
-                u.last_active_at, u.last_command, u.total_actions, 
+                u.last_active_at, u.last_command, u.last_3_commands, u.total_actions, 
                 u.referred_by, u.is_blocked,
                 (SELECT (SELECT COUNT(*) FROM users WHERE referred_by = u.id)) as referral_count 
             FROM users u 
@@ -118,8 +132,9 @@ def get_all_users(sort_by="last_active_at", order="DESC", limit=None, offset=Non
         c = conn.cursor()
         order = "ASC" if order.upper() == "ASC" else "DESC"
         field = "last_active_at"
-        if sort_by == "joined_at": field = "joined_at"
+        if sort_by == "joined_at" or sort_by == "newest": field = "joined_at"
         elif sort_by == "referrals": field = "referral_count"
+        elif sort_by == "activity": field = "total_actions"
         order_clause = f"{field} {order}"
         where_clause = ""
         if sort_by == "blocked":

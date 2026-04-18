@@ -76,8 +76,6 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         uid = update.effective_user.id
         track_group(update)
         
-        await update.message.chat.send_action(action="typing")
-        
         text = update.message.text.strip()
         lang = get_lang(uid)
 
@@ -88,10 +86,12 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🎂 Age Calculator", "🎂 የዕድሜ ስሌት",
             "📅 Gregorian ➜ Ethiopian", "📅 ከፈረንጅ ወደ ኢትዮጵያ",
             "📆 Ethiopian ➜ Gregorian", "📆 ከኢትዮጵያ ወደ ፈረንጅ",
+            "📚 Calendar Info", "📚 ስነ-ቀን መቁጠሪያ (Calendar)",
             "ℹ️ About & Support", "ℹ️ ስለ ቦቱ እና እርዳታ",
             "📢 Broadcast Message", "📢 መልዕክት ማስተላለፊያ (Broadcast)",
             "🔐 API (Developer)", "🔐 ኤፒአይ (Developer)",
             "📊 API Stats", "📊 ኤፒአይ ስታቲስቲክስ",
+            "👥 Users", "👥 ተጠቃሚዎች",
             "🇺🇸 English", "🇪🇹 አማርኛ"
         ]:
             if "mode" in context.user_data:
@@ -104,6 +104,13 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # 2. Check if user is in a specific input mode
         if "mode" not in context.user_data:
+            # Fallback for irrelevant text input when not in a mode
+            msg = (
+                "👋 I'm here to help! Please choose an option from the menu below or use /help to see all commands."
+                if lang == "en" else
+                "👋 ሰላም! እባክዎን ከታች ካሉት አማራጮች አንዱን ይምረጡ ወይም ሁሉንም ትዕዛዞች ለማየት /help ይጠቀሙ።"
+            )
+            await update.message.reply_text(msg, reply_markup=get_menu(uid, lang))
             return
 
         mode = str(context.user_data["mode"])
@@ -213,14 +220,19 @@ async def process_menu_commands(update, context, text, uid, lang):
         return True
 
     # Main Features
-    if text in ["📅 Today", "📅 ዛሬ"]:
-        from .user import today
-        await today(update, context)
+    if text in ["👥 Users", "👥 ተጠቃሚዎች"]:
+        from .admin import users
+        await users(update, context)
         return True
 
     if text in ["🌐 Language", "🌐 ቋንቋ"]:
         keyboard = [["🇺🇸 English", "🇪🇹 አማርኛ"]]
         await update.message.reply_text("Choose language / ቋንቋ ይምረጡ", reply_markup=ReplyKeyboardMarkup(keyboard, resize_keyboard=True))
+        return True
+
+    if text in ["📚 Calendar Info", "📚 ስነ-ቀን መቁጠሪያ (Calendar)"]:
+        from .user import calendar_command
+        await calendar_command(update, context)
         return True
 
     if text in ["ℹ️ About & Support", "ℹ️ ስለ ቦቱ እና እርዳታ"]:

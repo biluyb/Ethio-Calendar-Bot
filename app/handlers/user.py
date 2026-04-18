@@ -188,18 +188,17 @@ async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await send_error(update, context, e, "lang")
 
-async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def calendar_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Provides historical and logical information about the Ethiopian Calendar."""
     try:
         uid = update.effective_user.id
         lang = get_lang(uid)
+        track_activity(update, "/calendar")
 
-        if lang == "am":
-            await update.message.reply_text(INFO_AM, parse_mode="HTML")
-        else:
-            await update.message.reply_text(INFO_EN, parse_mode="HTML")
-
+        text = INFO_AM if lang == "am" else INFO_EN
+        await update.message.reply_text(text, parse_mode="HTML")
     except Exception as e:
-        await send_error(update, context, e, "info")
+        await send_error(update, context, e, "calendar_command")
 
 async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Provides information about the bot and developer."""
@@ -362,64 +361,81 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lang = get_lang(uid)
         is_admin = is_admin_db(uid) or uid in ADMIN_IDS
         is_super = uid in ADMIN_IDS
+        track_activity(update, "/help")
 
         if lang == "am":
-            text = "<b>🆘 የቦቱ እርዳታ</b>\n\n"
-            text += "<b>👤 የተጠቃሚ ትዕዛዞች:</b>\n"
-            text += "/start - ቦቱን ለመጀመር\n"
-            text += "/lang - ቋንቋ ለመቀየር\n"
-            text += "/today - የዛሬን ቀን ለማየት\n"
-            text += "/info - ስለ ቀን መቁጠሪያው ግንዛቤ\n"
-            text += "/share - ጓደኞችን ይጋብዙ\n"
-            text += "/about - ስለ ቦቱ መረጃ (አድሚኑን ለማግኘት)\n"
-            text += "/api - የኤፒአይ ቁልፍ (API Key) ለመፍጠር\n"
-            text += "/help - ይህንን የእርዳታ መልዕክት ለማሳየት\n"
+            text = (
+                "<b>🆘 የቦቱ እርዳታ እና መመሪያ</b>\n\n"
+                "<b>👤 መሰረታዊ ትዕዛዞች:</b>\n"
+                "• /start - ቦቱን ለመጀመር እና ለመቀስቀስ\n"
+                "• /today - የዛሬን የኢትዮጵያ እና የፈረንጅ ቀን ለማየት\n"
+                "• /calendar - ስለ ኢትዮጵያ ቀን መቁጠሪያ ጥልቅ መረጃ\n"
+                "• /lang - ቋንቋ ለመቀየር (Amharic ↔ English)\n"
+                "• /share - የግብዣ ሊንክ በመጠቀም ለጓደኞችዎ ለማጋራት\n"
+                "• /about - ስለ ቦቱ መረጃ እና አድሚኑን ለማግኘት\n"
+                "• /api - የራስዎን ፕሮግራም ለሚሰሩ (Developers) ቁልፍ ለመፍጠር\n\n"
+                "<b>🛠 ተግባራት:</b>\n"
+                "• <b>ቀን መቀየሪያ:</b> በዋናው ማውጫ ያሉትን ቁልፎች በመጫን ቀናትን ይቀይሩ።\n"
+                "• <b>የዕድሜ ስሌት:</b> የተወለዱበትን ቀን በማስገባት ትክክለኛ ዕድሜዎን በኢትዮጵያ ወራት ይወቁ።"
+            )
             
             if is_admin:
-                text += "\n<b>👑 የአስተዳዳሪ ትዕዛዞች:</b>\n"
-                text += "/users - ስለ ተጠቃሚዎች መረጃ\n"
-                text += "/groups - ቦቱ ያለባቸው ግሩፖች ዝርዝር\n"
-                text += "/send_msg - ለተጠቃሚ መልዕክት ለመላክ\n"
-                text += "/broadcast - ለሁሉም ተጠቃሚዎች መልዕክት ለመላክ\n"
-                text += "/block - ተጠቃሚን ወይም ግሩፕን ለማገድ\n"
-                text += "/unblock - የታገደን ተጠቃሚ ለማንሳት\n"
-                text += "/leavegroup - ቦቱን ከግሩፕ ለማስወጣት (ID ያስፈልጋል)\n"
-                text += "/api_stats - የኤፒአይ ስታቲስቲክስ እና ማኔጅመንት\n"
+                text += (
+                    "\n\n<b>👑 የአስተዳዳሪ (Admin) ትዕዛዞች:</b>\n"
+                    "• /users - የተጠቃሚዎች ማኔጅመንት\n"
+                    "  └>> <i>ጠቃሚ ምክር:</i> በአንድ ጊዜ 20 ተጠቃሚዎችን ማየት እና መፈለግ (Search) ይቻላል።\n"
+                    "• /groups - ቦቱ ያለባቸው ግሩፖች ዝርዝር\n"
+                    "• /broadcast - ለሁሉም የቦቱ ተጠቃሚዎች መልዕክት መላኪያ\n"
+                    "• /api_stats - የኤፒአይ አጠቃቀም ስታቲስቲክስ\n"
+                    "• /send_msg - ለተጠቃሚ በID ወይም በUsername ቀጥታ መልዕክት መላኪያ\n"
+                    "• /block / /unblock - ተጠቃሚን ለማገድ ወይም ለማንሳት\n"
+                    "• /leavegroup - ቦቱን ከግሩፕ ለማስወጣት"
+                )
                 
                 if is_super:
-                    text += "\n<b>🛡️ የሱፐር-አድሚን ትዕዛዞች:</b>\n"
-                    text += "/addadmin - አዲስ አስተዳዳሪ ለመጨመር\n"
-                    text += "/deladmin - አስተዳዳሪ ለመቀነስ\n"
-                    text += "/listadmins - የአስተዳዳሪዎች ዝርዝር\n"
+                    text += (
+                        "\n\n<b>🛡️ የሱፐር-አድሚን (Super-Admin) ትዕዛዞች:</b>\n"
+                        "• /addadmin - አዲስ አስተዳዳሪ ለመመደብ\n"
+                        "• /deladmin - አስተዳዳሪን ለመሰረዝ\n"
+                        "• /listadmins - የአስተዳዳሪዎች ዝርዝር"
+                    )
 
         else:
-            text = "<b>🆘 Bot Help</b>\n\n"
-            text += "<b>👤 User Commands:</b>\n"
-            text += "/start - Start the bot\n"
-            text += "/lang - Change language\n"
-            text += "/today - Show today's date\n"
-            text += "/info - Calendar information\n"
-            text += "/share - Invite friends\n"
-            text += "/about - Bot info (Contact Admin)\n"
-            text += "/api - Generate Developer API Key\n"
-            text += "/help - Show this help message\n"
+            text = (
+                "<b>🆘 Bot Help & Documentation</b>\n\n"
+                "<b>👤 General Commands:</b>\n"
+                "• /start - Initialize the bot\n"
+                "• /today - Show current date (Gregorian & Ethiopian)\n"
+                "• /calendar - Deep dive into Ethiopian Calendar logic\n"
+                "• /lang - Toggle language (English ↔ Amharic)\n"
+                "• /share - Get your referral link and invite friends\n"
+                "• /about - Bot credits and contact support\n"
+                "• /api - Developer API portal and keys\n\n"
+                "<b>🛠 Core Features:</b>\n"
+                "• <b>Date Conversion:</b> Use menu buttons for seamless conversion flows.\n"
+                "• <b>Age Calculator:</b> Get your precise age in Ethiopian months."
+            )
             
             if is_admin:
-                text += "\n<b>👑 Admin Commands:</b>\n"
-                text += "/users - User dashboard\n"
-                text += "/groups - List groups the bot is in\n"
-                text += "/send_msg - Send DM to user\n"
-                text += "/broadcast - Send message to all users\n"
-                text += "/block - Block a user or group\n"
-                text += "/unblock - Unblock a user or group\n"
-                text += "/leavegroup - Force bot to leave a group (requires group ID)\n"
-                text += "/api_stats - API statistics and management\n"
+                text += (
+                    "\n\n<b>👑 Administrator Commands:</b>\n"
+                    "• /users - Detailed User Dashboard\n"
+                    "  └>> <i>Tip:</i> Supports search and sorting. Shows 20 users per page.\n"
+                    "• /groups - Track bot installations in groups\n"
+                    "• /broadcast - Send announcement to all users/groups\n"
+                    "• /api_stats - API usage logs and management\n"
+                    "• /send_msg - Direct message users by ID/Username\n"
+                    "• /block / /unblock - Access control management\n"
+                    "• /leavegroup - Force bot to leave a specific chat"
+                )
                 
                 if is_super:
-                    text += "\n<b>🛡️ Super-Admin Commands:</b>\n"
-                    text += "/addadmin - Add new admin\n"
-                    text += "/deladmin - Remove admin\n"
-                    text += "/listadmins - List all admins\n"
+                    text += (
+                        "\n\n<b>🛡️ Super-Admin Privileges:</b>\n"
+                        "• /addadmin - Grant admin permissions\n"
+                        "• /deladmin - Revoke admin permissions\n"
+                        "• /listadmins - View current admin roster"
+                    )
 
         await update.message.reply_text(text, parse_mode="HTML")
 

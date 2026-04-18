@@ -24,7 +24,7 @@ async def api_key_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "🔐 <b>የእርስዎ የግል ኤፒአይ ቁልፍ (Secure API Key)</b>\n\n"
                 f"<code>{api_key}</code>\n\n"
                 "⚠️ <b>ማስጠንቀቂያ:</b> ይህንን ቁልፍ ለማንም አሳልፈው አይስጡ! ቁልፉ ከጠፋብዎት ሌላ አዲስ ማመንጨት ይችላሉ።\n\n"
-                "<b>🚀 የኤፒአይ አጠቃቀም መመሪያ (API Guide)</b>\n\n"
+                "<b>የኤፒአይ አጠቃቀም መመሪያ (API Guide)</b>\n\n"
                 "<b>1️⃣ ቀን ለመቀየር (Convert):</b>\n"
                 "<i>ከጎርጎርዮሳዊ ወደ ኢትዮጵያ ወይም በተቃራኒው ለመቀየር</i>\n"
                 f"<code>/api/convert?date=DD/MM/YYYY&to_calendar=ethiopian&key={api_key}</code>\n\n"
@@ -41,7 +41,7 @@ async def api_key_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "🔐 <b>Your Secure Developer API Key</b>\n\n"
                 f"<code>{api_key}</code>\n\n"
                 "⚠️ <b>IMPORTANT:</b> Keep this key secret. If compromised, you can regenerate a new one anytime.\n\n"
-                "<b>🚀 Quick Start Documentation</b>\n\n"
+                "<b>Quick Start Documentation</b>\n\n"
                 "<b>1️⃣ Date Conversion:</b>\n"
                 "<i>Convert between Gregorian and Ethiopian calendars.</i>\n"
                 f"<code>/api/convert?date=DD/MM/YYYY&to_calendar=ethiopian&key={api_key}</code>\n\n"
@@ -85,7 +85,7 @@ async def api_stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         elif data == "api_revoke_prompt":
             context.user_data["mode"] = "admin_api_revoke_input"
             if get_lang(uid) == "am":
-                msg = "✍️ <b>ኤፒአይ ለመሰረዝ መለያ ቁጥር (ID) ያስገቡ፦</b>\n\nእባክዎን ኤፒአይ ቁልፉ እንዲሰረዝ የሚፈልጉትን የተጠቃሚ መለያ ቁጥር (User ID) ከታች ይጻፉ።"
+                msg = "✍️ <b>ኤ ፒ አይ ለመሰረዝ መለያ ቁጥር (ID) ያስገቡ፦</b>\n\nእባክዎን ኤፒአይ ቁልፉ እንዲሰረዝ የሚፈልጉትን የተጠቃሚ መለያ ቁጥር (User ID) ከታች ይጻፉ።"
             else:
                 msg = "✍️ <b>API Revocation Mode Active.</b>\n\nPlease enter the <b>User ID</b> you want to revoke API access for:"
             await query.message.reply_text(msg, parse_mode="HTML")
@@ -127,22 +127,26 @@ async def send_api_stats_page(update, context, page: int = 0):
 
         for i, (uid, uname, fname, key, count, created) in enumerate(stats, 1 + offset):
             name = fname or uname or f"ID:{uid}"
-            short_key = f"{key[:6]}...{key[-4:]}"
             msg += f"{i}. <b>{html.escape(name)}</b> (<code>{uid}</code>)\n"
-            msg += f"   └>> 🔑 <code>{short_key}</code> | 🚀 <b>{count}</b> requests\n"
+            msg += f"   └>> 🔑 <code>{key}</code> | <b>{count}</b> requests\n"
             msg += f"   └>> 🕒 Created: {str(created)[:16]}\n\n"
             
         # Pagination & Utility Buttons
         buttons = []
         total_pages = (total_api_users + per_page - 1) // per_page
         
+        # Navigation row
         nav_row = []
         if page > 0:
             nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"api_dash:{page-1}"))
+        
+        # Current page / Total pages indicator or Refresh
+        nav_row.append(InlineKeyboardButton(f"🔄 Refresh ({page+1}/{total_pages})", callback_data=f"api_dash:{page}"))
+        
         if page < total_pages - 1:
             nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"api_dash:{page+1}"))
-        if nav_row:
-            buttons.append(nav_row)
+        
+        buttons.append(nav_row)
             
         # Add Revoke action button (prompt for ID)
         revoke_text = "🚫 Revoke Key" if lang != "am" else "🚫 ቁልፉን ሰርዝ"

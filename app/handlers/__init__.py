@@ -3,8 +3,8 @@ from .common import (
     notify_admin, format_error_report, send_error
 )
 from .user import (
-    start, today, language as lang, info, about_command, share_command, 
-    ranks_command, ranks_callback, refresh_user_commands
+    start, today, language as lang, calendar_command, about_command, share_command, 
+    ranks_command, ranks_callback, refresh_user_commands, help_command
 )
 from .api import api_key_command, api_stats_command, api_stats_callback
 from .admin import (
@@ -18,4 +18,4 @@ from .main_handler import (
     handle, admin_reply_callback, handle_admin_reply_to_user, 
     unknown_command
 )
-from .extra import help_command, health_url
+from .extra import health_url

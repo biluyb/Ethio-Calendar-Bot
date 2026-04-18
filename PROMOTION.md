@@ -1,4 +1,4 @@
-# 🚀 Promotion Messages for @pagumebot
+#  Promotion Messages for @pagumebot
 
 Use these messages to share your bot on Telegram groups, Facebook, or TikTok description!
 

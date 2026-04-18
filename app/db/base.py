@@ -67,7 +67,8 @@ def init_db():
                 last_command TEXT,
                 total_actions INTEGER DEFAULT 0,
                 referred_by BIGINT,
-                is_blocked BOOLEAN DEFAULT FALSE
+                is_blocked BOOLEAN DEFAULT FALSE,
+                last_3_commands TEXT
             )
             """)
             c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
@@ -107,7 +108,8 @@ def init_db():
                 last_command TEXT,
                 total_actions INTEGER DEFAULT 0,
                 referred_by INTEGER,
-                is_blocked BOOLEAN DEFAULT FALSE
+                is_blocked BOOLEAN DEFAULT FALSE,
+                last_3_commands TEXT
             )
             """)
             c.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")

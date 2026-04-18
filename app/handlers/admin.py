@@ -14,7 +14,7 @@ from app.config import ADMIN_IDS
 async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, query: str = None, page: int = 0, sort_by: str = "last_active_at", order: str = "DESC"):
     """Displays a list of users with pagination and search functionality."""
     try:
-        per_page = 10
+        per_page = 20
         
         # Calculate totals
         filter_blocked = (sort_by == "blocked")
@@ -39,39 +39,52 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
 
         # Build Message
         msg = f"👥 <b>User Management</b> (Total: {total_count})\n"
+        
+        # Sort indicator
+        sort_text = "Newest" if sort_by in ["joined_at", "newest"] else "Activity" if sort_by == "activity" else "Last Active" if sort_by == "last_active_at" else "Invites" if sort_by == "referrals" else "Blocked"
+        order_icon = "⬇️" if order == "DESC" else "⬆️"
+        msg += f"📊 Sort: <b>{sort_text} {order_icon}</b>\n"
+        
         if query: msg += f"🔍 Search: <code>{query}</code>\n"
-        msg += f"📄 Page: {page + 1}/{total_pages}\n"
+        msg += f"📄 Page: <b>{page + 1}/{total_pages}</b>\n"
         msg += f"━━━━━━━━━━━━━━━━━\n\n"
         
         keyboard = []
         for user in users:
-            uid, uname, fname, u_lang, joined, last_act, last_cmd, actions, ref_by, is_blocked, ref_count = user
+            uid, uname, fname, u_lang, joined, last_act, last_cmd, last_3, actions, ref_by, is_blocked, ref_count = user
             
-            # Identify name
             display_name = fname or uname or f"User {uid}"
             status_ico = "🚫" if is_blocked else "👤"
             
-            msg += f"{status_ico} <b>{display_name}</b> (@{uname})\n"
+            # Show name and compact metrics
+            msg += f"{status_ico} <b>{html.escape(display_name)}</b> (@{uname})\n"
             msg += f"└── ID: <code>{uid}</code> | {actions} acts\n"
             
-            # Specific button for this user
-            keyboard.append([InlineKeyboardButton(f"👤 {display_name}", callback_data=f"ud:{uid}:{page}:{sort_by}:{query[:20] if query else ''}")])
+            keyboard.append([InlineKeyboardButton(f"👤 {display_name}", callback_data=f"ud:{uid}:{page}:{sort_by}:{order}:{query[:20] if query else ''}")])
 
-        # Navigation Buttons
-        nav_btns = []
+        # Pagination & Sorting Buttons
+        # Row 1: ⬅️ Prev | Page | Next ➡️
+        nav_row = []
         if page > 0:
-            nav_btns.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{order}:{query[:20] if query else ''}"))
+            nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"u:{page-1}:{sort_by}:{order}:{query[:20] if query else ''}"))
+        
+        nav_row.append(InlineKeyboardButton(f"Page {page+1}", callback_data="none"))
+        
         if page < total_pages - 1:
-            nav_btns.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{order}:{query[:20] if query else ''}"))
-        if nav_btns:
-            keyboard.append(nav_btns)
+            nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"u:{page+1}:{sort_by}:{order}:{query[:20] if query else ''}"))
+        keyboard.append(nav_row)
 
-        # Sorting Options
-        sort_label = "Active" if sort_by == "last_active_at" else "Newest" if sort_by == "joined_at" else "Invites" if sort_by == "referrals" else "Blocked"
+        # Row 2: Sort Toggle (Asc/Desc)
+        new_order = "ASC" if order == "DESC" else "DESC"
         keyboard.append([
-            InlineKeyboardButton("Activity", callback_data=f"u:0:last_active_at:DESC:{query[:20] if query else ''}"),
-            InlineKeyboardButton("Newest", callback_data=f"u:0:joined_at:DESC:{query[:20] if query else ''}"),
-            InlineKeyboardButton("Invites", callback_data=f"u:0:referrals:DESC:{query[:20] if query else ''}")
+            InlineKeyboardButton(f"Sorting Order: {order_icon}", callback_data=f"u:0:{sort_by}:{new_order}:{query[:20] if query else ''}")
+        ])
+
+        # Row 3: Sort Categories
+        keyboard.append([
+            InlineKeyboardButton("✨ Newest", callback_data=f"u:0:newest:DESC:{query[:20] if query else ''}"),
+            InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:activity:DESC:{query[:20] if query else ''}"),
+            InlineKeyboardButton("🤝 Invites", callback_data=f"u:0:referrals:DESC:{query[:20] if query else ''}")
         ])
 
         if update.message:
@@ -103,8 +116,8 @@ async def users_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data.startswith("ud:"):
         parts = data.split(":")
         target_uid = int(parts[1])
-        p_back, s_back, q_back = int(parts[2]), parts[3], parts[4]
-        await send_user_detail_view(update, context, target_uid, p_back, s_back, "DESC", q_back)
+        p_back, s_back, o_back, q_back = int(parts[2]), parts[3], parts[4], parts[5]
+        await send_user_detail_view(update, context, target_uid, p_back, s_back, o_back, q_back)
         
     # Block/Unblock Toggle
     elif data.startswith("toggle_block_user:"):
@@ -137,12 +150,16 @@ async def send_user_detail_view(update, context, target_uid, p_back, s_back, o_b
             await update.callback_query.message.edit_text("❌ User not found in database.")
             return
 
-        uid, uname, fname, u_lang, joined, last_act, last_cmd, actions, ref_by, is_blocked, ref_count = u
+        uid, uname, fname, u_lang, joined, last_act, last_cmd, last_3, actions, ref_by, is_blocked, ref_count = u
         
         status_ico = "🚫 Blocked" if is_blocked else "✅ Active"
         j_date = joined.strftime("%Y-%m-%d") if hasattr(joined, 'strftime') else joined
         l_date = last_act.strftime("%Y-%m-%d %H:%M") if hasattr(last_act, 'strftime') else last_act
         
+        # Format last 3 commands
+        history = last_3.split("||") if last_3 else []
+        history_str = "\n".join([f"  • <code>{html.escape(c[:25])}</code>" for c in history if c]) if history else "  • <i>None</i>"
+
         msg = (
             f"👤 <b>User Profile</b>\n"
             f"━━━━━━━━━━━━━━━━━\n"
@@ -153,17 +170,17 @@ async def send_user_detail_view(update, context, target_uid, p_back, s_back, o_b
             f"🛡 <b>Status:</b> {status_ico}\n\n"
             f"📅 <b>Joined:</b> {j_date}\n"
             f"⏱ <b>Last Active:</b> {l_date}\n"
-            f"📝 <b>Last Cmd:</b> <code>{html.escape(last_cmd or 'N/A')}</code>\n"
             f"🖱 <b>Total Actions:</b> {actions}\n"
             f"👥 <b>Total Invited:</b> {ref_count}\n"
-            f"🤝 <b>Referred By:</b> <code>{ref_by or 'None'}</code>"
+            f"🤝 <b>Referred By:</b> <code>{ref_by or 'None'}</code>\n\n"
+            f"📝 <b>Recent Activity:</b>\n{history_str}"
         )
 
         keyboard = [
             [
                 InlineKeyboardButton("📩 Send Message", callback_data=f"send_msg_init:{uid}"),
                 InlineKeyboardButton("✅ Unblock" if is_blocked else "🚫 Block", 
-                                     callback_data=f"toggle_block_user:{uid}:{p_back}:{s_back}:{o_back}:{q_back}")
+                                     callback_data=f"toggle_block_user:{target_uid}:{p_back}:{s_back}:{o_back}:{q_back}")
             ],
             [InlineKeyboardButton("⬅️ Back to List", callback_data=f"u:{p_back}:{s_back}:{o_back}:{q_back}")]
         ]
@@ -194,7 +211,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         total = len(all_targets)
         
         status_msg = await update.message.reply_text(
-            f"🚀 Starting broadcast to {total} targets...\n"
+            f"Starting broadcast to {total} targets...\n"
             f"(👤 Users: {len(user_ids)}, 👥 Groups: {len(group_ids)})"
         )
         

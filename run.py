@@ -48,7 +48,7 @@ from app.handlers import (
     handle, 
     today,
     lang, 
-    info as help_info, 
+    calendar_command, 
     about_command,
     share_command,
     ranks_command,
@@ -140,7 +140,7 @@ async def main():
     app.add_handler(CommandHandler(["start", "menu"], start))
     app.add_handler(CommandHandler("today", today))
     app.add_handler(CommandHandler("lang", lang))
-    app.add_handler(CommandHandler("info", help_info))
+    app.add_handler(CommandHandler(["calendar", "info"], calendar_command))
     app.add_handler(CommandHandler("about", about_command))
     app.add_handler(CommandHandler("api", api_key_command))
     app.add_handler(CommandHandler("help", help_command))
@@ -178,7 +178,7 @@ async def main():
     app.add_error_handler(global_error_handler)
 
     # 4. Lifecycle Execution
-    print(f"🚀 Bot starting (Environment: {'Production' if WEBHOOK_URL else 'Development'})...")
+    print(f"Bot starting (Environment: {'Production' if WEBHOOK_URL else 'Development'})...")
     
     if WEBHOOK_URL:
         # Production: Custom aiohttp handling for root landing page + webhook
