@@ -93,6 +93,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "🔐 API (Developer)", "🔐 ኤፒአይ (Developer)",
             "📊 API Stats", "📊 ኤፒአይ ስታቲስቲክስ",
             "👥 Users", "👥 ተጠቃሚዎች",
+            "📩 Contact Admin", "📩 ለአድሚን መልዕክት ለመላክ",
             "🇺🇸 English", "🇪🇹 አማርኛ"
         ]:
             if "mode" in context.user_data:
@@ -242,7 +243,12 @@ async def process_menu_commands(update, context, text, uid, lang):
         return True
 
     if text in ["📩 Contact Admin", "📩 ለአድሚን መልዕክት ለመላክ"]:
-        await contact_admin_callback(update, context)
+        context.user_data["mode"] = "contact_admin"
+        if lang == "am":
+            msg = "✍️ <b>እባክዎን ለአድሚኑ መላክ የሚፈልጉትን መልዕክት ይጻፉ።</b>"
+        else:
+            msg = "✍️ <b>Please type the message you want to send to the admin.</b>"
+        await update.message.reply_text(msg, parse_mode="HTML")
         return True
 
     if text in ["ℹ️ About & Support", "ℹ️ ስለ ቦቱ እና እርዳታ"]:
