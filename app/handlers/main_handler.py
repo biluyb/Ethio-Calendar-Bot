@@ -82,6 +82,23 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         lang = get_lang(uid)
 
         # 1. Handle Menu Buttons & Navigation
+        # Cancel any active input mode if a menu command is detected
+        if text.startswith("/") or text in [
+            "📅 Today", "📅 ዛሬ", "🌐 Language", "🌐 ቋንቋ", 
+            "📩 Contact Admin", "📩 አድሚኑን ያግኙ", "📩   መልዕክት ላክ",
+            "🎂 Age Calculator", "🎂 የዕድሜ ስሌት",
+            "📅 Gregorian ➜ Ethiopian", "📅 ከፈረንጅ ወደ ኢትዮጵያ",
+            "📆 Ethiopian ➜ Gregorian", "📆 ከኢትዮጵያ ወደ ፈረንጅ",
+            "📢 Broadcast Message", "📢 መልዕክት ማስተላለፊያ (Broadcast)",
+            "🔐 API (Developer)", "🔐 ኤፒአይ (Developer)",
+            "📊 API Stats", "📊 ኤፒአይ ስታቲስቲክስ",
+            "🇺🇸 English", "🇪🇹 አማርኛ"
+        ]:
+            if "mode" in context.user_data:
+                del context.user_data["mode"]
+                if "target_uid" in context.user_data: del context.user_data["target_uid"]
+                if "target_name" in context.user_data: del context.user_data["target_name"]
+
         if await process_menu_commands(update, context, text, uid, lang):
             return
 
@@ -239,14 +256,14 @@ async def process_menu_commands(update, context, text, uid, lang):
 
     if text in ["📅 Gregorian ➜ Ethiopian", "📅 ከፈረንጅ ወደ ኢትዮጵያ"]:
         context.user_data["mode"] = "g2e"
-        prompt = "Enter date DD/MM/YYYY\n\nExample: 21/12/2022" if lang == "en" else "ቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
-        await update.message.reply_text(prompt)
+        prompt = "✍️ <b>Enter Gregorian date (DD/MM/YYYY):</b>\n\nExample: <code>21/12/2022</code>" if lang == "en" else "✍️ <b>የፈረንጅ ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>\n\nለምሳሌ፦ <code>21/12/2022</code>"
+        await update.message.reply_text(prompt, parse_mode="HTML")
         return True
 
     if text in ["📆 Ethiopian ➜ Gregorian", "📆 ከኢትዮጵያ ወደ ፈረንጅ"]:
         context.user_data["mode"] = "e2g"
-        prompt = "Enter date DD/MM/YYYY\n\nExample: 21/12/2022" if lang == "en" else "ቀን/ወር/ዓመት ያስገቡ\n\nለምሳሌ: 21/12/2012"
-        await update.message.reply_text(prompt)
+        prompt = "✍️ <b>Enter Ethiopian date (DD/MM/YYYY):</b>\n\nExample: <code>21/12/2012</code>" if lang == "en" else "✍️ <b>የኢትዮጵያ ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>\n\nለምሳሌ፦ <code>21/12/2012</code>"
+        await update.message.reply_text(prompt, parse_mode="HTML")
         return True
 
     if text in ["📢 Broadcast Message", "📢 መልዕክት ማስተላለፊያ (Broadcast)"]:
@@ -272,17 +289,17 @@ async def process_g2e(update, context, d, m, y, lang):
         ed, em, ey = greg_to_eth(d, m, y)
         wk_day = datetime(y, m, d).weekday()
         msg = f"🇺🇸 {d:02} - {m:02} - {y} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(m)-1]} - {d:02}\n"
-        msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]}, {AM_MONTHS[int(em)-1]} - {ed}"
-        await update.message.reply_text(msg, reply_markup=get_menu(update.effective_user.id, lang))
-        context.user_data.pop("mode", None)
+        msg += f"🇪🇹 {ed} - {em} - {ey} || {AM_DAYS[wk_day]}, {AM_MONTHS[int(em)-1]} - {ed}\n\n"
+        
+        prompt = "✍️ <b>Enter another date (DD/MM/YYYY):</b>" if lang == "en" else "✍️ <b>ሌላ ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>"
+        msg += prompt
+        
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_menu(update.effective_user.id, lang))
+        # Keep mode active for continuous input
     except ValueError as e:
-        err_msg = str(e)
-        user_msg = f"❌ Invalid date: {err_msg}\n\nExample: 21/12/2022" if lang == "en" else f"❌ የተሳሳተ ቀን: {err_msg}\n\nለምሳሌ: 21/12/2012"
-        if "day is out of range for month" in err_msg:
-             user_msg = "❌ The day you entered is not valid for that month." if lang == "en" else "❌ ያስገቡት ቀን ለዛ ወር ትክክል አይደለም።"
-        elif "month must be in 1..12" in err_msg.lower():
-             user_msg = "❌ Month must be between 1 and 12." if lang == "en" else "❌ ወር ከ 1 እስከ 12 መሆን አለበት።"
-        await update.message.reply_text(user_msg)
+        error_str = str(e)
+        user_msg = format_validation_error(error_str, m, y, lang)
+        await update.message.reply_text(user_msg, parse_mode="HTML")
     except Exception as e:
         await send_error(update, context, e, "process_g2e")
 
@@ -292,11 +309,74 @@ async def process_e2g(update, context, d, m, y, lang):
         gd, gm, gy = eth_to_greg(d, m, y)
         wk_day = datetime(gy, gm, gd).weekday()
         msg = f"🇺🇸 {gd:02} - {gm:02} - {gy} || {EN_DAYS[wk_day]}, {EN_MONTHS[int(gm)-1]} \n"
-        msg += f"🇪🇹 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(m)-1]} - {d} "
-        await update.message.reply_text(msg, reply_markup=get_menu(update.effective_user.id, lang))
-        context.user_data.pop("mode", None)
+        msg += f"🇪🇹 {d} - {m} - {y} || {AM_DAYS[wk_day]} - {AM_MONTHS[int(m)-1]} - {d}\n\n"
+        
+        prompt = "✍️ <b>Enter another Ethiopian date (DD/MM/YYYY):</b>" if lang == "en" else "✍️ <b>ሌላ የኢትዮጵያ ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>"
+        msg += prompt
+        
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_menu(update.effective_user.id, lang))
+    except ValueError as e:
+        error_str = str(e)
+        user_msg = format_validation_error(error_str, m, y, lang)
+        await update.message.reply_text(user_msg, parse_mode="HTML")
     except Exception as e:
         await send_error(update, context, e, "process_e2g")
+
+def format_validation_error(error_str, m, y, lang):
+    """Formats internal validation errors into descriptive user-facing messages."""
+    error_str_lower = error_str.lower()
+    
+    if "pagume" in error_str_lower:
+        limit = 6 if "1-6" in error_str else 5
+        return (
+            f"❌ <b>Invalid date:</b> Pagume only has {limit} days in {y}."
+            if lang == "en" else 
+            f"❌ <b>ትክክለኛ ያልሆነ ቀን፦</b> ጳጉሜ በ {y} ዓ.ም {limit} ቀናት ብቻ ነው ያላት።"
+        )
+    elif "1-30 days" in error_str_lower:
+        return (
+            f"❌ <b>Invalid date:</b> Month {m} only has 30 days."
+            if lang == "en" else
+            f"❌ <b>ትክክለኛ ያልሆነ ቀን፦</b> ወር {m} 30 ቀናት ብቻ ነው ያለው።"
+        )
+    elif "month must be in" in error_str_lower or "month must be between" in error_str_lower:
+        limit = 13 if "13" in error_str else 12
+        return (
+            f"❌ <b>Invalid date:</b> Month must be between 1 and {limit}."
+            if lang == "en" else
+            f"❌ <b>ትክክለኛ ያልሆነ ቀን፦</b> ወር ከ 1 እስከ {limit} መሆን አለበት።"
+        )
+    elif "day is out of range for month" in error_str_lower or "day must be in" in error_str_lower:
+        import calendar
+        try:
+            # Check if Gregorian
+            max_days = calendar.monthrange(y, m)[1]
+            if m == 2:
+                reason = f" (February {y} has {max_days} days)"
+                am_reason = f" (የካቲት {y} {max_days} ቀናት አሉት)"
+            else:
+                reason = ""
+                am_reason = ""
+                
+            return (
+                f"❌ <b>Invalid date:</b> Month {m} only has {max_days} days in {y}.{reason}"
+                if lang == "en" else
+                f"❌ <b>ትክክለኛ ያልሆነ ቀን፦</b> በ {y} ዓ.ም ወር {m} {max_days} ቀናት ብቻ ነው ያለው።{am_reason}"
+            )
+        except Exception:
+            return "❌ <b>Invalid date range.</b>" if lang == "en" else "❌ <b>ያስገቡት ቀን ለዛ ወር ትክክል አይደለም።</b>"
+    elif "year out of range" in error_str_lower:
+        return (
+            f"❌ <b>Invalid date:</b> {error_str}"
+            if lang == "en" else
+            f"❌ <b>ትክክለኛ ያልሆነ ቀን፦</b> {error_str}"
+        )
+        
+    return (
+        f"❌ <b>Error:</b> {error_str}" 
+        if lang == "en" else 
+        f"❌ <b>ስህተት፦</b> {error_str}"
+    )
 
 async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str, mode: str):
     """Calculates age based on birthdate and provides bilingual output."""
@@ -330,12 +410,18 @@ async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d
         msg += "━━━━━━━━━━━━━━━━━\n"
         
         if lang == "en":
-            msg += f"🎂 <b>{years}</b> Years | <b>{months}</b> Months | <b>{days}</b> Days"
+            msg += f"🎂 <b>{years}</b> Years | <b>{months}</b> Months | <b>{days}</b> Days\n\n"
+            msg += "✍️ <b>Enter another birthdate (DD/MM/YYYY):</b>"
         else:
-            msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን"
+            msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን\n\n"
+            msg += "✍️ <b>ሌላ የልደት ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>"
 
         await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_menu(update.effective_user.id, lang))
-        context.user_data.pop("mode", None)
+        # Keep mode active for continuous input
+    except ValueError as e:
+        error_str = str(e)
+        user_msg = format_validation_error(error_str, m, y, lang)
+        await update.message.reply_text(user_msg, parse_mode="HTML")
     except Exception as e:
         await send_error(update, context, e, "process_age_calc")
 

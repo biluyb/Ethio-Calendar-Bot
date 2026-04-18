@@ -161,10 +161,10 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         e_month_name = AM_MONTHS[e_month - 1]
 
         if lang == "en":
-            msg = f"Today \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
+            msg = f"<b>Today</b> \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
             msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
         elif lang == "am":
-            msg = f"ዛሬ \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
+            msg = f"<b>ዛሬ</b> \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
             msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
 
         await update.message.reply_text(msg, reply_markup=get_menu(uid, lang))

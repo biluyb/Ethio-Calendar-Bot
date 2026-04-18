@@ -84,7 +84,11 @@ async def api_stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await query.answer()
         elif data == "api_revoke_prompt":
             context.user_data["mode"] = "admin_api_revoke_input"
-            await query.message.reply_text("🔢 Please enter the <b>User ID</b> you want to revoke API access for:", parse_mode="HTML")
+            if get_lang(uid) == "am":
+                msg = "✍️ <b>ኤፒአይ ለመሰረዝ መለያ ቁጥር (ID) ያስገቡ፦</b>\n\nእባክዎን ኤፒአይ ቁልፉ እንዲሰረዝ የሚፈልጉትን የተጠቃሚ መለያ ቁጥር (User ID) ከታች ይጻፉ።"
+            else:
+                msg = "✍️ <b>API Revocation Mode Active.</b>\n\nPlease enter the <b>User ID</b> you want to revoke API access for:"
+            await query.message.reply_text(msg, parse_mode="HTML")
             await query.answer()
             
     except Exception as e:
