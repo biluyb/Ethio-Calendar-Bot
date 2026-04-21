@@ -250,17 +250,19 @@ async def process_menu_commands(update, context, text, uid, lang):
         context.user_data["mode"] = "contact_admin"
         if lang == "am":
             msg = (
-                "<b>ℹ️ ለአድሚን መልዕክት ለመላክ</b>\n\n"
+                "<b>📩 ለአድሚን መልዕክት ለመላክ</b>\n\n"
                 "እባክዎን ለአድሚኑ መላክ የሚፈልጉትን መልዕክት ከታች ይጻፉ። መልዕክትዎ እንደደረሰ ምላሽ እንሰጥዎታለን።\n\n"
                 "<b>🛠 የቦቱ ስሪት፦</b> ግንቦት 2018 ዓ.ም\n"
-                "<b>📧 ኢሜይል:</b> support@pagumebot.com"
+                "<b>📧 ኢሜይል:</b> support@pagumebot.com\n\n"
+                "✍️ <b>መልዕክትዎን ከዚህ ይጻፉ...</b>"
             )
         else:
             msg = (
                 "<b>📩 Contact Admin</b>\n\n"
-                "Please type the message you want to send to the admin below. We will get back to you as soon as possible.\n\n"
+                "Please type your message below. We will get back to you as soon as possible.\n\n"
                 "<b>🛠 Bot Version:</b> May 2026\n"
-                "<b>📧 Email:</b> support@pagumebot.com"
+                "<b>📧 Email:</b> support@pagumebot.com\n\n"
+                "✍️ <b>Type your message now...</b>"
             )
         await update.message.reply_text(msg, parse_mode="HTML")
         return True
