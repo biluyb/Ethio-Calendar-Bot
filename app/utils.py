@@ -131,11 +131,21 @@ def greg_to_eth(d, m, y):
 
 def format_greg(d, m, y):
     g = date(y, m, d)
-    return f"{d}-{m}-{y} | {EN_DAYS[g.weekday()]}, {EN_MONTHS[m-1]}"
+    # Format: 21 - 04 - 2026  Tuesday, April - 21
+    return f"{d:02d} - {m:02d} - {y}  {EN_DAYS[g.weekday()]}, {EN_MONTHS[m-1]} - {d}"
 
 
 def format_eth(d, m, y):
-    return f"{d}-{m}-{y} | {ETHIOPIAN_MONTHS[m-1]}"
+    # To get the weekday, we convert to Gregorian
+    try:
+        gd, gm, gy = eth_to_greg(d, m, y)
+        g = date(gy, gm, gd)
+        day_name = AM_DAYS[g.weekday()]
+    except Exception:
+        day_name = ""
+    
+    # Format: 13 - 8 - 2018 ማክሰኞ - ሚያዝያ - 13
+    return f"{d} - {m} - {y} {day_name} - {ETHIOPIAN_MONTHS[m-1]} - {d}"
 
 def calculate_age(birth_date, current_date):
     """Calculates age in years, months, and days."""
