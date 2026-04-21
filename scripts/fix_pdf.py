@@ -62,7 +62,7 @@ def generate_premium_pdf(output_path):
             ('text', "Using headers ensures your keys are not exposed in server logs.", 10, 50, 630, GRAY),
             ('text', "1.2 QUERY METHOD", 14, 50, 580, BLUE),
             ('rect', (70, 545, 400, 25), None, 0, 0, "0.1 0.1 0.1"),
-            ('text', "GET /v1/endpoint?key=<YOUR_API_KEY>", 11, 90, 552, "1 1 1"),
+            ('text', "GET https://ethio-calendar-bot.onrender.com/api/endpoint?key=<YOUR_API_KEY>", 11, 60, 552, "1 1 1"),
             ('text', "1.3 ACCESS CONTROL", 14, 50, 500, BLUE),
             ('text', "Keys are tied to your Telegram account. Never share them.", 11, 50, 480, DARK_BLUE),
             ('text', "Page 2 of 5 | Pagume documentation", 9, 230, 40, GRAY)

@@ -43,11 +43,11 @@
         <tr><td><code>date</code></td><td>Required. The date in <code>DD/MM/YYYY</code> format.</td></tr>
         <tr><td><code>to</code></td><td>Required. Target calendar: <code>ethiopian</code> or <code>gregorian</code>.</td></tr>
     </table>
-    <pre>GET /api/convert?date=21/04/2026&amp;to=ethiopian&amp;key=YOUR_KEY</pre>
+    <pre>GET https://ethio-calendar-bot.onrender.com/api/convert?date=21/04/2026&amp;to=ethiopian&amp;key=YOUR_KEY</pre>
     
     <h3><span class="method">GET</span> <span class="endpoint">/api/today</span></h3>
     <p>Fetch current date in both calendar systems simultaneously.</p>
-    <pre>GET /api/today?key=YOUR_KEY</pre>
+    <pre>GET https://ethio-calendar-bot.onrender.com/api/today?key=YOUR_KEY</pre>
 
     <h3><span class="method">GET</span> <span class="endpoint">/api/age</span></h3>
     <p>Calculate precise age including Ethiopian months and days.</p>
@@ -56,7 +56,7 @@
         <tr><td><code>birth_date</code></td><td>Required. Birth date in <code>DD/MM/YYYY</code> format.</td></tr>
         <tr><td><code>calendar</code></td><td>Optional. Input calendar type (<code>gregorian</code> or <code>ethiopian</code>).</td></tr>
     </table>
-    <pre>GET /api/age?birth_date=10/08/2018&amp;calendar=ethiopian&amp;key=YOUR_KEY</pre>
+    <pre>GET https://ethio-calendar-bot.onrender.com/api/age?birth_date=10/08/2018&amp;calendar=ethiopian&amp;key=YOUR_KEY</pre>
 
     <h2>📦 Response Format</h2>
     <p>All responses are returned as JSON with the following structure:</p>
