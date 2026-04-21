@@ -1,133 +1,243 @@
-%PDF-1.1
+%PDF-1.4
 1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R 4 0 R 5 0 R 6 0 R 7 0 R 8 0 R] /Count 6 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 15 0 R >> >> /Contents 9 0 R >> endobj
-9 0 obj << /Length 1511 >> stream
-q 0.93 0.96 1.0 rg 0 0 595 842 re f Q
-q 0.0 0.53 0.8 rg 0 750 595 92 re f Q
-q 1 1 1 rg BT /F1 26 Tf 150 780 Td (PAGUME BOT SERVICES) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 450 700 Td (Date: April 21, 2026) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 13 Tf 50 650 Td (To: Our Valued Developer Community) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 14 Tf 50 620 Td (Subject: Official Release of Pagume API v1.0) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 12 Tf 50 570 Td (Dear Developer,) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 545 Td (We are thrilled to present the first official documentation for the Pagume Bot API.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 530 Td (Pagume Bot was built with a single mission: to provide the most precise and accessible) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 515 Td (Ethiopian calendar tools in the digital era. As we grow, our API becomes the backbone) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 500 Td (for countless integrations, from mobile apps to corporate scheduling systems.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 475 Td (This guide outlines everything you need to start building. We look forward to seeing) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 460 Td (what you create with Pagume.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 12 Tf 50 380 Td (Sincerely,) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 12 Tf 50 360 Td (The Pagume Bot Leadership Team) Tj ET Q
-q 0.4 0.45 0.55 rg 50 100 495 2 re f Q
-q 0.4 0.45 0.55 rg BT /F1 9 Tf 180 50 Td (© 2026 Pagume Bot Team | support@pagumebot.com) Tj ET Q
+2 0 obj << /Type /Pages /Kids [3 0 R 4 0 R 5 0 R 6 0 R 7 0 R] /Count 5 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 13 0 R /F2 14 0 R >> >> /Contents 8 0 R >> endobj
+4 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 13 0 R /F2 14 0 R >> >> /Contents 9 0 R >> endobj
+5 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 13 0 R /F2 14 0 R >> >> /Contents 10 0 R >> endobj
+6 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 13 0 R /F2 14 0 R >> >> /Contents 11 0 R >> endobj
+7 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 13 0 R /F2 14 0 R >> >> /Contents 12 0 R >> endobj
+8 0 obj << /Length 1826 >> stream
+0.07 0.18 0.28 rg 0 0 595 842 re f
+0.00 0.44 0.75 rg 0 680 595 162 re f
+0.00 0.44 0.75 rg 0 0 595 80 re f
+1.00 1.00 1.00 rg 50 670 495 4 re f
+BT 1.00 1.00 1.00 rg /F2 34 Tf 57 800 Td (PAGUME BOT API) Tj ET
+BT 0.80 0.90 1.00 rg /F1 14 Tf 57 760 Td (Developer Documentation & Integration Guide) Tj ET
+BT 0.70 0.80 0.90 rg /F1 11 Tf 57 738 Td (Version 1.0  |  Released May 2026) Tj ET
+BT 1.00 1.00 1.00 rg /F2 16 Tf 57 638 Td (A Letter to Our Developer Community) Tj ET
+0.10 0.65 0.38 rg 57 625 80 2 re f
+BT 1.00 1.00 1.00 rg /F2 14 Tf 57 590 Td (Dear Developer,) Tj ET
+BT 1.00 1.00 1.00 rg /F1 10 Tf 57 569 Td () Tj ET
+BT 0.85 0.92 1.00 rg /F1 11 Tf 57 552 Td (We are proud to release the first official version of the Pagume Bot Developer API.) Tj ET
+BT 0.85 0.92 1.00 rg /F1 11 Tf 57 534 Td (Pagume Bot was built on a singular mission: to make Ethiopian calendar intelligence) Tj ET
+BT 0.85 0.92 1.00 rg /F1 11 Tf 57 516 Td (accessible to every developer, startup, and enterprise in the world.) Tj ET
+BT 1.00 1.00 1.00 rg /F1 10 Tf 57 498 Td () Tj ET
+BT 0.85 0.92 1.00 rg /F1 11 Tf 57 481 Td (This document is your complete reference guide. Within these pages you will find) Tj ET
+BT 0.85 0.92 1.00 rg /F1 11 Tf 57 463 Td (everything from generating an API key to handling edge-case errors in production.) Tj ET
+BT 1.00 1.00 1.00 rg /F1 10 Tf 57 445 Td () Tj ET
+BT 0.85 0.92 1.00 rg /F1 11 Tf 57 428 Td (We built this API for builders. We hope it helps you ship something meaningful.) Tj ET
+BT 1.00 1.00 1.00 rg /F1 10 Tf 57 410 Td () Tj ET
+BT 1.00 1.00 1.00 rg /F1 12 Tf 57 393 Td (Sincerely,) Tj ET
+BT 0.40 0.80 1.00 rg /F2 13 Tf 57 374 Td (The Pagume Bot Team) Tj ET
+BT 0.70 0.80 0.90 rg /F1 10 Tf 170 40 Td (\(c\) 2026 Pagume Bot  |  support@pagumebot.com) Tj ET
+BT 0.50 0.60 0.70 rg /F1 9 Tf 270 22 Td (Cover Page) Tj ET
+
 endstream
 endobj
-4 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 15 0 R >> >> /Contents 10 0 R >> endobj
-10 0 obj << /Length 1214 >> stream
-q 0.1 0.24 0.31 rg 0 700 595 142 re f Q
-q 1 1 1 rg BT /F1 28 Tf 90 770 Td (Pagume Bot API Documentation) Tj ET Q
-q 0.8 0.8 0.8 rg BT /F1 12 Tf 210 745 Td (Official Developer Guide | v1.0.0) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 18 Tf 50 650 Td (OVERVIEW) Tj ET Q
-q 0.0 0.53 0.8 rg 50 642 100 3 re f Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 610 Td (Pagume Bot is the industry standard for Ethiopian calendar intelligence.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 595 Td (Our API enables high-fidelity conversions and precise age calculations,) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 580 Td (powering a new generation of localized digital solutions.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 13 Tf 50 540 Td (KEY CAPABILITIES:) Tj ET Q
-q 0.13 0.77 0.37 rg BT /F1 11 Tf 70 515 Td (- High Precision Gregorian-Ethiopian conversion) Tj ET Q
-q 0.13 0.77 0.37 rg BT /F1 11 Tf 70 495 Td (- Real-time sync with traditional Ethiopian timekeeping) Tj ET Q
-q 0.13 0.77 0.37 rg BT /F1 11 Tf 70 475 Td (- Multi-language support \(Amharic & English\)) Tj ET Q
-q 0.13 0.77 0.37 rg BT /F1 11 Tf 70 455 Td (- Enterprise-grade JSON standard output) Tj ET Q
-q 0.4 0.45 0.55 rg BT /F1 9 Tf 230 40 Td (Page 1 of 5 | Pagume documentation) Tj ET Q
+9 0 obj << /Length 2707 >> stream
+0.00 0.44 0.75 rg 0 800 595 42 re f
+BT 1.00 1.00 1.00 rg /F2 11 Tf 20 813 Td (PAGUME BOT API  |  Developer Guide  |  v1.0) Tj ET
+BT 0.07 0.18 0.28 rg /F2 22 Tf 50 762 Td (Overview) Tj ET
+0.00 0.44 0.75 rg 50 754 120 3 re f
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 730 Td (Pagume Bot is the most advanced Ethiopian calendar service on Telegram.) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 712 Td (Our REST API unlocks this power for your applications, letting you:) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 694 Td () Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 676 Td ( - Convert any date between Gregorian and Ethiopian calendars in real-time.) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 658 Td ( - Retrieve today's date in both systems with a single request.) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 640 Td ( - Calculate precise age \(years, months, days\) from any birth date.) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 622 Td () Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 604 Td (The API is stateless, JSON-based, and designed for simplicity. There are no) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 586 Td (SDKs required - any HTTP client \(curl, Python requests, fetch\) works directly.) Tj ET
+0.00 0.44 0.75 rg 50 540 495 28 re f
+BT 1.00 1.00 1.00 rg /F2 14 Tf 57 550 Td (How It Works) Tj ET
+0.10 0.65 0.38 rg 50 516 22 20 re f
+BT 1.00 1.00 1.00 rg /F2 11 Tf 57 522 Td (1) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 82 522 Td (Generate your API key via the Pagume Bot on Telegram \(/apikey\).) Tj ET
+0.10 0.65 0.38 rg 50 488 22 20 re f
+BT 1.00 1.00 1.00 rg /F2 11 Tf 57 494 Td (2) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 82 494 Td (Make a GET request to the endpoint with your key and parameters.) Tj ET
+0.10 0.65 0.38 rg 50 460 22 20 re f
+BT 1.00 1.00 1.00 rg /F2 11 Tf 57 466 Td (3) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 82 466 Td (Receive a structured JSON response with your converted or calculated data.) Tj ET
+0.10 0.65 0.38 rg 50 432 22 20 re f
+BT 1.00 1.00 1.00 rg /F2 11 Tf 57 438 Td (4) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 82 438 Td (Handle the 'success' flag in the response to detect errors gracefully.) Tj ET
+0.07 0.18 0.28 rg 50 360 495 28 re f
+BT 1.00 1.00 1.00 rg /F2 13 Tf 57 371 Td (Base URL \(All Endpoints\)) Tj ET
+0.96 0.97 0.99 rg 50 320 495 34 re f
+0.00 0.44 0.75 rg 50 320 5 34 re f
+BT 0.00 0.44 0.75 rg /F2 12 Tf 63 332 Td (https://ethio-calendar-bot.onrender.com) Tj ET
+BT 0.45 0.50 0.57 rg /F1 10 Tf 50 300 Td (All endpoints are accessed via HTTPS GET requests against this base URL.) Tj ET
+BT 0.45 0.50 0.57 rg /F1 10 Tf 50 285 Td (The server is hosted on Render and auto-restarts on updates.) Tj ET
+0.07 0.18 0.28 rg 0 0 595 22 re f
+BT 1.00 1.00 1.00 rg /F1 9 Tf 240 7 Td (Page 1 of 4  |  Pagume API) Tj ET
+
 endstream
 endobj
-5 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 15 0 R >> >> /Contents 11 0 R >> endobj
-11 0 obj << /Length 1043 >> stream
-q 0.93 0.96 1.0 rg 50 760 495 30 re f Q
-q 0.0 0.53 0.8 rg BT /F1 18 Tf 50 765 Td (1. AUTHENTICATION & SECURITY) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 730 Td (All requests must be authenticated using a unique API Key.) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 14 Tf 50 690 Td (1.1 HEADER METHOD \(Recommended\)) Tj ET Q
-q 0.1 0.1 0.1 rg 70 655 400 25 re f Q
-q 1 1 1 rg BT /F1 11 Tf 90 662 Td (Authorization: Bearer <YOUR_API_KEY>) Tj ET Q
-q 0.4 0.45 0.55 rg BT /F1 10 Tf 50 630 Td (Using headers ensures your keys are not exposed in server logs.) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 14 Tf 50 580 Td (1.2 QUERY METHOD) Tj ET Q
-q 0.1 0.1 0.1 rg 70 545 400 25 re f Q
-q 1 1 1 rg BT /F1 11 Tf 60 552 Td (GET https://ethio-calendar-bot.onrender.com/api/endpoint?key=<YOUR_API_KEY>) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 14 Tf 50 500 Td (1.3 ACCESS CONTROL) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 480 Td (Keys are tied to your Telegram account. Never share them.) Tj ET Q
-q 0.4 0.45 0.55 rg BT /F1 9 Tf 230 40 Td (Page 2 of 5 | Pagume documentation) Tj ET Q
+10 0 obj << /Length 2419 >> stream
+0.00 0.44 0.75 rg 0 800 595 42 re f
+BT 1.00 1.00 1.00 rg /F2 11 Tf 20 813 Td (PAGUME BOT API  |  Developer Guide  |  v1.0) Tj ET
+BT 0.07 0.18 0.28 rg /F2 22 Tf 50 762 Td (Authentication & Security) Tj ET
+0.00 0.44 0.75 rg 50 754 200 3 re f
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 730 Td (Every API request must include a valid API key. Keys are personal, unique,) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 713 Td (and tied to your Telegram account. Never share your key publicly.) Tj ET
+0.07 0.18 0.28 rg 50 678 495 26 re f
+BT 1.00 1.00 1.00 rg /F2 12 Tf 57 688 Td (Method 1: Authorization Header \(Recommended for Production\)) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 656 Td (Pass your key in the HTTP request header. This keeps it out of browser history,) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 639 Td (server logs, and URLs. This is the industry-standard practice.) Tj ET
+0.94 0.96 0.99 rg 50 600 495 32 re f
+0.00 0.44 0.75 rg 50 600 5 32 re f
+BT 0.00 0.44 0.75 rg /F2 11 Tf 63 622 Td (Authorization: Bearer YOUR_API_KEY) Tj ET
+BT 0.45 0.50 0.57 rg /F1 10 Tf 63 607 Td (Example: Authorization: Bearer ec_3094f038a21d8904dfa730f4) Tj ET
+0.07 0.18 0.28 rg 50 565 495 26 re f
+BT 1.00 1.00 1.00 rg /F2 12 Tf 57 575 Td (Method 2: Query Parameter \(Quick testing only\)) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 543 Td (Append ?key=YOUR_API_KEY to the URL. Easy for quick tests, but avoid in) Tj ET
+BT 0.07 0.18 0.28 rg /F1 11 Tf 50 526 Td (production as keys may be exposed in logs or browser history.) Tj ET
+0.94 0.96 0.99 rg 50 488 495 32 re f
+0.00 0.44 0.75 rg 50 488 5 32 re f
+BT 0.00 0.44 0.75 rg /F2 11 Tf 63 510 Td (https://ethio-calendar-bot.onrender.com/api/today?key=YOUR_API_KEY) Tj ET
+0.10 0.65 0.38 rg 50 455 495 26 re f
+BT 1.00 1.00 1.00 rg /F2 13 Tf 57 466 Td (Security Best Practices) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 63 435 Td (  -  Store your API key in environment variables, never in source code.) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 63 417 Td (  -  Rotate your key immediately via the bot if you suspect it is compromised.) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 63 399 Td (  -  Use the Authorization header in all server-to-server or production calls.) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 63 381 Td (  -  Rate limit applies per key: 30 requests per minute. Cache responses when possible.) Tj ET
+0.07 0.18 0.28 rg 0 0 595 22 re f
+BT 1.00 1.00 1.00 rg /F1 9 Tf 240 7 Td (Page 2 of 4  |  Pagume API) Tj ET
+
 endstream
 endobj
-6 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 15 0 R >> >> /Contents 12 0 R >> endobj
-12 0 obj << /Length 1036 >> stream
-q 0.0 0.53 0.8 rg BT /F1 18 Tf 50 780 Td (2. CORE ENDPOINTS) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 15 Tf 50 745 Td (2.1 /api/convert) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 70 720 Td (Parameters:) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 10 Tf 90 705 Td (- date: DD/MM/YYYY \(Required\)) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 10 Tf 90 690 Td (- to: ethiopian | gregorian \(Required\)) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 15 Tf 50 640 Td (2.2 /api/today) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 70 615 Td (Fetches current date in both calendar systems.) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 15 Tf 50 560 Td (2.3 /api/age) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 70 535 Td (Calculate years, months, and days from birth date.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 70 510 Td (Parameters:) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 10 Tf 90 495 Td (- birth_date: DD/MM/YYYY \(Required\)) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 10 Tf 90 480 Td (- calendar: gregorian | ethiopian) Tj ET Q
-q 0.4 0.45 0.55 rg BT /F1 9 Tf 230 40 Td (Page 3 of 5 | Pagume documentation) Tj ET Q
+11 0 obj << /Length 3149 >> stream
+0.00 0.44 0.75 rg 0 800 595 42 re f
+BT 1.00 1.00 1.00 rg /F2 11 Tf 20 813 Td (PAGUME BOT API  |  Developer Guide  |  v1.0) Tj ET
+BT 0.07 0.18 0.28 rg /F2 22 Tf 50 762 Td (API Endpoint Reference) Tj ET
+0.00 0.44 0.75 rg 50 754 175 3 re f
+0.10 0.65 0.38 rg 50 728 40 18 re f
+BT 1.00 1.00 1.00 rg /F2 10 Tf 55 733 Td (GET) Tj ET
+BT 0.00 0.44 0.75 rg /F2 13 Tf 95 733 Td (/api/convert) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 50 708 Td (Converts a date from one calendar system to another.) Tj ET
+BT 0.07 0.18 0.28 rg /F2 10 Tf 50 688 Td (Parameters:) Tj ET
+BT 0.00 0.44 0.75 rg /F2 10 Tf 60 672 Td (date) Tj ET
+BT 0.80 0.10 0.10 rg /F1 9 Tf 150 672 Td (\(Required\)) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 230 672 Td (Date in DD/MM/YYYY format \(e.g. 21/04/2026\)) Tj ET
+BT 0.00 0.44 0.75 rg /F2 10 Tf 60 657 Td (to) Tj ET
+BT 0.80 0.10 0.10 rg /F1 9 Tf 150 657 Td (\(Required\)) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 230 657 Td (Target calendar: 'ethiopian' or 'gregorian') Tj ET
+BT 0.07 0.18 0.28 rg /F2 10 Tf 50 637 Td (Example:) Tj ET
+0.95 0.97 1.00 rg 50 617 495 18 re f
+BT 0.07 0.18 0.28 rg /F2 9 Tf 55 622 Td (https://ethio-calendar-bot.onrender.com/api/convert?date=21/04/2026&to=ethiopian&key=YOUR_KEY) Tj ET
+0.10 0.65 0.38 rg 50 589 40 18 re f
+BT 1.00 1.00 1.00 rg /F2 10 Tf 55 594 Td (GET) Tj ET
+BT 0.00 0.44 0.75 rg /F2 13 Tf 95 594 Td (/api/today) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 50 569 Td (Returns the current date in both Gregorian and Ethiopian calendars.) Tj ET
+BT 0.07 0.18 0.28 rg /F2 10 Tf 50 549 Td (Parameters:) Tj ET
+BT 0.00 0.44 0.75 rg /F2 10 Tf 60 533 Td (\(none\)) Tj ET
+BT 0.45 0.50 0.57 rg /F1 9 Tf 150 533 Td (\(?\)) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 230 533 Td (No extra parameters required.) Tj ET
+BT 0.07 0.18 0.28 rg /F2 10 Tf 50 513 Td (Example:) Tj ET
+0.95 0.97 1.00 rg 50 493 495 18 re f
+BT 0.07 0.18 0.28 rg /F2 9 Tf 55 498 Td (https://ethio-calendar-bot.onrender.com/api/today?key=YOUR_KEY) Tj ET
+0.10 0.65 0.38 rg 50 465 40 18 re f
+BT 1.00 1.00 1.00 rg /F2 10 Tf 55 470 Td (GET) Tj ET
+BT 0.00 0.44 0.75 rg /F2 13 Tf 95 470 Td (/api/age) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 50 445 Td (Calculates the precise age from a given birth date to today.) Tj ET
+BT 0.07 0.18 0.28 rg /F2 10 Tf 50 425 Td (Parameters:) Tj ET
+BT 0.00 0.44 0.75 rg /F2 10 Tf 60 409 Td (birth_date) Tj ET
+BT 0.80 0.10 0.10 rg /F1 9 Tf 150 409 Td (\(Required\)) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 230 409 Td (Birth date in DD/MM/YYYY format) Tj ET
+BT 0.00 0.44 0.75 rg /F2 10 Tf 60 394 Td (calendar) Tj ET
+BT 0.45 0.50 0.57 rg /F1 9 Tf 150 394 Td (\(Optional\)) Tj ET
+BT 0.07 0.18 0.28 rg /F1 10 Tf 230 394 Td (System of the input date: 'gregorian' \(default\) or 'ethiopian') Tj ET
+BT 0.07 0.18 0.28 rg /F2 10 Tf 50 374 Td (Example:) Tj ET
+0.95 0.97 1.00 rg 50 354 495 18 re f
+BT 0.07 0.18 0.28 rg /F2 9 Tf 55 359 Td (https://ethio-calendar-bot.onrender.com/api/age?birth_date=10/08/2018&calendar=ethiopian&key=YOUR_KEY) Tj ET
+BT 0.45 0.50 0.57 rg /F1 9 Tf 50 336 Td (Note: If no calendar is specified, Gregorian is assumed.) Tj ET
+0.07 0.18 0.28 rg 0 0 595 22 re f
+BT 1.00 1.00 1.00 rg /F1 9 Tf 240 7 Td (Page 3 of 4  |  Pagume API) Tj ET
+
 endstream
 endobj
-7 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 15 0 R >> >> /Contents 13 0 R >> endobj
-13 0 obj << /Length 927 >> stream
-q 0.0 0.53 0.8 rg BT /F1 18 Tf 50 780 Td (3. JSON SCHEMAS) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 14 Tf 50 745 Td (3.1 Success Format) Tj ET Q
-q 0.1 0.1 0.1 rg 50 630 495 100 re f Q
-q 1 1 1 rg BT /F1 10 Tf 70 715 Td ({) Tj ET Q
-q 1 1 1 rg BT /F1 10 Tf 70 700 Td (  "success": true,) Tj ET Q
-q 1 1 1 rg BT /F1 10 Tf 70 685 Td (  "data": { "result": "..." },) Tj ET Q
-q 1 1 1 rg BT /F1 10 Tf 70 670 Td (  "meta": { "timestamp": "ISO-8601" }) Tj ET Q
-q 1 1 1 rg BT /F1 10 Tf 70 655 Td (}) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 14 Tf 50 580 Td (3.2 Error Format) Tj ET Q
-q 0.1 0.1 0.1 rg 50 480 495 85 re f Q
-q 1 1 1 rg BT /F1 10 Tf 70 550 Td ({) Tj ET Q
-q 1 1 1 rg BT /F1 10 Tf 70 535 Td (  "success": false,) Tj ET Q
-q 1 1 1 rg BT /F1 10 Tf 70 520 Td (  "error": { "code": "...", "message": "..." }) Tj ET Q
-q 1 1 1 rg BT /F1 10 Tf 70 505 Td (}) Tj ET Q
-q 0.4 0.45 0.55 rg BT /F1 9 Tf 230 40 Td (Page 4 of 5 | Pagume documentation) Tj ET Q
+12 0 obj << /Length 3798 >> stream
+0.00 0.44 0.75 rg 0 800 595 42 re f
+BT 1.00 1.00 1.00 rg /F2 11 Tf 20 813 Td (PAGUME BOT API  |  Developer Guide  |  v1.0) Tj ET
+BT 0.07 0.18 0.28 rg /F2 20 Tf 50 762 Td (JSON Schemas, Error Codes & Support) Tj ET
+0.00 0.44 0.75 rg 50 754 245 3 re f
+0.07 0.18 0.28 rg 50 720 235 22 re f
+BT 1.00 1.00 1.00 rg /F2 12 Tf 57 729 Td (Success Response Schema) Tj ET
+0.10 0.13 0.18 rg 50 640 235 76 re f
+BT 0.50 1.00 0.60 rg /F1 9 Tf 58 700 Td ({  "success": true,) Tj ET
+BT 0.50 1.00 0.60 rg /F1 9 Tf 58 687 Td (   "data": {) Tj ET
+BT 0.50 1.00 0.60 rg /F1 9 Tf 58 674 Td (     "day": 13, "month": 8,) Tj ET
+BT 0.50 1.00 0.60 rg /F1 9 Tf 58 661 Td (     "year": 2018,) Tj ET
+BT 0.50 1.00 0.60 rg /F1 9 Tf 58 648 Td (     "formatted": "13 - 8 - 2018 ...") Tj ET
+BT 0.50 1.00 0.60 rg /F1 9 Tf 58 635 Td (   },) Tj ET
+BT 0.50 1.00 0.60 rg /F1 9 Tf 58 622 Td (   "meta": {"timestamp": "ISO-8601"} }) Tj ET
+0.70 0.10 0.10 rg 305 720 240 22 re f
+BT 1.00 1.00 1.00 rg /F2 12 Tf 312 729 Td (Error Response Schema) Tj ET
+0.10 0.13 0.18 rg 305 640 240 76 re f
+BT 1.00 0.50 0.50 rg /F1 9 Tf 313 700 Td ({  "success": false,) Tj ET
+BT 1.00 0.50 0.50 rg /F1 9 Tf 313 687 Td (   "error": {) Tj ET
+BT 1.00 0.50 0.50 rg /F1 9 Tf 313 674 Td (     "code": "INVALID_PARAMS",) Tj ET
+BT 1.00 0.50 0.50 rg /F1 9 Tf 313 661 Td (     "message": "date is required.") Tj ET
+BT 1.00 0.50 0.50 rg /F1 9 Tf 313 648 Td (   }) Tj ET
+BT 1.00 0.50 0.50 rg /F1 9 Tf 313 635 Td (}) Tj ET
+0.07 0.18 0.28 rg 50 605 495 24 re f
+BT 1.00 1.00 1.00 rg /F2 13 Tf 57 614 Td (Common Error Codes) Tj ET
+0.93 0.96 1.00 rg 50 586 495 18 re f
+BT 0.07 0.18 0.28 rg /F2 10 Tf 55 592 Td (Code) Tj ET
+BT 0.07 0.18 0.28 rg /F2 10 Tf 200 592 Td (HTTP) Tj ET
+BT 0.07 0.18 0.28 rg /F2 10 Tf 250 592 Td (Meaning) Tj ET
+BT 0.00 0.44 0.75 rg /F2 9 Tf 55 574 Td (UNAUTHORIZED) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 200 574 Td (401) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 250 574 Td (API key is missing or invalid.) Tj ET
+BT 0.00 0.44 0.75 rg /F2 9 Tf 55 558 Td (RATE_LIMIT_EXCEEDED) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 200 558 Td (429) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 250 558 Td (Exceeded 30 requests per minute. Slow down.) Tj ET
+BT 0.00 0.44 0.75 rg /F2 9 Tf 55 542 Td (INVALID_PARAMS) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 200 542 Td (400) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 250 542 Td (A required parameter is missing or misnamed.) Tj ET
+BT 0.00 0.44 0.75 rg /F2 9 Tf 55 526 Td (INVALID_DATE_FORMAT) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 200 526 Td (400) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 250 526 Td (Date must be in DD/MM/YYYY format.) Tj ET
+BT 0.00 0.44 0.75 rg /F2 9 Tf 55 510 Td (VALIDATION_ERROR) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 200 510 Td (400) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 250 510 Td (Date values are out of valid range.) Tj ET
+BT 0.00 0.44 0.75 rg /F2 9 Tf 55 494 Td (SERVER_ERROR) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 200 494 Td (500) Tj ET
+BT 0.07 0.18 0.28 rg /F1 9 Tf 250 494 Td (An internal server error occurred. Contact support.) Tj ET
+0.07 0.18 0.28 rg 50 140 495 110 re f
+0.00 0.44 0.75 rg 50 218 495 32 re f
+BT 1.00 1.00 1.00 rg /F2 14 Tf 57 228 Td (Need Help? We are here for you.) Tj ET
+BT 0.85 0.93 1.00 rg /F1 10 Tf 60 200 Td (For bug reports, feature requests, and enterprise quota upgrades:) Tj ET
+BT 0.85 0.93 1.00 rg /F1 10 Tf 60 182 Td (  Email: support@pagumebot.com) Tj ET
+BT 0.85 0.93 1.00 rg /F1 10 Tf 60 164 Td (  Telegram Bot: Use the 'Contact Admin' button inside Pagume Bot) Tj ET
+BT 0.85 0.93 1.00 rg /F1 10 Tf 60 146 Td (  Developer Portal: https://ethio-calendar-bot.onrender.com) Tj ET
+BT 0.85 0.93 1.00 rg /F1 10 Tf 60 128 Td (Stay tuned for v2.0 with batch conversion and lunar calendar support!) Tj ET
+0.07 0.18 0.28 rg 0 0 595 22 re f
+BT 1.00 1.00 1.00 rg /F1 9 Tf 240 7 Td (Page 4 of 4  |  Pagume API) Tj ET
+
 endstream
 endobj
-8 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 15 0 R >> >> /Contents 14 0 R >> endobj
-14 0 obj << /Length 945 >> stream
-q 0.0 0.53 0.8 rg BT /F1 18 Tf 50 780 Td (4. RATE LIMITS & BEST PRACTICES) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 50 750 Td (Standard rate limit: 30 requests per minute.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 10 Tf 70 725 Td (- Implement local caching to reduce API hits.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 10 Tf 70 710 Td (- Use standard DD/MM/YYYY formatting.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 10 Tf 70 695 Td (- Verify API keys before bulk deployment.) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 14 Tf 160 550 Td (Thank you for choosing Pagume Bot.) Tj ET Q
-q 0.1 0.24 0.31 rg BT /F1 11 Tf 165 530 Td (We are constantly evolving to serve you better.) Tj ET Q
-q 0.4 0.45 0.55 rg 150 510 300 1 re f Q
-q 0.4 0.45 0.55 rg BT /F1 10 Tf 240 490 Td (Pagume Team Development) Tj ET Q
-q 0.0 0.53 0.8 rg BT /F1 11 Tf 180 200 Td (Official Support: support@pagumebot.com) Tj ET Q
-q 0.4 0.45 0.55 rg BT /F1 9 Tf 230 40 Td (Page 5 of 5 | Pagume documentation) Tj ET Q
-endstream
-endobj
-15 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+13 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >> endobj
+14 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >> endobj
 xref
-0 16
+0 15
 0000000000 65535 f 
 0000000009 00000 n 
 0000000058 00000 n 
-0000000145 00000 n 
-0000000248 00000 n 
-0000001810 00000 n 
-0000001914 00000 n 
-0000003180 00000 n 
-0000003284 00000 n 
-0000004379 00000 n 
-0000004483 00000 n 
-0000005571 00000 n 
-0000005675 00000 n 
-0000006653 00000 n 
-0000006757 00000 n 
-0000007753 00000 n 
-trailer << /Size 16 /Root 1 0 R >>
+0000000139 00000 n 
+0000000277 00000 n 
+0000000415 00000 n 
+0000000554 00000 n 
+0000000693 00000 n 
+0000000832 00000 n 
+0000002710 00000 n 
+0000005469 00000 n 
+0000007941 00000 n 
+0000011143 00000 n 
+0000014994 00000 n 
+0000015092 00000 n 
+trailer << /Size 15 /Root 1 0 R >>
 startxref
-7824
+15195
 %%EOF
