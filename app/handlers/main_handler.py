@@ -128,6 +128,10 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from .admin import handle_admin_dm_send
             return await handle_admin_dm_send(update, context)
             
+        if mode == "admin_api_broadcast_input":
+            from .api import handle_api_broadcast_message
+            return await handle_api_broadcast_message(update, context)
+
         if mode == "admin_api_revoke_input":
             try:
                 target_uid = int(text)
@@ -245,9 +249,19 @@ async def process_menu_commands(update, context, text, uid, lang):
     if text in ["📩 Contact Admin", "📩 ለአድሚን መልዕክት ለመላክ"]:
         context.user_data["mode"] = "contact_admin"
         if lang == "am":
-            msg = "✍️ <b>እባክዎን ለአድሚኑ መላክ የሚፈልጉትን መልዕክት ይጻፉ።</b>"
+            msg = (
+                "<b>ℹ️ ለአድሚን መልዕክት ለመላክ</b>\n\n"
+                "እባክዎን ለአድሚኑ መላክ የሚፈልጉትን መልዕክት ከታች ይጻፉ። መልዕክትዎ እንደደረሰ ምላሽ እንሰጥዎታለን።\n\n"
+                "<b>🛠 የቦቱ ስሪት፦</b> ግንቦት 2018 ዓ.ም\n"
+                "<b>📧 ኢሜይል:</b> support@pagumebot.com"
+            )
         else:
-            msg = "✍️ <b>Please type the message you want to send to the admin.</b>"
+            msg = (
+                "<b>📩 Contact Admin</b>\n\n"
+                "Please type the message you want to send to the admin below. We will get back to you as soon as possible.\n\n"
+                "<b>🛠 Bot Version:</b> May 2026\n"
+                "<b>📧 Email:</b> support@pagumebot.com"
+            )
         await update.message.reply_text(msg, parse_mode="HTML")
         return True
 

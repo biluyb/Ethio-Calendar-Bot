@@ -91,6 +91,14 @@ async def api_stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await query.answer()
         elif data == "api_download_guide":
             await api_download_guide_handler(update, context)
+        elif data == "api_broadcast_prompt":
+            context.user_data["mode"] = "admin_api_broadcast_input"
+            if get_lang(uid) == "am":
+                msg = "📢 <b>ለኤፒአይ ተጠቃሚዎች መልዕክት ማስተላለፊያ</b>\n\nለሁሉም የኤፒአይ ተጠቃሚዎች ማስተላለፍ የሚፈልጉትን መልዕክት ከታች ይጻፉ።"
+            else:
+                msg = "📢 <b>Broadcast to Developers</b>\n\nPlease type the broadcast message you want to send to all API users."
+            await query.message.reply_text(msg, parse_mode="HTML")
+            await query.answer()
             
     except Exception as e:
         await send_error(update, context, e, "api_stats_callback")
@@ -170,9 +178,14 @@ async def send_api_stats_page(update, context, page: int = 0):
         
         buttons.append(nav_row)
             
-        # Add Revoke action button (prompt for ID)
+        # Add action buttons
         revoke_text = "🚫 Revoke Key" if lang != "am" else "🚫 ቁልፉን ሰርዝ"
-        buttons.append([InlineKeyboardButton(revoke_text, callback_data="api_revoke_prompt")])
+        broadcast_text = "📢 Broadcast to Devs" if lang != "am" else "📢 ለዲቨሎፐሮች መልዕክት"
+        
+        buttons.append([
+            InlineKeyboardButton(revoke_text, callback_data="api_revoke_prompt"),
+            InlineKeyboardButton(broadcast_text, callback_data="api_broadcast_prompt")
+        ])
         
         reply_markup = InlineKeyboardMarkup(buttons)
         
@@ -190,3 +203,61 @@ async def send_api_stats_page(update, context, page: int = 0):
             
     except Exception as e:
         await send_error(update, context, e, "send_api_stats_page")
+
+async def handle_api_broadcast_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Sends the typed message to all API users."""
+    try:
+        if "mode" in context.user_data:
+            context.user_data.pop("mode")
+            
+        broadcast_msg = update.message.text
+        from app.db.api import get_all_api_user_ids
+        targets = get_all_api_user_ids()
+        
+        if not targets:
+            await update.message.reply_text("❌ No API users found in database.")
+            return
+
+        status_msg = await update.message.reply_text(f"🚀 <b>Starting API Broadcast to {len(targets)} developers...</b>", parse_mode="HTML")
+        
+        success_count = 0
+        fail_count = 0
+        
+        import asyncio
+        for uid in targets:
+            try:
+                await context.bot.send_message(
+                    chat_id=uid,
+                    text=f"📢 <b>API Developer Update</b>\n\n{broadcast_msg}",
+                    parse_mode="HTML"
+                )
+                success_count += 1
+            except Exception:
+                fail_count += 1
+            
+            # Update progress every 10 users to keep admin informed
+            if (success_count + fail_count) % 10 == 0:
+                try:
+                    await status_msg.edit_text(
+                        f"⏳ <b>Broadcast in progress...</b>\n"
+                        f"✅ Success: {success_count}\n"
+                        f"❌ Failed: {fail_count}\n"
+                        f"📊 Total: {len(targets)}",
+                        parse_mode="HTML"
+                    )
+                except Exception:
+                    pass
+            
+            # Avoid hitting Telegram flood limits
+            await asyncio.sleep(0.05)
+
+        summary = (
+            f"✅ <b>API Broadcast Complete</b>\n\n"
+            f"📤 <b>Success:</b> {success_count}\n"
+            f"❌ <b>Failed:</b> {fail_count}\n"
+            f"👤 <b>Total Targets:</b> {len(targets)}"
+        )
+        await status_msg.edit_text(summary, parse_mode="HTML")
+        
+    except Exception as e:
+        await send_error(update, context, e, "handle_api_broadcast_message")

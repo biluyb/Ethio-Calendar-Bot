@@ -115,3 +115,16 @@ def revoke_api_key_db(uid):
         return False
     finally:
         release_connection(conn)
+
+def get_all_api_user_ids():
+    """Returns a list of all user IDs who have generated an API key."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        c.execute("SELECT uid FROM api_keys")
+        return [row[0] for row in c.fetchall()]
+    except Exception as e:
+        print(f"Error fetching all API user IDs: {e}")
+        return []
+    finally:
+        release_connection(conn)
