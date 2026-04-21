@@ -1,73 +1,73 @@
 import os
 
-def generate_minimal_pdf(output_path):
-    # This is a minimal valid PDF 1.1 template
-    # It contains a single page with text.
+def generate_full_pdf(output_path):
     header = b"%PDF-1.1\n"
     
-    # Object 1: Catalog
+    # Text lines for the documentation
+    lines = [
+        ("Pagume Bot API Documentation v1.0", 18, 50, 780),
+        ("----------------------------------", 12, 50, 765),
+        ("1. AUTHENTICATION", 14, 50, 740),
+        ("Pass your API key in the 'Authorization' header or as a query parameter.", 10, 50, 725),
+        ("- Header: Authorization: Bearer <YOUR_KEY>", 10, 70, 710),
+        ("- Query: ?key=<YOUR_KEY>", 10, 70, 695),
+        ("", 10, 50, 680),
+        ("2. ENDPOINTS", 14, 50, 660),
+        ("GET /api/convert - Convert Gregorian <-> Ethiopian.", 10, 50, 645),
+        ("  (Required: date=DD/MM/YYYY, to=ethiopian|gregorian)", 9, 70, 630),
+        ("GET /api/today   - Fetch current date in both systems.", 10, 50, 615),
+        ("GET /api/age     - Calculate precise age from birth date.", 10, 50, 600),
+        ("  (Required: birth_date=DD/MM/YYYY)", 9, 70, 585),
+        ("", 10, 50, 570),
+        ("3. RESPONSE SCHEMA (JSON)", 14, 50, 550),
+        ("{", 10, 70, 535),
+        ("  \"success\": true,", 10, 70, 520),
+        ("  \"data\": { \"result\": \"...\", \"formatted\": \"...\" },", 10, 70, 505),
+        ("  \"meta\": { \"timestamp\": \"ISO-8601\" }", 10, 70, 490),
+        ("}", 10, 70, 475),
+        ("", 10, 50, 460),
+        ("4. ERROR HANDLING", 14, 50, 440),
+        ("The API returns standard HTTP status codes (401, 429, 400).", 10, 50, 425),
+        ("Example Error Response:", 10, 50, 410),
+        ("{ \"success\": false, \"error\": { \"code\": \"INVALID_DATE\", \"message\": \"...\" } }", 10, 70, 395),
+        ("", 10, 50, 370),
+        ("SUPPORT: support@pagumebot.com", 12, 50, 340),
+        ("(Downloaded directly from Pagume Bot Dashboard)", 8, 50, 50)
+    ]
+    
+    content_text = b""
+    for text, size, x, y in lines:
+        if text:
+            # Escape parentheses for PDF
+            text = text.replace("(", "\\(").replace(")", "\\)")
+            content_text += f"BT /F1 {size} Tf {x} {y} Td ({text}) Tj ET\n".encode()
+
+    # Objects
     obj1 = b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"
-    # Object 2: Page List
     obj2 = b"2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
-    
-    # Text to display
-    content_text = b"BT /F1 18 Tf 50 750 Td (Pagume Bot API Guide v1.0) Tj ET\n"
-    content_text += b"BT /F1 12 Tf 50 720 Td (Congratulations! You have received the official documentation.) Tj ET\n"
-    content_text += b"BT /F1 12 Tf 50 705 Td (For support, contact us at support@pagumebot.com) Tj ET\n"
-    content_text += b"BT /F1 10 Tf 50 670 Td (Full documentation with JSON schemas and examples is) Tj ET\n"
-    content_text += b"BT /F1 10 Tf 50 655 Td (coming soon in the next major version update.) Tj ET\n"
-    
-    stream_len = len(content_text)
-    
-    # Object 3: Page
     obj3 = b"3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n"
-    # Object 4: Font
     obj4 = b"4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n"
-    # Object 5: Content Stream
-    obj5 = b"5 0 obj << /Length " + str(stream_len).encode() + b" >> stream\n" + content_text + b"endstream\nendobj\n"
+    obj5 = f"5 0 obj << /Length {len(content_text)} >> stream\n".encode() + content_text + b"endstream\nendobj\n"
     
-    # Build the file
     pdf_content = header
     offsets = []
     
-    offsets.append(len(pdf_content))
-    pdf_content += obj1
-    
-    offsets.append(len(pdf_content))
-    pdf_content += obj2
-    
-    offsets.append(len(pdf_content))
-    pdf_content += obj3
-    
-    offsets.append(len(pdf_content))
-    pdf_content += obj4
-    
-    offsets.append(len(pdf_content))
-    pdf_content += obj5
-    
+    for obj in [obj1, obj2, obj3, obj4, obj5]:
+        offsets.append(len(pdf_content))
+        pdf_content += obj
+        
     startxref = len(pdf_content)
-    
-    # Xref table
-    xref = b"xref\n0 6\n"
-    xref += b"0000000000 65535 f \n"
+    xref = f"xref\n0 {len(offsets)+1}\n0000000000 65535 f \n".encode()
     for offset in offsets:
         xref += f"{offset:010d} 00000 n \n".encode()
     
     pdf_content += xref
-    
-    # Trailer
-    pdf_content += b"trailer << /Size 6 /Root 1 0 R >>\n"
-    pdf_content += b"startxref\n"
-    pdf_content += str(startxref).encode() + b"\n"
-    pdf_content += b"%%EOF\n"
+    pdf_content += b"trailer << /Size " + str(len(offsets)+1).encode() + b" /Root 1 0 R >>\n"
+    pdf_content += b"startxref\n" + str(startxref).encode() + b"\n%%EOF\n"
     
     with open(output_path, "wb") as f:
         f.write(pdf_content)
-    print(f"PDF generated at: {output_path} (Size: {len(pdf_content)} bytes)")
+    print(f"Full documentation PDF generated at: {output_path} ({len(pdf_content)} bytes)")
 
 if __name__ == "__main__":
-    current_dir = os.getcwd()
-    assets_dir = os.path.join(current_dir, "assets")
-    if not os.path.exists(assets_dir):
-        os.makedirs(assets_dir)
-    generate_minimal_pdf(os.path.join(assets_dir, "api_guide.pdf"))
+    generate_full_pdf("assets/api_guide.pdf")

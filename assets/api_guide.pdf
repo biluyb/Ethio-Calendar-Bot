@@ -3,12 +3,31 @@
 2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
 3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj
 4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
-5 0 obj << /Length 392 >> stream
-BT /F1 18 Tf 50 750 Td (Pagume Bot API Guide v1.0) Tj ET
-BT /F1 12 Tf 50 720 Td (Congratulations! You have received the official documentation.) Tj ET
-BT /F1 12 Tf 50 705 Td (For support, contact us at support@pagumebot.com) Tj ET
-BT /F1 10 Tf 50 670 Td (Full documentation with JSON schemas and examples is) Tj ET
-BT /F1 10 Tf 50 655 Td (coming soon in the next major version update.) Tj ET
+5 0 obj << /Length 1641 >> stream
+BT /F1 18 Tf 50 780 Td (Pagume Bot API Documentation v1.0) Tj ET
+BT /F1 12 Tf 50 765 Td (----------------------------------) Tj ET
+BT /F1 14 Tf 50 740 Td (1. AUTHENTICATION) Tj ET
+BT /F1 10 Tf 50 725 Td (Pass your API key in the 'Authorization' header or as a query parameter.) Tj ET
+BT /F1 10 Tf 70 710 Td (- Header: Authorization: Bearer <YOUR_KEY>) Tj ET
+BT /F1 10 Tf 70 695 Td (- Query: ?key=<YOUR_KEY>) Tj ET
+BT /F1 14 Tf 50 660 Td (2. ENDPOINTS) Tj ET
+BT /F1 10 Tf 50 645 Td (GET /api/convert - Convert Gregorian <-> Ethiopian.) Tj ET
+BT /F1 9 Tf 70 630 Td (  \(Required: date=DD/MM/YYYY, to=ethiopian|gregorian\)) Tj ET
+BT /F1 10 Tf 50 615 Td (GET /api/today   - Fetch current date in both systems.) Tj ET
+BT /F1 10 Tf 50 600 Td (GET /api/age     - Calculate precise age from birth date.) Tj ET
+BT /F1 9 Tf 70 585 Td (  \(Required: birth_date=DD/MM/YYYY\)) Tj ET
+BT /F1 14 Tf 50 550 Td (3. RESPONSE SCHEMA \(JSON\)) Tj ET
+BT /F1 10 Tf 70 535 Td ({) Tj ET
+BT /F1 10 Tf 70 520 Td (  "success": true,) Tj ET
+BT /F1 10 Tf 70 505 Td (  "data": { "result": "...", "formatted": "..." },) Tj ET
+BT /F1 10 Tf 70 490 Td (  "meta": { "timestamp": "ISO-8601" }) Tj ET
+BT /F1 10 Tf 70 475 Td (}) Tj ET
+BT /F1 14 Tf 50 440 Td (4. ERROR HANDLING) Tj ET
+BT /F1 10 Tf 50 425 Td (The API returns standard HTTP status codes \(401, 429, 400\).) Tj ET
+BT /F1 10 Tf 50 410 Td (Example Error Response:) Tj ET
+BT /F1 10 Tf 70 395 Td ({ "success": false, "error": { "code": "INVALID_DATE", "message": "..." } }) Tj ET
+BT /F1 12 Tf 50 340 Td (SUPPORT: support@pagumebot.com) Tj ET
+BT /F1 8 Tf 50 50 Td (\(Downloaded directly from Pagume Bot Dashboard\)) Tj ET
 endstream
 endobj
 xref
@@ -21,5 +40,5 @@ xref
 0000000287 00000 n 
 trailer << /Size 6 /Root 1 0 R >>
 startxref
-729
+1979
 %%EOF

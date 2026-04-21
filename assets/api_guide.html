@@ -3,54 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pagume Bot | API Documentation</title>
+    <title>Pagume Bot | Developer API Documentation</title>
     <style>
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 20px; background: #fcfcfc; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 40px 20px; background: #fcfcfc; }
         .header { text-align: center; border-bottom: 2px solid #0088cc; padding-bottom: 20px; margin-bottom: 40px; }
         h1 { color: #0088cc; margin: 0; font-size: 2.5rem; }
         h2 { color: #2c3e50; border-left: 4px solid #0088cc; padding-left: 15px; margin-top: 40px; }
-        code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 0.9em; }
-        pre { background: #1e293b; color: #f8fafc; padding: 20px; border-radius: 8px; overflow-x: auto; line-height: 1.4; }
+        code { background: #f1f5f9; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 0.9em; }
+        pre { background: #1e293b; color: #f8fafc; padding: 20px; border-radius: 8px; overflow-x: auto; line-height: 1.4; border: 1px solid #334155; }
         .endpoint { font-weight: bold; color: #2563eb; }
         .method { background: #22c55e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-right: 10px; vertical-align: middle; }
         .support-card { background: #eff6ff; border: 1px solid #bfdbfe; padding: 20px; border-radius: 12px; margin-top: 50px; }
         .footer { text-align: center; color: #64748b; font-size: 0.8rem; margin-top: 60px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f8fafc; color: #475569; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>📅 Pagume Bot API</h1>
-        <p>Advanced Ethiopian Calendar & Date Conversion Services (v1.0)</p>
+        <p>Official Developer Documentation (v1.0)</p>
     </div>
 
-    <p>Welcome to the official developer documentation for Pagume Bot. Our API provides precise calendar conversions, age calculations, and real-time Ethiopian date data.</p>
+    <p>Welcome to the Pagume Bot Developer API. This API provides high-precision Ethiopian calendar services, including date conversion, current date retrieval, and age calculation.</p>
 
     <h2>🔐 Authentication</h2>
     <p>All requests must include your API Key. We support <code>Bearer</code> authentication in the header (recommended) or query parameters.</p>
     <pre>Authorization: Bearer YOUR_API_KEY</pre>
-    <p>Or via URL:</p>
-    <pre>?key=YOUR_API_KEY</pre>
+    <p>Or via URL parameter:</p>
+    <pre>GET /api/endpoint?key=YOUR_API_KEY</pre>
 
     <h2>🚀 Core Endpoints</h2>
     
-    <h3><span class="method">GET</span> <span class="endpoint">/v1/convert</span></h3>
-    <p>Convert between Gregorian and Ethiopian calendars.</p>
-    <pre>GET /v1/convert?date=18/04/2026&to=ethiopian&key=YOUR_KEY</pre>
+    <h3><span class="method">GET</span> <span class="endpoint">/api/convert</span></h3>
+    <p>Convert dates between Gregorian and Ethiopian calendars.</p>
+    <table>
+        <tr><th>Parameter</th><th>Description</th></tr>
+        <tr><td><code>date</code></td><td>Required. The date in <code>DD/MM/YYYY</code> format.</td></tr>
+        <tr><td><code>to</code></td><td>Required. Target calendar: <code>ethiopian</code> or <code>gregorian</code>.</td></tr>
+    </table>
+    <pre>GET /api/convert?date=21/04/2026&amp;to=ethiopian&amp;key=YOUR_KEY</pre>
     
-    <h3><span class="method">GET</span> <span class="endpoint">/v1/today</span></h3>
-    <p>Fetch current date in both calendar systems.</p>
-    <pre>GET /v1/today?key=YOUR_KEY</pre>
+    <h3><span class="method">GET</span> <span class="endpoint">/api/today</span></h3>
+    <p>Fetch current date in both calendar systems simultaneously.</p>
+    <pre>GET /api/today?key=YOUR_KEY</pre>
 
-    <h3><span class="method">GET</span> <span class="endpoint">/v1/age</span></h3>
-    <p>Calculate precise age including Ethiopian months.</p>
-    <pre>GET /v1/age?birth_date=10/08/2018&calendar=ethiopian&key=YOUR_KEY</pre>
+    <h3><span class="method">GET</span> <span class="endpoint">/api/age</span></h3>
+    <p>Calculate precise age including Ethiopian months and days.</p>
+    <table>
+        <tr><th>Parameter</th><th>Description</th></tr>
+        <tr><td><code>birth_date</code></td><td>Required. Birth date in <code>DD/MM/YYYY</code> format.</td></tr>
+        <tr><td><code>calendar</code></td><td>Optional. Input calendar type (<code>gregorian</code> or <code>ethiopian</code>).</td></tr>
+    </table>
+    <pre>GET /api/age?birth_date=10/08/2018&amp;calendar=ethiopian&amp;key=YOUR_KEY</pre>
+
+    <h2>📦 Response Format</h2>
+    <p>All responses are returned as JSON with the following structure:</p>
+    <pre>
+{
+  "success": true,
+  "data": { ... },
+  "meta": { "timestamp": "2026-04-21T15:00:00" }
+}</pre>
 
     <div class="support-card">
         <h3>📩 Support & Inquiries</h3>
-        <p>For custom Enterprise solutions, high-volume quotas, or technical issues:</p>
+        <p>For enterprise solutions or technical issues, please contact us:</p>
         <ul>
             <li><b>Official Support:</b> <a href="mailto:support@pagumebot.com">support@pagumebot.com</a></li>
-            <li><b>Admin Contact:</b> <a href="mailto:biluquick123@gmail.com">biluquick123@gmail.com</a></li>
+            <li><b>Admin Contact:</b> Use the "Contact Admin" feature inside the Pagume Bot.</li>
         </ul>
     </div>
 
