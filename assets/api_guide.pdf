@@ -1,44 +1,111 @@
 %PDF-1.1
 1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj
-4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
-5 0 obj << /Length 1641 >> stream
-BT /F1 18 Tf 50 780 Td (Pagume Bot API Documentation v1.0) Tj ET
-BT /F1 12 Tf 50 765 Td (----------------------------------) Tj ET
-BT /F1 14 Tf 50 740 Td (1. AUTHENTICATION) Tj ET
-BT /F1 10 Tf 50 725 Td (Pass your API key in the 'Authorization' header or as a query parameter.) Tj ET
-BT /F1 10 Tf 70 710 Td (- Header: Authorization: Bearer <YOUR_KEY>) Tj ET
-BT /F1 10 Tf 70 695 Td (- Query: ?key=<YOUR_KEY>) Tj ET
-BT /F1 14 Tf 50 660 Td (2. ENDPOINTS) Tj ET
-BT /F1 10 Tf 50 645 Td (GET /api/convert - Convert Gregorian <-> Ethiopian.) Tj ET
-BT /F1 9 Tf 70 630 Td (  \(Required: date=DD/MM/YYYY, to=ethiopian|gregorian\)) Tj ET
-BT /F1 10 Tf 50 615 Td (GET /api/today   - Fetch current date in both systems.) Tj ET
-BT /F1 10 Tf 50 600 Td (GET /api/age     - Calculate precise age from birth date.) Tj ET
-BT /F1 9 Tf 70 585 Td (  \(Required: birth_date=DD/MM/YYYY\)) Tj ET
-BT /F1 14 Tf 50 550 Td (3. RESPONSE SCHEMA \(JSON\)) Tj ET
-BT /F1 10 Tf 70 535 Td ({) Tj ET
-BT /F1 10 Tf 70 520 Td (  "success": true,) Tj ET
-BT /F1 10 Tf 70 505 Td (  "data": { "result": "...", "formatted": "..." },) Tj ET
-BT /F1 10 Tf 70 490 Td (  "meta": { "timestamp": "ISO-8601" }) Tj ET
-BT /F1 10 Tf 70 475 Td (}) Tj ET
-BT /F1 14 Tf 50 440 Td (4. ERROR HANDLING) Tj ET
-BT /F1 10 Tf 50 425 Td (The API returns standard HTTP status codes \(401, 429, 400\).) Tj ET
-BT /F1 10 Tf 50 410 Td (Example Error Response:) Tj ET
-BT /F1 10 Tf 70 395 Td ({ "success": false, "error": { "code": "INVALID_DATE", "message": "..." } }) Tj ET
-BT /F1 12 Tf 50 340 Td (SUPPORT: support@pagumebot.com) Tj ET
-BT /F1 8 Tf 50 50 Td (\(Downloaded directly from Pagume Bot Dashboard\)) Tj ET
+2 0 obj << /Type /Pages /Kids [3 0 R 4 0 R 5 0 R 6 0 R 7 0 R] /Count 5 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 13 0 R >> >> /Contents 8 0 R >> endobj
+4 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 13 0 R >> >> /Contents 9 0 R >> endobj
+5 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 13 0 R >> >> /Contents 10 0 R >> endobj
+6 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 13 0 R >> >> /Contents 11 0 R >> endobj
+7 0 obj << /Type /Page /Parent 2 0 R /Resources << /Font << /F1 13 0 R >> >> /Contents 12 0 R >> endobj
+8 0 obj << /Length 1107 >> stream
+BT /F1 24 Tf 150 750 Td (Pagume Bot API Documentation) Tj ET
+BT /F1 12 Tf 160 730 Td (Building the Future of Ethiopian Calendar Services) Tj ET
+BT /F1 10 Tf 200 715 Td (Version: 1.0.0 | Release: May 2026) Tj ET
+BT /F1 12 Tf 50 680 Td (----------------------------------------------------------------) Tj ET
+BT /F1 16 Tf 50 640 Td (OVERVIEW) Tj ET
+BT /F1 11 Tf 50 615 Td (Pagume Bot is the industry leader in Ethiopian calendar intelligence.) Tj ET
+BT /F1 11 Tf 50 600 Td (This API allows developers to integrate high-precision date) Tj ET
+BT /F1 11 Tf 50 585 Td (conversions, age calculations, and cultural dating data into) Tj ET
+BT /F1 11 Tf 50 570 Td (their own applications, websites, and enterprise systems.) Tj ET
+BT /F1 12 Tf 50 530 Td (KEY FEATURES:) Tj ET
+BT /F1 10 Tf 70 510 Td (- High Precision Gregorian-Ethiopian conversion) Tj ET
+BT /F1 10 Tf 70 495 Td (- Real-time Ethiopian 'Today' data) Tj ET
+BT /F1 10 Tf 70 480 Td (- Precise Age calculations \(Years, Months, Days\)) Tj ET
+BT /F1 10 Tf 70 465 Td (- JSON standardized responses) Tj ET
+BT /F1 9 Tf 250 50 Td (© 2026 Pagume Bot Team) Tj ET
 endstream
 endobj
+9 0 obj << /Length 788 >> stream
+BT /F1 18 Tf 50 780 Td (1. AUTHENTICATION & SECURITY) Tj ET
+BT /F1 11 Tf 50 750 Td (Security is our top priority. All requests must be authenticated.) Tj ET
+BT /F1 14 Tf 50 710 Td (1.1 API KEYS) Tj ET
+BT /F1 10 Tf 50 690 Td (Generate your unique developer key via the Pagume Bot dashboard.) Tj ET
+BT /F1 10 Tf 50 675 Td (Keep this key secret. If compromised, revoke it immediately.) Tj ET
+BT /F1 14 Tf 50 630 Td (1.2 HEADER AUTHENTICATION \(Recommended\)) Tj ET
+BT /F1 11 Tf 70 610 Td (Authorization: Bearer <YOUR_API_KEY>) Tj ET
+BT /F1 14 Tf 50 570 Td (1.3 QUERY AUTHENTICATION) Tj ET
+BT /F1 11 Tf 70 550 Td (GET /v1/endpoint?key=<YOUR_API_KEY>) Tj ET
+BT /F1 10 Tf 50 520 Td (Note: Header auth is preferred to avoid key exposure in logs.) Tj ET
+BT /F1 9 Tf 280 50 Td (Page 2 of 5) Tj ET
+endstream
+endobj
+10 0 obj << /Length 764 >> stream
+BT /F1 18 Tf 50 780 Td (2. CORE API ENDPOINTS) Tj ET
+BT /F1 14 Tf 50 740 Td (2.1 /api/convert) Tj ET
+BT /F1 10 Tf 50 725 Td (Converts dates between calendar systems.) Tj ET
+BT /F1 10 Tf 70 710 Td (Params: date \(DD/MM/YYYY\), to \(ethiopian|gregorian\)) Tj ET
+BT /F1 14 Tf 50 670 Td (2.2 /api/today) Tj ET
+BT /F1 10 Tf 50 655 Td (Returns the current date in both systems simultaneously.) Tj ET
+BT /F1 10 Tf 70 640 Td (No additional parameters required.) Tj ET
+BT /F1 14 Tf 50 600 Td (2.3 /api/age) Tj ET
+BT /F1 10 Tf 50 585 Td (Calculates age based on birth date.) Tj ET
+BT /F1 10 Tf 70 570 Td (Params: birth_date \(DD/MM/YYYY\), calendar \(input type\)) Tj ET
+BT /F1 9 Tf 70 555 Td (Default calendar is gregorian.) Tj ET
+BT /F1 9 Tf 280 50 Td (Page 3 of 5) Tj ET
+endstream
+endobj
+11 0 obj << /Length 841 >> stream
+BT /F1 18 Tf 50 780 Td (3. JSON DATA SCHEMAS) Tj ET
+BT /F1 11 Tf 50 750 Td (All responses follow a predictable structure.) Tj ET
+BT /F1 14 Tf 50 710 Td (3.1 SUCCESS ENVELOPE) Tj ET
+BT /F1 10 Tf 70 690 Td ({) Tj ET
+BT /F1 10 Tf 70 675 Td (  "success": true,) Tj ET
+BT /F1 10 Tf 70 660 Td (  "data": { ... },) Tj ET
+BT /F1 10 Tf 70 645 Td (  "meta": { "timestamp": "ISO-8601" }) Tj ET
+BT /F1 10 Tf 70 630 Td (}) Tj ET
+BT /F1 14 Tf 50 590 Td (3.2 ERROR ENVELOPE) Tj ET
+BT /F1 10 Tf 70 570 Td ({) Tj ET
+BT /F1 10 Tf 70 555 Td (  "success": false,) Tj ET
+BT /F1 10 Tf 70 540 Td (  "error": {) Tj ET
+BT /F1 10 Tf 90 525 Td (    "code": "INVALID_DATE",) Tj ET
+BT /F1 10 Tf 90 510 Td (    "message": "Please use DD/MM/YYYY format.") Tj ET
+BT /F1 10 Tf 70 495 Td (  }) Tj ET
+BT /F1 10 Tf 70 480 Td (}) Tj ET
+BT /F1 9 Tf 280 50 Td (Page 4 of 5) Tj ET
+endstream
+endobj
+12 0 obj << /Length 834 >> stream
+BT /F1 18 Tf 50 780 Td (4. RATE LIMITING & SUPPORT) Tj ET
+BT /F1 14 Tf 50 740 Td (4.1 USAGE QUOTAS) Tj ET
+BT /F1 11 Tf 50 715 Td (Standard keys are limited to 30 requests per minute.) Tj ET
+BT /F1 10 Tf 50 700 Td (Exceeding this results in a 429 Too Many Requests error.) Tj ET
+BT /F1 14 Tf 50 660 Td (4.2 ENTERPRISE SOLUTIONS) Tj ET
+BT /F1 10 Tf 50 640 Td (For higher quotas, custom feature requests, or massive scale:) Tj ET
+BT /F1 12 Tf 70 620 Td (Email: support@pagumebot.com) Tj ET
+BT /F1 14 Tf 50 580 Td (4.3 COMMUNITY & FEEDBACK) Tj ET
+BT /F1 10 Tf 50 560 Td (Join our developer community on Telegram for updates.) Tj ET
+BT /F1 10 Tf 50 545 Td (We value your feedback to improve our conversion logic.) Tj ET
+BT /F1 11 Tf 50 500 Td (Stay tuned for v2.0 with lunar cycle support!) Tj ET
+BT /F1 9 Tf 280 50 Td (Page 5 of 5) Tj ET
+endstream
+endobj
+13 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
 xref
-0 6
+0 14
 0000000000 65535 f 
 0000000009 00000 n 
 0000000058 00000 n 
-0000000115 00000 n 
-0000000217 00000 n 
-0000000287 00000 n 
-trailer << /Size 6 /Root 1 0 R >>
+0000000139 00000 n 
+0000000242 00000 n 
+0000000345 00000 n 
+0000000449 00000 n 
+0000000553 00000 n 
+0000000657 00000 n 
+0000001815 00000 n 
+0000002653 00000 n 
+0000003468 00000 n 
+0000004360 00000 n 
+0000005245 00000 n 
+trailer << /Size 14 /Root 1 0 R >>
 startxref
-1979
+5316
 %%EOF
