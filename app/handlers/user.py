@@ -175,7 +175,7 @@ async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         uid = update.effective_user.id
 
-        new_lang = "am" if get_lang(uid) == "am" else "en"
+        new_lang = "en" if get_lang(uid) == "am" else "am"
         set_lang(uid, new_lang)
 
         if new_lang == "am":

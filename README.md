@@ -1,61 +1,87 @@
 # Ethiopian Calendar Bot (@pagumebot)
 
-A comprehensive Telegram bot designed for date conversion, age calculation, and cultural information regarding the Ethiopian calendar. The bot includes a robust administrative system with role-based access control to manage users and system interactions.
+Welcome to the **Ethiopian Calendar Bot**! This is the most advanced and comprehensive Telegram bot built for date conversion, age calculation, and Ethiopian calendar logic. With over thousands of users, it provides robust features wrapped in a user-friendly bilingual interface.
 
-## Core Features
+## Core Features 🚀
 
-### For All Users
-- **Accurate Date Conversion:** Easily convert dates between the Gregorian and Ethiopian calendars.
-- **Daily Information:** View today's date in both systems, including Amharic weekday and month names.
-- **Age Calculation:** Determine your precise age in years, months, and days using either Gregorian or Ethiopian birthdates.
-- **Referral System:** Invite others and track your impact through a ranking system and leaderboard.
-- **Educational Resources:** Access historical and structural facts about the Ethiopian calendar system.
-- **Multilingual Support:** Full functionality in both English and Amharic.
+### 1. Bilingual Support (English & Amharic)
+The bot natively supports both Amharic and English. Users can seamlessly switch between languages using the `/lang` command, and all menus, buttons, and calendar outputs adapt instantly. 
 
-### Administrative Tools (RBAC)
-The bot implements a Role-Based Access Control system to ensure secure and efficient management:
+### 2. Powerful Date Conversion 📅
+- Convert dates from **Gregorian to Ethiopian** calendar.
+- Convert dates from **Ethiopian to Gregorian** calendar.
+- Outputs include full weekday and month names in both English and Amharic.
+- The `/today` command gives an instant summary of today's date in both calendar systems.
 
-- **Standard Users:** Access to core conversion and informational features.
-- **Admins:** 
-  - **Unified Dashboard:** An interactive, paginated interface to manage users, with sorting options for activity, join date, referrals, and blocked status.
-  - **Mass Broadcasting:** Send announcements to all individual users and registered group chats.
-  - **Access Management:** Block or unblock users and groups to maintain bot health and security.
-  - **Direct Support:** Reply to user inquiries sent through the contact feature directly.
-- **Super-Admins:** 
-  - Complete control over the administrative roster, including adding, removing, and listing authorized admins.
+### 3. Precise Age Calculation 🎂
+Users can easily calculate their exact age in years, months, and days. The bot determines the age accurately whether you provide an Ethiopian or Gregorian birthdate. 
 
-## Technical Specifications
-- **Core:** Python 3.12+
-- **Library:** python-telegram-bot
-- **Database:** Support for both PostgreSQL and SQLite
-- **Deployment:** Docker support for containerized environments
+### 4. Referral & Ranking System 🏆
+We believe in community! Every user gets a unique referral link via the `/share` command. Inviting friends awards points, and users can check the leaderboard using the `/ranks` command to see the top referrers.
 
-## Installation and Setup
+### 5. Seamless Group Integration 🏘️
+The bot can be added to Telegram groups. It has a smart redirect feature that ensures group chats stay clean, guiding users to interact with it via Direct Messages for complex requests. 
 
-1. **Clone the repository:**
+---
+
+## Administrative Tools & RBAC 🛡️
+
+Pagume Bot features a highly sophisticated **Role-Based Access Control (RBAC)** architecture directly within Telegram. It dynamically refreshes the bot's command menus depending on whether the user is a standard user, an Admin, or a Super-Admin.
+
+### Admin Capabilities (`/users`, `/broadcast`, etc.)
+- **User Dashboard (`/users`):** View an inline, paginated list of all users. Sort them by activity, join date, or referral counts. See detailed profiles of any user.
+- **Mass Broadcast (`/broadcast`):** Instantly send announcements to all users and registered group chats at the same time.
+- **Direct Messaging (`/send_msg`):** Admins can directly chat with users through the bot by providing their User ID or Username.
+- **Bot Access Control (`/block`, `/unblock`):** Admins can restrict malicious users or groups from interacting with the bot.
+- **Group Management (`/groups`, `/leavegroup`):** Track which groups the bot is in and forcefully remove the bot from unwanted groups.
+
+### Super-Admin Privileges
+Super-Admins have exclusive rights to manage the administrative roster:
+- `/addadmin` to promote users to Admin.
+- `/deladmin` to demote Admins.
+- `/listadmins` to view the current list of authorized managers.
+
+---
+
+## API Capabilities 🌐
+
+The bot double-functions as a RESTful API service! It exposes versioned endpoints to developers who want Ethiopian calendar functionality in their own apps. 
+- **API Key Generation:** Users can generate API keys directly inside Telegram using the `/api` command.
+- **Endpoints:** `/v1/convert`, `/v1/today`, and `/v1/age`.
+- **Security:** Requires Bearer Token Authentication and enforces strict rate-limiting (30 requests per minute). 
+- **Analytics (`/api_stats`):** Admins can monitor live API usage statistics and revoke abusive keys.
+
+---
+
+## Technical Stack & Architecture ⚙️
+
+- **Framework:** Written in Python 3.12+ relying on the powerful `python-telegram-bot` standard.
+- **Asynchronous Processing:** Built over `asyncio` for high concurrency.
+- **Web App:** Uses `aiohttp` to run a webhook-based production web server and an interactive landing page on Render.
+- **Database:** Features an abstracted Database Layer. Seamlessly utilizes **SQLite** for zero-configuration local development and scales gracefully using **PostgreSQL** in production environments.
+- **Deployment:** Fully Dockerized (`Dockerfile`) for reproducible environments and zero-downtime deployment. 
+
+## Run it Yourself
+
+1. **Clone & Setup:**
    ```bash
    git clone https://github.com/biluyb/Ethio-Calendar-Bot.git
    cd Ethio-Calendar-Bot
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
    ```
 
-2. **Environment Configuration:**
-   Create a `.env` file with the following variables:
-   ```env
-   BOT_TOKEN=your_telegram_bot_token
-   ADMIN_ID=your_primary_admin_id
-   DATABASE_URL=your_database_connection_string (optional)
-   ```
+2. **Configure Variables:**
+   Create a `.env` file referencing your `BOT_TOKEN`, `ADMIN_IDS`, and `DATABASE_URL` (if using Postgres).
 
-3. **Deploy with Docker:**
+3. **Deploy (Docker):**
    ```bash
-   docker build -t ethio-calendar-bot .
-   docker run -d --name ethio-bot --env-file .env ethio-calendar-bot
+   docker build -t ethio-bot .
+   docker run -d --env-file .env ethio-bot
    ```
 
-## Contributions
-This project is developed for the Ethiopian community. Issues and pull requests are welcome.
+## Contributions & Credits 🤝
+Built with passion by ShademT. Open for issues and pull requests to expand our calendar ecosystem!
 
-## Contact and Credits
-Developed by ShademT.
-- Telegram: [@pagumebot](https://t.me/pagumebot)
-- © May 2026
+*© 2026 — Telegram: [@pagumebot](https://t.me/pagumebot)*
