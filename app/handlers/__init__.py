@@ -11,7 +11,8 @@ from .admin import (
     users, users_callback, groups_command, groups_callback, 
     broadcast_command, send_msg_command, handle_admin_dm_send,
     add_admin, del_admin, list_admins,
-    block_command, unblock_command, leavegroup_command
+    block_command, unblock_command, leavegroup_command,
+    admin_broadcast_callback
 )
 from .callbacks import age_mode_callback, contact_admin_callback
 from .main_handler import (

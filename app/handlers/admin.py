@@ -260,13 +260,13 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
         success = 0
-        failed = 0
-        blocked = 0
+        failed_list = []
+        blocked_list = []
         
         # Combine lists and start broadcasting
         for i, target_id in enumerate(all_targets):
             if is_blocked_db(target_id):
-                blocked += 1
+                blocked_list.append({"id": target_id, "reason": "Pre-blocked in DB"})
                 continue
             try:
                 await context.bot.send_message(chat_id=target_id, text=broadcast_msg, parse_mode="HTML")
@@ -274,9 +274,9 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 err_str = str(e).lower()
                 if "bot was blocked by the user" in err_str or "user is deactivated" in err_str:
-                    blocked += 1
+                    blocked_list.append({"id": target_id, "reason": str(e)})
                 else:
-                    failed += 1
+                    failed_list.append({"id": target_id, "reason": str(e)})
             
             # Rate limiting: ~20 messages per second (avg)
             if i % 20 == 0 and i > 0:
@@ -285,10 +285,16 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await status_msg.edit_text(
                         f"⏳ Broadcasting... {i}/{total}\n"
                         f"✅ Success: {success}\n"
-                        f"❌ Failed: {failed+blocked}"
+                        f"❌ Failed: {len(failed_list) + len(blocked_list)}"
                     )
                 except Exception:
                     pass
+
+        # Save report data to memory for later pagination
+        context.bot_data[f"bc_report_{uid}"] = {
+            "failed": failed_list,
+            "blocked": blocked_list
+        }
 
         report = (
             f"📢 <b>Broadcast Complete</b>\n\n"
@@ -296,10 +302,18 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"👤 Individual Users: {len(user_ids)}\n"
             f"🏘 Group Chats: {len(group_ids)}\n\n"
             f"✅ Successfully Sent: {success}\n"
-            f"🚫 Blocked/Kicked: {blocked}\n"
-            f"❌ Other Failures: {failed}"
+            f"🚫 Blocked/Kicked: {len(blocked_list)}\n"
+            f"❌ Other Failures: {len(failed_list)}"
         )
-        await update.message.reply_text(report, parse_mode="HTML")
+        
+        kb = []
+        if blocked_list:
+            kb.append([InlineKeyboardButton(f"📋 View Blocked/Kicked ({len(blocked_list)})", callback_data=f"bc_report:{uid}:blocked:0")])
+        if failed_list:
+            kb.append([InlineKeyboardButton(f"⚠️ View Failures ({len(failed_list)})", callback_data=f"bc_report:{uid}:failed:0")])
+            
+        reply_markup = InlineKeyboardMarkup(kb) if kb else None
+        await update.message.reply_text(report, parse_mode="HTML", reply_markup=reply_markup)
     except Exception as e:
         await send_error(update, context, e, "broadcast_command")
 
@@ -531,3 +545,70 @@ async def leavegroup_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text(f"✅ Successfully left group <code>{gid}</code>", parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"❌ Failed to leave group: {e}")
+
+async def admin_broadcast_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles the pagination of broadcast failure reports."""
+    track_activity(update)
+    query = update.callback_query
+    data = query.data # bc_report:{report_id}:{type}:{page}
+    
+    if not is_admin_db(update.effective_user.id) and update.effective_user.id not in ADMIN_IDS:
+        await query.answer("Unauthorized", show_alert=True)
+        return
+
+    parts = data.split(":")
+    report_id = parts[1]
+    r_type = parts[2]
+    page = int(parts[3])
+    
+    await send_bc_report_page(update, context, report_id, r_type, page)
+    await query.answer()
+
+async def send_bc_report_page(update, context, report_id, r_type, page):
+    """Internal function to generate and render the broadcast report view."""
+    report_data = context.bot_data.get(f"bc_report_{report_id}")
+    if not report_data:
+        await update.callback_query.edit_message_text("❌ Report expired or no longer available in memory. Please run a new broadcast.")
+        return
+        
+    items = report_data.get(r_type, [])
+    if not items:
+        await update.callback_query.edit_message_text("No data available for this category.")
+        return
+        
+    per_page = 20
+    total_count = len(items)
+    total_pages = (total_count + per_page - 1) // per_page
+    
+    start_idx = page * per_page
+    page_items = items[start_idx:start_idx + per_page]
+    
+    title = "🚫 Blocked/Kicked" if r_type == "blocked" else "❌ Other Failures"
+    
+    msg = f"<b>{title} Detailed Report</b>\n"
+    msg += f"📄 Page: {page + 1}/{total_pages} (Total: {total_count})\n"
+    msg += "━━━━━━━━━━━━━━━━━\n\n"
+    
+    for item in page_items:
+        clean_reason = html.escape(str(item['reason']).replace('<', '').replace('>', ''))[:50]
+        msg += f"• <code>{item['id']}</code> - <i>{clean_reason}</i>\n"
+        
+    kb = []
+    nav = []
+    if page > 0:
+        nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"bc_report:{report_id}:{r_type}:{page-1}"))
+    
+    # Toggle between blocked/failed if both have elements
+    other_type = "failed" if r_type == "blocked" else "blocked"
+    other_len = len(report_data.get(other_type, []))
+    if other_len > 0:
+        btn_label = "Switch to Failures" if r_type == "blocked" else "Switch to Blocked"
+        nav.append(InlineKeyboardButton(f"🔁 {btn_label}", callback_data=f"bc_report:{report_id}:{other_type}:0"))
+        
+    if page < total_pages - 1:
+        nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"bc_report:{report_id}:{r_type}:{page+1}"))
+        
+    if nav:
+        kb.append(nav)
+        
+    await update.callback_query.edit_message_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(kb) if kb else None)

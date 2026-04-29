@@ -199,6 +199,7 @@ from app.handlers import (
     block_command,
     unblock_command,
     leavegroup_command,
+    admin_broadcast_callback,
     api_key_command,
     api_stats_command,
     api_stats_callback,
@@ -295,6 +296,7 @@ async def main():
     app.add_handler(CallbackQueryHandler(api_download_guide_handler, pattern="^api_download_guide$"))
     app.add_handler(CallbackQueryHandler(contact_admin_callback, pattern="^contact_admin_request$"))
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
+    app.add_handler(CallbackQueryHandler(admin_broadcast_callback, pattern="^bc_report:"))
 
     # Content Handlers
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
