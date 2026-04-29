@@ -197,9 +197,12 @@ async def send_user_detail_view(update, context, target_uid, p_back, s_back, o_b
             await update.callback_query.message.edit_text("❌ User not found in database.")
             return
 
-        uid, uname, fname, u_lang, joined, last_act, last_cmd, last_3, actions, ref_by, is_blocked, ref_count = u
+        uid, uname, fname, u_lang, joined, last_act, last_cmd, last_3, actions, ref_by, is_blocked, bot_blocked, ref_count = u
         
-        status_ico = "🚫 Blocked" if is_blocked else "✅ Active"
+        status_ico = "✅ Active"
+        if is_blocked: status_ico = "🚫 Admin Blocked"
+        elif bot_blocked: status_ico = "🛑 Blocked Bot"
+        
         j_date = joined.strftime("%Y-%m-%d") if hasattr(joined, 'strftime') else joined
         l_date = last_act.strftime("%Y-%m-%d %H:%M") if hasattr(last_act, 'strftime') else last_act
         
