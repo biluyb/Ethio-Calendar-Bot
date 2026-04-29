@@ -71,7 +71,7 @@ def get_user_details(uid):
             SELECT 
                 u.id, u.username, u.full_name, u.lang, u.joined_at, 
                 u.last_active_at, u.last_command, u.last_3_commands, u.total_actions, 
-                u.referred_by, u.is_blocked,
+                u.referred_by, u.is_blocked, u.bot_blocked,
                 (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
             FROM users u 
             WHERE u.id = %s
@@ -79,7 +79,7 @@ def get_user_details(uid):
             SELECT 
                 u.id, u.username, u.full_name, u.lang, u.joined_at, 
                 u.last_active_at, u.last_command, u.last_3_commands, u.total_actions, 
-                u.referred_by, u.is_blocked,
+                u.referred_by, u.is_blocked, u.bot_blocked,
                 (SELECT (SELECT COUNT(*) FROM users WHERE referred_by = u.id)) as referral_count 
             FROM users u 
             WHERE u.id = ?
@@ -115,6 +115,19 @@ def set_lang(uid, lang):
     finally:
         release_connection(conn)
 
+def set_bot_blocked(uid, status=True):
+    """Marks whether the user has blocked the bot in Telegram."""
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        if DATABASE_URL:
+            c.execute("UPDATE users SET bot_blocked=%s WHERE id=%s", (status, uid))
+        else:
+            c.execute("UPDATE users SET bot_blocked=? WHERE id=?", (status, uid))
+        conn.commit()
+    finally:
+        release_connection(conn)
+
 def get_all_user_ids():
     """Returns a list of all user IDs from the database."""
     conn = get_connection()
@@ -126,7 +139,7 @@ def get_all_user_ids():
     finally:
         release_connection(conn)
 
-def get_user_count(search_query=None, filter_blocked=False):
+def get_user_count(search_query=None, filter_blocked=False, filter_bot_blocked=False):
     """Returns the total number of users, optionally filtered by search and block status."""
     conn = get_connection()
     try:
@@ -135,6 +148,8 @@ def get_user_count(search_query=None, filter_blocked=False):
         params = []
         if filter_blocked:
             where_conds.append("is_blocked = TRUE" if DATABASE_URL else "is_blocked = 1")
+        if filter_bot_blocked:
+            where_conds.append("bot_blocked = TRUE" if DATABASE_URL else "bot_blocked = 1")
         if search_query:
             q = f"%{search_query}%"
             search_cond = "(username ILIKE %s OR CAST(id AS TEXT) LIKE %s)" if DATABASE_URL else "(username LIKE ? OR CAST(id AS TEXT) LIKE ?)"
@@ -162,6 +177,8 @@ def get_all_users(sort_by="last_active_at", order="DESC", limit=None, offset=Non
         where_clause = ""
         if sort_by == "blocked":
             where_clause = "WHERE u.is_blocked = TRUE" if DATABASE_URL else "WHERE u.is_blocked = 1"
+        elif sort_by == "bot_blocked":
+            where_clause = "WHERE u.bot_blocked = TRUE" if DATABASE_URL else "WHERE u.bot_blocked = 1"
         query = f"""
             SELECT 
                 u.id, u.username, u.full_name, u.lang, u.joined_at, 
@@ -196,9 +213,12 @@ def search_users(query, sort_by="last_active_at", order="DESC", limit=None, offs
         elif sort_by == "referrals": field = "referral_count"
         order_clause = f"{field} {order}"
         filter_blocked = (sort_by == "blocked")
+        filter_bot_blocked = (sort_by == "bot_blocked")
         where_conds = []
         if filter_blocked:
             where_conds.append("u.is_blocked = TRUE" if DATABASE_URL else "u.is_blocked = 1")
+        if filter_bot_blocked:
+            where_conds.append("u.bot_blocked = TRUE" if DATABASE_URL else "u.bot_blocked = 1")
         search_part = f"(u.username {'ILIKE' if DATABASE_URL else 'LIKE'} %s OR CAST(u.id AS TEXT) LIKE %s)" if DATABASE_URL else "(u.username LIKE ? OR CAST(u.id AS TEXT) LIKE ?)"
         where_conds.append(search_part)
         where_clause = "WHERE " + " AND ".join(where_conds)
@@ -206,7 +226,7 @@ def search_users(query, sort_by="last_active_at", order="DESC", limit=None, offs
             SELECT 
                 u.id, u.username, u.full_name, u.lang, u.joined_at, 
                 u.last_active_at, u.last_command, u.last_3_commands, u.total_actions, 
-                u.referred_by, u.is_blocked,
+                u.referred_by, u.is_blocked, u.bot_blocked,
                 (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
             FROM users u {where_clause}
         """
@@ -264,7 +284,7 @@ def get_user_by_id(uid):
     conn = get_connection()
     try:
         c = conn.cursor()
-        cols = "id, username, full_name, lang, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by, is_blocked"
+        cols = "id, username, full_name, lang, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by, is_blocked, bot_blocked"
         if DATABASE_URL:
             c.execute(f"SELECT {cols} FROM users WHERE id=%s", (uid,))
         else:
@@ -278,7 +298,7 @@ def get_user_by_username(username):
     conn = get_connection()
     try:
         c = conn.cursor()
-        cols = "id, username, full_name, lang, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by, is_blocked"
+        cols = "id, username, full_name, lang, joined_at, last_active_at, last_command, last_3_commands, total_actions, referred_by, is_blocked, bot_blocked"
         uname = username.lstrip("@")
         if DATABASE_URL:
             c.execute(f"SELECT {cols} FROM users WHERE username ILIKE %s", (uname,))

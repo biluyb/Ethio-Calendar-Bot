@@ -17,6 +17,6 @@ from .admin import (
 from .callbacks import age_mode_callback, contact_admin_callback
 from .main_handler import (
     handle, admin_reply_callback, handle_admin_reply_to_user, 
-    unknown_command
+    unknown_command, chat_member_callback
 )
 from .extra import health_url

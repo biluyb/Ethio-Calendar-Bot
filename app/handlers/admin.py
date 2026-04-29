@@ -99,8 +99,11 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         keyboard.append([
             InlineKeyboardButton("✨ Newest", callback_data=f"u:0:newest:DESC:{per_page}:{query[:15] if query else ''}"),
             InlineKeyboardButton("🔥 Activity", callback_data=f"u:0:activity:DESC:{per_page}:{query[:15] if query else ''}"),
-            InlineKeyboardButton("🤝 Invites", callback_data=f"u:0:referrals:DESC:{per_page}:{query[:15] if query else ''}"),
-            InlineKeyboardButton("🚫 Blocked", callback_data=f"u:0:blocked:DESC:{per_page}:{query[:15] if query else ''}")
+            InlineKeyboardButton("🤝 Invites", callback_data=f"u:0:referrals:DESC:{per_page}:{query[:15] if query else ''}")
+        ])
+        keyboard.append([
+            InlineKeyboardButton("🚫 Admin Blocked", callback_data=f"u:0:blocked:DESC:{per_page}:{query[:15] if query else ''}"),
+            InlineKeyboardButton("🛑 Blocked Bot", callback_data=f"u:0:bot_blocked:DESC:{per_page}:{query[:15] if query else ''}")
         ])
 
         # Row 4: Page Size selection

@@ -68,6 +68,7 @@ def init_db():
                 total_actions INTEGER DEFAULT 0,
                 referred_by BIGINT,
                 is_blocked BOOLEAN DEFAULT FALSE,
+                bot_blocked BOOLEAN DEFAULT FALSE,
                 last_3_commands TEXT
             )
             """)
@@ -109,6 +110,7 @@ def init_db():
                 total_actions INTEGER DEFAULT 0,
                 referred_by INTEGER,
                 is_blocked BOOLEAN DEFAULT FALSE,
+                bot_blocked BOOLEAN DEFAULT FALSE,
                 last_3_commands TEXT
             )
             """)
@@ -149,6 +151,7 @@ def init_db():
                     ("last_active_at", "ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"),
                     ("referred_by", "ALTER TABLE users ADD COLUMN referred_by BIGINT"),
                     ("is_blocked", "ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE"),
+                    ("bot_blocked", "ALTER TABLE users ADD COLUMN bot_blocked BOOLEAN DEFAULT FALSE"),
                     ("full_name", "ALTER TABLE users ADD COLUMN full_name TEXT"),
                     ("last_command", "ALTER TABLE users ADD COLUMN last_command TEXT"),
                     ("last_3_commands", "ALTER TABLE users ADD COLUMN last_3_commands TEXT"),
@@ -181,6 +184,7 @@ def init_db():
                     ("last_active_at", "ALTER TABLE users ADD COLUMN last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP"),
                     ("referred_by", "ALTER TABLE users ADD COLUMN referred_by INTEGER"),
                     ("is_blocked", "ALTER TABLE users ADD COLUMN is_blocked BOOLEAN DEFAULT FALSE"),
+                    ("bot_blocked", "ALTER TABLE users ADD COLUMN bot_blocked BOOLEAN DEFAULT FALSE"),
                     ("full_name", "ALTER TABLE users ADD COLUMN full_name TEXT"),
                     ("last_command", "ALTER TABLE users ADD COLUMN last_command TEXT"),
                     ("last_3_commands", "ALTER TABLE users ADD COLUMN last_3_commands TEXT"),

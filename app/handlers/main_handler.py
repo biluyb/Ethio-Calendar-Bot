@@ -591,3 +591,23 @@ async def handle_admin_reply_to_user(update: Update, context: ContextTypes.DEFAU
 async def unknown_command(update, context):
     """Fallback handler for unrecognized commands."""
     await update.message.reply_text("❌ Unknown command. Use /help", reply_markup=get_menu(update.effective_user.id, get_lang(update.effective_user.id)))
+
+async def chat_member_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handles MY_CHAT_MEMBER updates to track if a user blocked/kicked the bot."""
+    if not update.my_chat_member:
+        return
+    
+    chat = update.my_chat_member.chat
+    
+    # We only care about private chats block/unblock
+    if chat.type == "private":
+        new_status = update.my_chat_member.new_chat_member.status
+        user_id = chat.id
+        
+        from app.db import set_bot_blocked
+        # If the user kicked/blocked the bot
+        if new_status == "kicked":
+            set_bot_blocked(user_id, True)
+        # If the user restarted the bot or unblocked it
+        elif new_status == "member":
+            set_bot_blocked(user_id, False)

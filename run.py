@@ -163,6 +163,7 @@ from telegram.ext import (
     CommandHandler, 
     MessageHandler, 
     CallbackQueryHandler, 
+    ChatMemberHandler,
     filters
 )
 
@@ -205,7 +206,8 @@ from app.handlers import (
     api_stats_callback,
     api_download_guide_handler,
     USER_CMDS,
-    refresh_user_commands
+    refresh_user_commands,
+    chat_member_callback
 )
 
 # Environment Overrides
@@ -300,6 +302,9 @@ async def main():
 
     # Content Handlers
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+    
+    # State Handlers
+    app.add_handler(ChatMemberHandler(chat_member_callback, ChatMemberHandler.MY_CHAT_MEMBER))
     
     # Fallback (must be last)
     app.add_handler(MessageHandler(filters.COMMAND, unknown_command))
