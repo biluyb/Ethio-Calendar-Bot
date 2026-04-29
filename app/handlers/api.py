@@ -99,6 +99,16 @@ async def api_stats_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 msg = "📢 <b>Broadcast to Developers</b>\n\nPlease type the broadcast message you want to send to all API users."
             await query.message.reply_text(msg, parse_mode="HTML")
             await query.answer()
+        elif data == "api_regen_prompt":
+            context.user_data["mode"] = "admin_api_regen_input"
+            msg = "🔄 <b>API Key Regeneration</b>\n\nEnter the <b>User ID</b> you want to regenerate an API key for. This will instantly invalidate their old key." if get_lang(uid) == "en" else "🔄 <b>አዲስ የኤፒአይ ቁልፍ (Regenerate)</b>\n\nእባክዎን አዲስ የኤፒአይ ቁልፍ እንዲሰጠው የሚፈልጉትን የተጠቃሚ መለያ ቁጥር ያስገቡ።"
+            await query.message.reply_text(msg, parse_mode="HTML")
+            await query.answer()
+        elif data == "api_reset_prompt":
+            context.user_data["mode"] = "admin_api_reset_input"
+            msg = "🗑 <b>Reset API Usage Stats</b>\n\nEnter the <b>User ID</b> to reset their API request count to 0." if get_lang(uid) == "en" else "🗑 <b>የኤፒአይ ስታቲስቲክስ አፅዳ</b>\n\nስታቲስቲክሱ እንዲጠፋ የሚፈልጉትን የተጠቃሚ መለያ ቁጥር ያስገቡ።"
+            await query.message.reply_text(msg, parse_mode="HTML")
+            await query.answer()
             
     except Exception as e:
         await send_error(update, context, e, "api_stats_callback")
@@ -181,10 +191,16 @@ async def send_api_stats_page(update, context, page: int = 0):
         # Add action buttons
         revoke_text = "🚫 Revoke Key" if lang != "am" else "🚫 ቁልፉን ሰርዝ"
         broadcast_text = "📢 Broadcast to Devs" if lang != "am" else "📢 ለዲቨሎፐሮች መልዕክት"
+        regen_text = "🔄 Regen Key" if lang != "am" else "🔄 አዲስ ቁልፍ"
+        reset_text = "🗑 Reset Stats" if lang != "am" else "🗑 ስታቲስቲክስ አፅዳ"
         
         buttons.append([
             InlineKeyboardButton(revoke_text, callback_data="api_revoke_prompt"),
             InlineKeyboardButton(broadcast_text, callback_data="api_broadcast_prompt")
+        ])
+        buttons.append([
+            InlineKeyboardButton(regen_text, callback_data="api_regen_prompt"),
+            InlineKeyboardButton(reset_text, callback_data="api_reset_prompt")
         ])
         
         reply_markup = InlineKeyboardMarkup(buttons)

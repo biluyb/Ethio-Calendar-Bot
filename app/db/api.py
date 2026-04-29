@@ -128,3 +128,36 @@ def get_all_api_user_ids():
         return []
     finally:
         release_connection(conn)
+
+def regenerate_api_key_db(uid):
+    import secrets
+    conn = get_connection()
+    try:
+        new_key = "ec_" + secrets.token_hex(16)
+        c = conn.cursor()
+        sql = "UPDATE api_keys SET api_key = %s WHERE uid = %s" if DATABASE_URL else "UPDATE api_keys SET api_key = ? WHERE uid = ?"
+        c.execute(sql, (new_key, uid))
+        conn.commit()
+        if c.rowcount > 0:
+            return new_key
+        return None
+    except Exception as e:
+        print(f"Error regenerating API key: {e}")
+        return None
+    finally:
+        release_connection(conn)
+
+def reset_api_usage_db(uid):
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        sql = "UPDATE api_keys SET requests_count = 0 WHERE uid = %s" if DATABASE_URL else "UPDATE api_keys SET requests_count = 0 WHERE uid = ?"
+        c.execute(sql, (uid,))
+        conn.commit()
+        return c.rowcount > 0
+    except Exception as e:
+        print(f"Error resetting API usage: {e}")
+        return False
+    finally:
+        release_connection(conn)
+

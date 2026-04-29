@@ -6,7 +6,8 @@ from .users import (
 )
 from .api import (
     get_or_create_api_key, verify_and_track_api_key, 
-    get_api_usage_stats, get_total_api_users, revoke_api_key_db
+    get_api_usage_stats, get_total_api_users, revoke_api_key_db,
+    regenerate_api_key_db, reset_api_usage_db
 )
 from .admin_db import (
     is_admin_db, get_admins_db, add_admin_db, remove_admin_db,

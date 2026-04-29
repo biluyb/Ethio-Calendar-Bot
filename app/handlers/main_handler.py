@@ -11,7 +11,7 @@ from .api import api_key_command, api_stats_command
 from .callbacks import contact_admin_callback
 from app.db import (
     set_lang, get_lang, is_admin_db, revoke_api_key_db, get_admins_db, 
-    get_user_by_id, get_user_by_username
+    get_user_by_id, get_user_by_username, regenerate_api_key_db, reset_api_usage_db
 )
 from app.utils import eth_to_greg, greg_to_eth, calculate_age
 from app.config import ADMIN_IDS
@@ -139,6 +139,31 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await update.message.reply_text(f"✅ API Key for User ID <code>{target_uid}</code> has been revoked.", parse_mode="HTML")
                 else:
                     await update.message.reply_text("❌ Could not revoke key. Verify the User ID exists.")
+                context.user_data.pop("mode", None)
+            except ValueError:
+                await update.message.reply_text("❌ Please enter a valid numerical User ID.")
+            return
+
+        if mode == "admin_api_regen_input":
+            try:
+                target_uid = int(text)
+                new_key = regenerate_api_key_db(target_uid)
+                if new_key:
+                    await update.message.reply_text(f"🔄 API Key for User ID <code>{target_uid}</code> has been successfully regenerated.\n\nNew Key: <code>{new_key}</code>", parse_mode="HTML")
+                else:
+                    await update.message.reply_text("❌ Could not regenerate key. Verify the User ID exists.")
+                context.user_data.pop("mode", None)
+            except ValueError:
+                await update.message.reply_text("❌ Please enter a valid numerical User ID.")
+            return
+
+        if mode == "admin_api_reset_input":
+            try:
+                target_uid = int(text)
+                if reset_api_usage_db(target_uid):
+                    await update.message.reply_text(f"🗑 API Stats for User ID <code>{target_uid}</code> have been reset to 0.", parse_mode="HTML")
+                else:
+                    await update.message.reply_text("❌ Could not reset stats. Verify the User ID exists.")
                 context.user_data.pop("mode", None)
             except ValueError:
                 await update.message.reply_text("❌ Please enter a valid numerical User ID.")
