@@ -50,8 +50,12 @@ async def send_users_page(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         keyboard = []
         user_row = []
         for user in users:
-            uid, uname, fname, u_lang, joined, last_act, last_cmd, last_3, actions, ref_by, is_blocked, ref_count = user
+            uid, uname, fname, u_lang, joined, last_act, last_cmd, last_3, actions, ref_by, is_blocked, bot_blocked, ref_count = user
             display_name = fname or uname or f"User-{uid}"
+            if bot_blocked:
+                display_name = f"🛑 {display_name}"
+            elif is_blocked:
+                display_name = f"🚫 {display_name}"
             
             # Dynamic Metric
             if sort_by == "newest":

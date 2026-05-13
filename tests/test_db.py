@@ -8,7 +8,7 @@ def setup_test_db(monkeypatch, tmp_path):
     # Use a temporary database file for testing
     test_db = tmp_path / "test_bot.db"
     monkeypatch.setenv("DATABASE_URL", "") # Force SQLite
-    monkeypatch.setattr("app.db.DB_FILE", str(test_db))
+    monkeypatch.setattr("app.db.base.DB_FILE", str(test_db))
     init_db()
     yield
     if test_db.exists():
@@ -66,7 +66,7 @@ def test_referrals():
     # Check if referral is counted in all_users
     users = get_all_users(sort_by="referrals")
     referrer = next(u for u in users if u[0] == 1)
-    assert referrer[6] == 1 # referrals count is index 6
+    assert referrer[12] == 1 # referrals count is index 12
     
     # Check top referrers with pagination
     top = get_top_referrers(limit=1, offset=0)

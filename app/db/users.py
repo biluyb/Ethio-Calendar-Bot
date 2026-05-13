@@ -16,8 +16,9 @@ def register_user(uid, username, full_name=None, last_command=None, referred_by=
                 c.execute("SELECT last_3_commands FROM users WHERE id=%s", (uid,))
                 row = c.fetchone()
                 history = row[0].split("||") if row and row[0] else []
-                history = ([last_command] + history)[:3]
-                history_str = "||".join(history)
+                history = ([last_command] + history) if last_command else history
+                history = [c for c in history if c][:3]
+                history_str = "||".join(history) if history else None
 
             c.execute("SELECT id FROM users WHERE id=%s", (uid,))
             if not c.fetchone():
@@ -42,8 +43,9 @@ def register_user(uid, username, full_name=None, last_command=None, referred_by=
                 c.execute("SELECT last_3_commands FROM users WHERE id=?", (uid,))
                 row = c.fetchone()
                 history = row[0].split("||") if row and row[0] else []
-                history = ([last_command] + history)[:3]
-                history_str = "||".join(history)
+                history = ([last_command] + history) if last_command else history
+                history = [c for c in history if c][:3]
+                history_str = "||".join(history) if history else None
 
             c.execute("SELECT id FROM users WHERE id=?", (uid,))
             if not c.fetchone():
@@ -183,7 +185,7 @@ def get_all_users(sort_by="last_active_at", order="DESC", limit=None, offset=Non
             SELECT 
                 u.id, u.username, u.full_name, u.lang, u.joined_at, 
                 u.last_active_at, u.last_command, u.last_3_commands, u.total_actions, 
-                u.referred_by, u.is_blocked,
+                u.referred_by, u.is_blocked, u.bot_blocked,
                 (SELECT COUNT(*) FROM users WHERE referred_by = u.id) as referral_count 
             FROM users u 
             {where_clause}
