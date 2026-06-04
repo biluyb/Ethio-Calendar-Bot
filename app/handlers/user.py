@@ -167,7 +167,7 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg = f"ዛሬ \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
             msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
 
-        await update.message.reply_text(msg, reply_markup=get_share_keyboard(lang, context.bot.username))
+        await update.message.reply_text(msg, reply_markup=get_share_keyboard(lang, context.bot.username, uid=uid))
     except Exception as e:
         await send_error(update, context, e, "today")
 
@@ -196,7 +196,7 @@ async def calendar_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         track_activity(update, "/calendar")
 
         text = INFO_AM if lang == "am" else INFO_EN
-        await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
+        await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username, uid=uid))
     except Exception as e:
         await send_error(update, context, e, "calendar_command")
 
@@ -287,10 +287,10 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     photo=photo, 
                     caption=text, 
                     parse_mode="HTML",
-                    reply_markup=get_share_keyboard(lang, context.bot.username)
+                    reply_markup=get_share_keyboard(lang, context.bot.username, uid=uid)
                 )
         except Exception:
-            await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
+            await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username, uid=uid))
 
     except Exception as e:
         await send_error(update, context, e, "share_command")

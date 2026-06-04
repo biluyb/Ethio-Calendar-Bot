@@ -359,7 +359,7 @@ async def process_g2e(update, context, d, m, y, lang):
         prompt = "✍️ <b>Enter another date (DD/MM/YYYY):</b>" if lang == "en" else "✍️ <b>ሌላ ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>"
         msg += prompt
         
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username, uid=update.effective_user.id))
         # Keep mode active for continuous input
     except ValueError as e:
         error_str = str(e)
@@ -379,7 +379,7 @@ async def process_e2g(update, context, d, m, y, lang):
         prompt = "✍️ <b>Enter another Ethiopian date (DD/MM/YYYY):</b>" if lang == "en" else "✍️ <b>ሌላ የኢትዮጵያ ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>"
         msg += prompt
         
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username, uid=update.effective_user.id))
     except ValueError as e:
         error_str = str(e)
         user_msg = format_validation_error(error_str, m, y, lang)
@@ -480,7 +480,7 @@ async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d
             msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን\n\n"
             msg += "✍️ <b>ሌላ የልደት ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>"
 
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username, uid=update.effective_user.id))
         # Keep mode active for continuous input
     except ValueError as e:
         error_str = str(e)

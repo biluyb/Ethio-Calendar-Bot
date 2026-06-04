@@ -109,13 +109,21 @@ async def check_blocked(update: Update):
     if not update or not update.effective_chat: return False
     return is_blocked_db(update.effective_chat.id)
 
-def get_share_keyboard(lang, bot_username):
-    """Returns an inline keyboard with a share button."""
+def get_share_keyboard(lang, bot_username, uid=None):
+    """Returns an inline keyboard with a share button that includes the referral link."""
     btn_text = "🤝 Share Bot" if lang == "en" else "🤝 ለጓደኛ ያጋሩ"
     share_msg = (
         "Check out Pagume Bot - The best Ethiopian Calendar & Date Converter!" 
         if lang == "en" else 
         "ጳጉሜ ቦትን ተጠቀሙ - ምርጥ የኢትዮጵያ ቀን መቁጠሪያ እና የቀን መቀየሪያ!"
     )
-    share_url = f"https://t.me/share/url?url=https://t.me/{bot_username}&text={html.escape(share_msg)}"
+    
+    # Use referral link if UID is provided, otherwise fallback to generic link
+    base_url = f"https://t.me/{bot_username}"
+    if uid:
+        share_url_link = f"{base_url}?start={uid}"
+    else:
+        share_url_link = base_url
+        
+    share_url = f"https://t.me/share/url?url={share_url_link}&text={html.escape(share_msg)}"
     return InlineKeyboardMarkup([[InlineKeyboardButton(btn_text, url=share_url)]])
