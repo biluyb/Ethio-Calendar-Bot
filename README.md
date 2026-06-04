@@ -2,29 +2,29 @@
 
 Welcome to the **Ethiopian Calendar Bot**! This is the most advanced and comprehensive Telegram bot built for date conversion, age calculation, and Ethiopian calendar logic. With over thousands of users, it provides robust features wrapped in a user-friendly bilingual interface.
 
-## Core Features 🚀
+## Core Features 
 
 ### 1. Bilingual Support (English & Amharic)
 The bot natively supports both Amharic and English. Users can seamlessly switch between languages using the `/lang` command, and all menus, buttons, and calendar outputs adapt instantly. 
 
-### 2. Powerful Date Conversion 📅
+### 2. Powerful Date Conversion 
 - Convert dates from **Gregorian to Ethiopian** calendar.
 - Convert dates from **Ethiopian to Gregorian** calendar.
 - Outputs include full weekday and month names in both English and Amharic.
 - The `/today` command gives an instant summary of today's date in both calendar systems.
 
-### 3. Precise Age Calculation 🎂
+### 3. Precise Age Calculation 
 Users can easily calculate their exact age in years, months, and days. The bot determines the age accurately whether you provide an Ethiopian or Gregorian birthdate. 
 
-### 4. Referral & Ranking System 🏆
+### 4. Referral & Ranking System 
 We believe in community! Every user gets a unique referral link via the `/share` command. Inviting friends awards points, and users can check the leaderboard using the `/ranks` command to see the top referrers.
 
-### 5. Seamless Group Integration 🏘️
+### 5. Seamless Group Integration 
 The bot can be added to Telegram groups. It has a smart redirect feature that ensures group chats stay clean, guiding users to interact with it via Direct Messages for complex requests. 
 
 ---
 
-## Administrative Tools & RBAC 🛡️
+## Administrative Tools & RBAC 
 
 Pagume Bot features a highly sophisticated **Role-Based Access Control (RBAC)** architecture directly within Telegram. It dynamically refreshes the bot's command menus depending on whether the user is a standard user, an Admin, or a Super-Admin.
 
@@ -43,7 +43,7 @@ Super-Admins have exclusive rights to manage the administrative roster:
 
 ---
 
-## API Capabilities 🌐
+## API Capabilities 
 
 The bot double-functions as a RESTful API service! It exposes versioned endpoints to developers who want Ethiopian calendar functionality in their own apps. 
 - **API Key Generation:** Users can generate API keys directly inside Telegram using the `/api` command.
@@ -53,7 +53,7 @@ The bot double-functions as a RESTful API service! It exposes versioned endpoint
 
 ---
 
-## Technical Stack & Architecture ⚙️
+## Technical Stack & Architecture 
 
 - **Framework:** Written in Python 3.12+ relying on the powerful `python-telegram-bot` standard.
 - **Asynchronous Processing:** Built over `asyncio` for high concurrency.
