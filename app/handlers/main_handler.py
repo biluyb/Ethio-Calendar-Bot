@@ -4,7 +4,8 @@ from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKe
 from telegram.ext import ContextTypes
 from .common import (
     track_activity, get_lang, send_error, get_menu, check_blocked, track_group,
-    EN_DAYS, EN_MONTHS, AM_DAYS, AM_MONTHS, INVITE_IMAGE_PATH, REDIRECT_IMAGE_URL
+    EN_DAYS, EN_MONTHS, AM_DAYS, AM_MONTHS, INVITE_IMAGE_PATH, REDIRECT_IMAGE_URL,
+    get_share_keyboard
 )
 from .user import today, share_command, calendar_command, about_command
 from .api import api_key_command, api_stats_command
@@ -358,7 +359,7 @@ async def process_g2e(update, context, d, m, y, lang):
         prompt = "✍️ <b>Enter another date (DD/MM/YYYY):</b>" if lang == "en" else "✍️ <b>ሌላ ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>"
         msg += prompt
         
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_menu(update.effective_user.id, lang))
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
         # Keep mode active for continuous input
     except ValueError as e:
         error_str = str(e)
@@ -378,7 +379,7 @@ async def process_e2g(update, context, d, m, y, lang):
         prompt = "✍️ <b>Enter another Ethiopian date (DD/MM/YYYY):</b>" if lang == "en" else "✍️ <b>ሌላ የኢትዮጵያ ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>"
         msg += prompt
         
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_menu(update.effective_user.id, lang))
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
     except ValueError as e:
         error_str = str(e)
         user_msg = format_validation_error(error_str, m, y, lang)
@@ -479,7 +480,7 @@ async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d
             msg += f"🎂 <b>{years}</b> ዓመት | <b>{months}</b> ወር | <b>{days}</b> ቀን\n\n"
             msg += "✍️ <b>ሌላ የልደት ቀን ያስገቡ (ቀን/ወር/ዓመት)፦</b>"
 
-        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_menu(update.effective_user.id, lang))
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
         # Keep mode active for continuous input
     except ValueError as e:
         error_str = str(e)

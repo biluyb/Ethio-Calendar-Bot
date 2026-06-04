@@ -5,7 +5,7 @@ from telegram.ext import ContextTypes
 from .common import (
     get_menu, track_activity, track_group, check_blocked, send_error,
     EN_DAYS, EN_MONTHS, AM_DAYS, AM_MONTHS, INVITE_IMAGE_PATH, REDIRECT_IMAGE_URL,
-    SUPER_ADMIN_CMDS, ADMIN_CMDS
+    SUPER_ADMIN_CMDS, ADMIN_CMDS, get_share_keyboard
 )
 from app.db import (
     get_lang, set_lang, get_user_details, get_top_referrers, get_referrers_count,
@@ -167,7 +167,7 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg = f"ዛሬ \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
             msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
 
-        await update.message.reply_text(msg, reply_markup=get_menu(uid, lang))
+        await update.message.reply_text(msg, reply_markup=get_share_keyboard(lang, context.bot.username))
     except Exception as e:
         await send_error(update, context, e, "today")
 
@@ -196,7 +196,7 @@ async def calendar_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         track_activity(update, "/calendar")
 
         text = INFO_AM if lang == "am" else INFO_EN
-        await update.message.reply_text(text, parse_mode="HTML")
+        await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
     except Exception as e:
         await send_error(update, context, e, "calendar_command")
 
@@ -275,10 +275,10 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     photo=photo, 
                     caption=text, 
                     parse_mode="HTML",
-                    reply_markup=get_menu(uid, lang)
+                    reply_markup=get_share_keyboard(lang, context.bot.username)
                 )
         except Exception:
-            await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_menu(uid, lang))
+            await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username))
 
     except Exception as e:
         await send_error(update, context, e, "share_command")

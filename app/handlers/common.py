@@ -108,3 +108,14 @@ def track_group(update: Update):
 async def check_blocked(update: Update):
     if not update or not update.effective_chat: return False
     return is_blocked_db(update.effective_chat.id)
+
+def get_share_keyboard(lang, bot_username):
+    """Returns an inline keyboard with a share button."""
+    btn_text = "🤝 Share Bot" if lang == "en" else "🤝 ለጓደኛ ያጋሩ"
+    share_msg = (
+        "Check out Pagume Bot - The best Ethiopian Calendar & Date Converter!" 
+        if lang == "en" else 
+        "ጳጉሜ ቦትን ተጠቀሙ - ምርጥ የኢትዮጵያ ቀን መቁጠሪያ እና የቀን መቀየሪያ!"
+    )
+    share_url = f"https://t.me/share/url?url=https://t.me/{bot_username}&text={html.escape(share_msg)}"
+    return InlineKeyboardMarkup([[InlineKeyboardButton(btn_text, url=share_url)]])
