@@ -206,10 +206,16 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         uid = update.effective_user.id
         lang = get_lang(uid)
         
+        user_data = get_user_details(uid)
+        ref_count = user_data[12] if user_data else 0
+
         if lang == "am":
             info_text = (
-                "<b>ℹ️ ስለ ጳጉሜ ቦት</b>\n\n"
+                "<b>ℹ️ ስለ ጳጉሜ ቦት (My Profile)</b>\n\n"
                 "ጳጉሜ ቦት እጅግ ዘመናዊ እና ትክክለኛ የኢትዮጵያ ቀን መቁጠሪያ እና የቀን መቀየሪያ ቦት ነው።\n\n"
+                f"👤 <b>የእርስዎ መረጃ፦</b>\n"
+                f"🆔 <b>መለያ (ID)፦</b> <code>{uid}</code>\n"
+                f"📊 <b>ያጋበዙት ሰዎች ብዛት፦</b> {ref_count}\n\n"
                 "<b>📧 ኢሜይል:</b> support@pagumebot.com\n"
                 "<b>🛠 የተሰራው፦</b> በ ShademT\n"
                 "<b>📅 የተለቀቀው፦</b> ግንቦት 2018 ዓ.ም\n\n"
@@ -219,8 +225,11 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             btn_add = "➕ ቦቱን ወደ ግሩፕ አስገባ"
         else:
             info_text = (
-                "<b>ℹ️ About Pagume Bot</b>\n\n"
+                "<b>ℹ️ About Pagume Bot (My Profile)</b>\n\n"
                 "Pagume Bot is the most advanced and precise Ethiopian Calendar & Date Converter on Telegram.\n\n"
+                f"👤 <b>Your Info:</b>\n"
+                f"🆔 <b>Account ID:</b> <code>{uid}</code>\n"
+                f"📊 <b>Total Invited:</b> {ref_count} people\n\n"
                 "<b>📧 Email:</b> support@pagumebot.com\n"
                 "<b>🛠 Developed by:</b> ShademT\n"
                 "<b>📅 Version:</b> May 2026\n\n"
@@ -248,14 +257,18 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bot_username = bot_me.username
         share_link = f"https://t.me/{bot_username}?start={uid}"
         
+        user_data = get_user_details(uid)
+        ref_count = user_data[12] if user_data else 0
+
         if lang == "am":
             text = (
                 "<b>ጳጉሜ ቦት</b>\n"
                 "<i>የኢትዮጵያ ቀን መቁጠሪያ እና ቀን መቀየሪያ ።</i>\n\n"
                 "• <b>ትክክለኛ የቀን መቀየሪያ:</b> ከፈረንጅ ወደ ኢትዮጵያ\n"
                 "• <b>የዕድሜ ስሌት:</b> ፈጣን እና ትክክለኛ\n"
-                "• <b>በሁለት ቋንቋ:</b> አማርኛ እና እንግሊዝኛ\n"
-                f"<b>መጋበዣ ሊንክ፦</b> {share_link}"
+                "• <b>በሁለት ቋንቋ:</b> አማርኛ እና እንግሊዝኛ\n\n"
+                f"📊 <b>የእርስዎ ግብዣዎች፦</b> {ref_count} ሰዎች\n"
+                f"🔗 <b>መጋበዣ ሊንክ፦</b> {share_link}"
             )
         else:
             text = (
@@ -263,10 +276,9 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "<i>The most advanced Ethiopian Calendar & Date Converter.</i>\n\n"
                 "• <b>Precise Conversion:</b> Gregorian ↔ Ethiopian\n"
                 "• <b>Age Calculator:</b> Fast & accurate\n"
-                "• <b>Bilingual Support:</b> English & Amharic\n"
-                "• <b>Referral Rewards:</b> Advanced ranking system\n"
-                "• <b>Admin Tools:</b> Real-time management\n\n"
-                f"<b>Referral Link:</b> {share_link}"
+                "• <b>Bilingual Support:</b> English & Amharic\n\n"
+                f"📊 <b>Your Referrals:</b> {ref_count} people\n"
+                f"🔗 <b>Referral Link:</b> {share_link}"
             )
 
         try:
