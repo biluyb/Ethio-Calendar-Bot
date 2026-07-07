@@ -351,7 +351,7 @@ async def main():
                         <li>✅ <b>Admin Suite:</b> Real-time user management.</li>
                     </ul>
                     <br>
-                    <a href="https://t.me/EthioCalendarBot" class="btn">Launch on Telegram</a>
+                    <a href="https://t.me/pagumebot" class="btn">Launch on Telegram</a>
                 </div>
             </body>
             </html>
