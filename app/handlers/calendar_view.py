@@ -49,7 +49,7 @@ GREG_MONTHS_EN = [
     "September", "October", "November", "December"
 ]
 
-WEEKDAYS_AM = ["ሰኞ", "ማክ", "ረቡ", "ሐሙ", "አርብ", "ቅዳ", "እሁ"]
+WEEKDAYS_AM = ["ሰኞ", "ማክ", "ረቡ", "ሐሙ", "አር", "ቅዳ", "እሁ"]
 WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
@@ -77,6 +77,97 @@ def get_evangelist(eth_year: int) -> dict | None:
         0: {"am": "ዮሐንስ", "en": "John"},
     }
     return mapping.get(remainder)
+
+
+def render_eth_text_calendar(eth_year: int, eth_month: int, user_id: int, lang: str) -> str:
+    """Generates a perfectly aligned monospace text grid for Ethiopian Calendar."""
+    today_ed, today_em, today_ey = get_current_eth_date()
+    holidays = get_month_holidays(eth_month, eth_year)
+    user_rem_days = get_month_user_reminder_days(user_id, eth_year, eth_month)
+    total_days = eth_days_in_month(eth_month, eth_year)
+    
+    gd1, gm1, gy1 = eth_to_greg(1, eth_month, eth_year)
+    start_weekday = date(gy1, gm1, gd1).weekday()
+    
+    if lang == "am":
+        header_line = "ሰኞ   ማክ   ረቡ   ሐሙ   አር   ቅዳ   እሁ"
+    else:
+        header_line = "Mon  Tue  Wed  Thu  Fri  Sat  Sun"
+        
+    lines = [f"<code>{header_line}</code>"]
+    
+    curr_week = ["   "] * start_weekday
+    for d in range(1, total_days + 1):
+        is_today = (d == today_ed and eth_month == today_em and eth_year == today_ey)
+        has_rem = d in user_rem_days
+        holiday = holidays.get(d)
+        
+        if is_today:
+            cell = f"{d:2d}."
+        elif has_rem:
+            cell = f"{d:2d}*"
+        elif holiday:
+            cell = f"{d:2d}!"
+        else:
+            cell = f"{d:3d}"
+            
+        curr_week.append(cell)
+        if len(curr_week) == 7:
+            lines.append(f"<code>{'  '.join(curr_week)}</code>")
+            curr_week = []
+            
+    if curr_week:
+        curr_week += ["   "] * (7 - len(curr_week))
+        lines.append(f"<code>{'  '.join(curr_week)}</code>")
+        
+    legend = "(. = ዛሬ | * = ማስታወሻ | ! = በዓል)" if lang == "am" else "(. = Today | * = Reminder | ! = Holiday)"
+    lines.append(f"<code>{legend}</code>")
+    return "\n".join(lines)
+
+
+def render_greg_text_calendar(greg_year: int, greg_month: int, user_id: int, lang: str) -> str:
+    """Generates a perfectly aligned monospace text grid for Gregorian Calendar."""
+    now = datetime.now()
+    _, num_days = monthrange(greg_year, greg_month)
+    start_weekday = date(greg_year, greg_month, 1).weekday()
+    
+    if lang == "am":
+        header_line = "ሰኞ   ማክ   ረቡ   ሐሙ   አር   ቅዳ   እሁ"
+    else:
+        header_line = "Mon  Tue  Wed  Thu  Fri  Sat  Sun"
+        
+    lines = [f"<code>{header_line}</code>"]
+    
+    curr_week = ["   "] * start_weekday
+    for d in range(1, num_days + 1):
+        is_today = (d == now.day and greg_month == now.month and greg_year == now.year)
+        ed, em, ey = greg_to_eth(d, greg_month, greg_year)
+        
+        hol = get_day_type(em, ed, ey)
+        user_rems = get_user_day_reminders(user_id, ey, em, ed)
+        has_rem = any(not r[2] for r in user_rems)
+        
+        if is_today:
+            cell = f"{d:2d}."
+        elif has_rem:
+            cell = f"{d:2d}*"
+        elif hol:
+            cell = f"{d:2d}!"
+        else:
+            cell = f"{d:3d}"
+            
+        curr_week.append(cell)
+        if len(curr_week) == 7:
+            lines.append(f"<code>{'  '.join(curr_week)}</code>")
+            curr_week = []
+            
+    if curr_week:
+        curr_week += ["   "] * (7 - len(curr_week))
+        lines.append(f"<code>{'  '.join(curr_week)}</code>")
+        
+    legend = "(. = ዛሬ | * = ማስታወሻ | ! = በዓል)" if lang == "am" else "(. = Today | * = Reminder | ! = Holiday)"
+    lines.append(f"<code>{legend}</code>")
+    return "\n".join(lines)
 
 
 # ─── Ethiopian Calendar Builder ──────────────────────────────────────────────
@@ -138,7 +229,8 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
             mname = month_name_am if lang == "am" else month_name_en
             event_list += f"{emoji} <b>{mname} {day}</b> — {name}\n"
 
-    full_text = f"{header}\n{legend}\n{event_list}"
+    text_grid = render_eth_text_calendar(eth_year, eth_month, user_id, lang)
+    full_text = f"{header}\n{text_grid}\n\n{legend}\n{event_list}"
 
     keyboard = []
 
@@ -155,7 +247,7 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
     gd1, gm1, gy1 = eth_to_greg(1, eth_month, eth_year)
     start_weekday = date(gy1, gm1, gd1).weekday()
 
-    curr_row = [InlineKeyboardButton(" ", callback_data="cal_ignore") for _ in range(start_weekday)]
+    curr_row = [InlineKeyboardButton("  ", callback_data="cal_ignore") for _ in range(start_weekday)]
 
     for d in range(1, total_days + 1):
         is_today = (d == today_ed and eth_month == today_em and eth_year == today_ey)
@@ -163,14 +255,14 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
         holiday = holidays.get(d)
 
         if is_today:
-            label = f"📌{d}" if has_rem else f"📍{d}"
+            label = f"📌{d:02d}" if has_rem else f"📍{d:02d}"
         elif has_rem:
-            label = f"🔔{d}"
+            label = f"🔔{d:02d}"
         elif holiday:
             emoji = TYPE_EMOJI.get(holiday["type"], "🔴")
-            label = f"{emoji}{d}"
+            label = f"{emoji}{d:02d}"
         else:
-            label = f"{d:2d}"
+            label = f"{d:02d}"
 
         curr_row.append(InlineKeyboardButton(label, callback_data=f"cal_day:{eth_year}:{eth_month}:{d}"))
 
@@ -180,7 +272,7 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
 
     if curr_row:
         while len(curr_row) < 7:
-            curr_row.append(InlineKeyboardButton(" ", callback_data="cal_ignore"))
+            curr_row.append(InlineKeyboardButton("  ", callback_data="cal_ignore"))
         keyboard.append(curr_row)
 
     # 3. Navigation Controls
@@ -283,7 +375,8 @@ def build_greg_calendar_view(greg_year: int, greg_month: int, user_id: int, lang
             mname = ETH_MONTHS_AM[em-1] if lang == "am" else ETH_MONTHS_EN[em-1]
             event_list += f"{emoji} <b>{GREG_MONTHS_EN[greg_month-1][:3]} {gd}</b> ({mname} {ed}) — {hname}\n"
 
-    full_text = f"{header}\n{legend}\n{event_list}"
+    text_grid = render_greg_text_calendar(greg_year, greg_month, user_id, lang)
+    full_text = f"{header}\n{text_grid}\n\n{legend}\n{event_list}"
 
     keyboard = []
 
@@ -298,7 +391,7 @@ def build_greg_calendar_view(greg_year: int, greg_month: int, user_id: int, lang
 
     # 2. Grid Days
     start_weekday = date(greg_year, greg_month, 1).weekday()
-    curr_row = [InlineKeyboardButton(" ", callback_data="cal_ignore") for _ in range(start_weekday)]
+    curr_row = [InlineKeyboardButton("  ", callback_data="cal_ignore") for _ in range(start_weekday)]
 
     for d in range(1, num_days + 1):
         is_today = (d == now.day and greg_month == now.month and greg_year == now.year)
@@ -310,14 +403,14 @@ def build_greg_calendar_view(greg_year: int, greg_month: int, user_id: int, lang
         has_rem = any(not r[2] for r in user_rems)
 
         if is_today:
-            label = f"📌{d}" if has_rem else f"📍{d}"
+            label = f"📌{d:02d}" if has_rem else f"📍{d:02d}"
         elif has_rem:
-            label = f"🔔{d}"
+            label = f"🔔{d:02d}"
         elif hol:
             emoji = TYPE_EMOJI.get(hol["type"], "🔴")
-            label = f"{emoji}{d}"
+            label = f"{emoji}{d:02d}"
         else:
-            label = f"{d:2d}"
+            label = f"{d:02d}"
 
         curr_row.append(InlineKeyboardButton(label, callback_data=f"gcal_day:{greg_year}:{greg_month}:{d}"))
 
@@ -327,7 +420,7 @@ def build_greg_calendar_view(greg_year: int, greg_month: int, user_id: int, lang
 
     if curr_row:
         while len(curr_row) < 7:
-            curr_row.append(InlineKeyboardButton(" ", callback_data="cal_ignore"))
+            curr_row.append(InlineKeyboardButton("  ", callback_data="cal_ignore"))
         keyboard.append(curr_row)
 
     # 3. Navigation Controls
