@@ -217,3 +217,10 @@ def init_db():
         print(f"CRITICAL DB INIT ERROR: {e}")
     finally:
         release_connection(conn)
+
+    # Initialize admin activity tracking table
+    try:
+        from app.db.activity_db import init_activity_table
+        init_activity_table()
+    except Exception as e:
+        print(f"Activity table init warning: {e}")

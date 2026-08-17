@@ -20,3 +20,8 @@ from .main_handler import (
     unknown_command, chat_member_callback
 )
 from .extra import health_url
+from .calendar_view import calendar_view_command, calendar_view_callback
+from .admin_activity import (
+    admin_activity_command, admin_activity_callback, 
+    admin_activity_summary_callback
+)

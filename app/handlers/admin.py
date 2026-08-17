@@ -526,6 +526,10 @@ async def block_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         tid = int(context.args[0])
         block_entity_db(tid)
+        try:
+            from .admin_activity import log_admin
+            log_admin(update.effective_user.id, "/block", f"Blocked entity {tid}", tid)
+        except Exception: pass
         await update.message.reply_text(f"✅ ID <code>{tid}</code> has been blocked.", parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"❌ Error blocking: {e}")
@@ -539,6 +543,10 @@ async def unblock_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         tid = int(context.args[0])
         unblock_entity_db(tid)
+        try:
+            from .admin_activity import log_admin
+            log_admin(update.effective_user.id, "/unblock", f"Unblocked entity {tid}", tid)
+        except Exception: pass
         await update.message.reply_text(f"✅ ID <code>{tid}</code> has been unblocked.", parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"❌ Error unblocking: {e}")
@@ -552,6 +560,10 @@ async def leavegroup_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return
         gid = int(context.args[0])
         await context.bot.leave_chat(chat_id=gid)
+        try:
+            from .admin_activity import log_admin
+            log_admin(update.effective_user.id, "/leavegroup", f"Left group {gid}", gid)
+        except Exception: pass
         await update.message.reply_text(f"✅ Successfully left group <code>{gid}</code>", parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"❌ Failed to leave group: {e}")

@@ -89,12 +89,14 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📅 Gregorian ➜ Ethiopian", "📅 ከፈረንጅ ወደ ኢትዮጵያ",
             "📆 Ethiopian ➜ Gregorian", "📆 ከኢትዮጵያ ወደ ፈረንጅ",
             "📚 Calendar Info", "📚 ስነ-ቀን መቁጠሪያ (Calendar)",
+            "🗓 Open Calendar", "🗓 ቀን መቁጠሪያ ይክፈቱ",
             "ℹ️ About & Support", "ℹ️ ስለ ቦቱ እና እርዳታ",
             "📢 Broadcast Message", "📢 መልዕክት ማስተላለፊያ (Broadcast)",
             "🔐 API (Developer)", "🔐 ኤፒአይ (Developer)",
             "📊 API Stats", "📊 ኤፒአይ ስታቲስቲክስ",
             "👥 Users", "👥 ተጠቃሚዎች",
             "📩 Contact Admin", "📩 ለአድሚን መልዕክት ለመላክ",
+            "📋 Admin Activity Log", "📋 የአድሚን ምዝግብ ማስታወሻ",
             "🇺🇸 English", "🇪🇹 አማርኛ"
         ]:
             if "mode" in context.user_data:
@@ -265,6 +267,16 @@ async def process_menu_commands(update, context, text, uid, lang):
     if text in ["📚 Calendar Info", "📚 ስነ-ቀን መቁጠሪያ (Calendar)"]:
         from .user import calendar_command
         await calendar_command(update, context)
+        return True
+
+    if text in ["🗓 Open Calendar", "🗓 ቀን መቁጠሪያ ይክፈቱ"]:
+        from .calendar_view import calendar_view_command
+        await calendar_view_command(update, context)
+        return True
+
+    if text in ["📋 Admin Activity Log", "📋 የአድሚን ምዝግብ ማስታወሻ"]:
+        from .admin_activity import admin_activity_command
+        await admin_activity_command(update, context)
         return True
 
     if text in ["📅 Today", "📅 ዛሬ"]:

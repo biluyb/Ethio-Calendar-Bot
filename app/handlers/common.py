@@ -18,6 +18,7 @@ AM_MONTHS = ["መስከረም", "ጥቅምት", "ኅዳር", "ታኅሣሥ", "�
 USER_CMDS = [
     BotCommand("start", "Start the bot"),
     BotCommand("lang", "Change language"),
+    BotCommand("view_calendar", "Interactive Ethiopian Calendar (10 years)"),
     BotCommand("calendar", "Ethiopian Calendar history & logic"),
     BotCommand("about", "Bot info & Contact Admin"),
     BotCommand("api", "Generate developer API key"),
@@ -33,7 +34,8 @@ ADMIN_CMDS = USER_CMDS + [
     BotCommand("send_msg", "Send DM to a user by ID or username"),
     BotCommand("block", "Block a user or group"),
     BotCommand("unblock", "Unblock a user or group"),
-    BotCommand("leavegroup", "Force bot to leave a group")
+    BotCommand("leavegroup", "Force bot to leave a group"),
+    BotCommand("admin_activity", "View admin action log")
 ]
 
 SUPER_ADMIN_CMDS = ADMIN_CMDS + [
@@ -57,15 +59,29 @@ def track_activity(update: Update, command_name: str = None) -> bool:
 def get_menu(uid, lang):
     is_admin = is_admin_db(uid) or uid in ADMIN_IDS
     if lang == "am":
-        kb = [["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"], ["📅 ዛሬ", "🎂 የዕድሜ ስሌት"], ["🔐 ኤፒአይ (Developer)", "🌐 ቋንቋ"], ["🤝 ጓደኞችን ይጋብዙ", "📩 ለአድሚን መልዕክት ለመላክ"]]
+        kb = [
+            ["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"],
+            ["📅 ዛሬ", "🎂 የዕድሜ ስሌት"],
+            ["🗓 ቀን መቁጠሪያ ይክፈቱ", "📚 ስነ-ቀን መቁጠሪያ (Calendar)"],
+            ["🔐 ኤፒአይ (Developer)", "🌐 ቋንቋ"],
+            ["🤝 ጓደኞችን ይጋብዙ", "📩 ለአድሚን መልዕክት ለመላክ"]
+        ]
         if is_admin:
             kb.append(["📢 መልዕክት ማስተላለፊያ (Broadcast)"])
             kb.append(["📊 ኤፒአይ ስታቲስቲክስ", "👥 ተጠቃሚዎች"])
+            kb.append(["📋 የአድሚን ምዝግብ ማስታወሻ"])
     else:
-        kb = [["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"], ["📅 Today", "🎂 Age Calculator"], ["🔐 API (Developer)", "🌐 Language"], ["🤝 Invite Friends", "📩 Contact Admin"]]
+        kb = [
+            ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
+            ["📅 Today", "🎂 Age Calculator"],
+            ["🗓 Open Calendar", "📚 Calendar Info"],
+            ["🔐 API (Developer)", "🌐 Language"],
+            ["🤝 Invite Friends", "📩 Contact Admin"]
+        ]
         if is_admin:
             kb.append(["📢 Broadcast Message"])
             kb.append(["📊 API Stats", "👥 Users"])
+            kb.append(["📋 Admin Activity Log"])
     return ReplyKeyboardMarkup(kb, resize_keyboard=True)
 
 async def notify_admin(context, error_text):

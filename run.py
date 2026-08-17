@@ -207,7 +207,12 @@ from app.handlers import (
     api_download_guide_handler,
     USER_CMDS,
     refresh_user_commands,
-    chat_member_callback
+    chat_member_callback,
+    calendar_view_command,
+    calendar_view_callback,
+    admin_activity_command,
+    admin_activity_callback,
+    admin_activity_summary_callback
 )
 
 # Environment Overrides
@@ -271,6 +276,8 @@ async def main():
     app.add_handler(CommandHandler("today", today))
     app.add_handler(CommandHandler("lang", lang))
     app.add_handler(CommandHandler(["calendar", "info"], calendar_command))
+    app.add_handler(CommandHandler(["view_calendar", "vcal"], calendar_view_command))
+    app.add_handler(CommandHandler("admin_activity", admin_activity_command))
     app.add_handler(CommandHandler("about", about_command))
     app.add_handler(CommandHandler("api", api_key_command))
     app.add_handler(CommandHandler("help", help_command))
@@ -299,6 +306,11 @@ async def main():
     app.add_handler(CallbackQueryHandler(contact_admin_callback, pattern="^contact_admin_request$"))
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
     app.add_handler(CallbackQueryHandler(admin_broadcast_callback, pattern="^bc_report:"))
+    # Calendar view callbacks
+    app.add_handler(CallbackQueryHandler(calendar_view_callback, pattern="^(cal:|cal_months:|cal_ignore)"))
+    # Admin activity callbacks
+    app.add_handler(CallbackQueryHandler(admin_activity_callback, pattern="^act:"))
+    app.add_handler(CallbackQueryHandler(admin_activity_summary_callback, pattern="^act_summary$"))
 
     # Content Handlers
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
