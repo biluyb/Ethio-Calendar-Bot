@@ -97,6 +97,7 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "👥 Users", "👥 ተጠቃሚዎች",
             "📩 Contact Admin", "📩 ለአድሚን መልዕክት ለመላክ",
             "📋 Admin Activity Log", "📋 የአድሚን ምዝግብ ማስታወሻ",
+            "🔔 Reminders", "🔔 ማስታወሻዎች",
             "🇺🇸 English", "🇪🇹 አማርኛ"
         ]:
             if "mode" in context.user_data:
@@ -107,7 +108,12 @@ async def handle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if await process_menu_commands(update, context, text, uid, lang):
             return
 
-        # 2. Check if user is in a specific input mode
+        # 2. Check for reminder text input
+        from .calendar_view import handle_reminder_text_input
+        if await handle_reminder_text_input(update, context):
+            return
+
+        # 3. Check if user is in a specific input mode
         if "mode" not in context.user_data:
             # Fallback for irrelevant text input when not in a mode
             msg = (
@@ -277,6 +283,11 @@ async def process_menu_commands(update, context, text, uid, lang):
     if text in ["📋 Admin Activity Log", "📋 የአድሚን ምዝግብ ማስታወሻ"]:
         from .admin_activity import admin_activity_command
         await admin_activity_command(update, context)
+        return True
+
+    if text in ["🔔 Reminders", "🔔 ማስታወሻዎች"]:
+        from .calendar_view import my_reminders_command
+        await my_reminders_command(update, context)
         return True
 
     if text in ["📅 Today", "📅 ዛሬ"]:

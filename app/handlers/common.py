@@ -19,6 +19,7 @@ USER_CMDS = [
     BotCommand("start", "Start the bot"),
     BotCommand("lang", "Change language"),
     BotCommand("view_calendar", "Interactive Ethiopian Calendar (10 years)"),
+    BotCommand("reminders", "View & manage your date reminders"),
     BotCommand("calendar", "Ethiopian Calendar history & logic"),
     BotCommand("about", "Bot info & Contact Admin"),
     BotCommand("api", "Generate developer API key"),
@@ -62,9 +63,10 @@ def get_menu(uid, lang):
         kb = [
             ["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"],
             ["📅 ዛሬ", "🎂 የዕድሜ ስሌት"],
-            ["🗓 ቀን መቁጠሪያ ይክፈቱ", "📚 ስነ-ቀን መቁጠሪያ (Calendar)"],
-            ["🔐 ኤፒአይ (Developer)", "🌐 ቋንቋ"],
-            ["🤝 ጓደኞችን ይጋብዙ", "📩 ለአድሚን መልዕክት ለመላክ"]
+            ["🗓 ቀን መቁጠሪያ ይክፈቱ", "🔔 ማስታወሻዎች"],
+            ["📚 ስነ-ቀን መቁጠሪያ (Calendar)", "🌐 ቋንቋ"],
+            ["🔐 ኤፒአይ (Developer)", "🤝 ጓደኞችን ይጋብዙ"],
+            ["📩 ለአድሚን መልዕክት ለመላክ"]
         ]
         if is_admin:
             kb.append(["📢 መልዕክት ማስተላለፊያ (Broadcast)"])
@@ -74,9 +76,10 @@ def get_menu(uid, lang):
         kb = [
             ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
             ["📅 Today", "🎂 Age Calculator"],
-            ["🗓 Open Calendar", "📚 Calendar Info"],
-            ["🔐 API (Developer)", "🌐 Language"],
-            ["🤝 Invite Friends", "📩 Contact Admin"]
+            ["🗓 Open Calendar", "🔔 Reminders"],
+            ["📚 Calendar Info", "🌐 Language"],
+            ["🔐 API (Developer)", "🤝 Invite Friends"],
+            ["📩 Contact Admin"]
         ]
         if is_admin:
             kb.append(["📢 Broadcast Message"])

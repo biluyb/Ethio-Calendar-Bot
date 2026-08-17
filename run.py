@@ -210,10 +210,12 @@ from app.handlers import (
     chat_member_callback,
     calendar_view_command,
     calendar_view_callback,
+    my_reminders_command,
     admin_activity_command,
     admin_activity_callback,
     admin_activity_summary_callback
 )
+from app.scheduler import start_scheduler
 
 # Environment Overrides
 PORT = int(os.getenv("PORT", 8080))
@@ -270,6 +272,9 @@ async def main():
         .build()
     )
 
+    # Start background reminder scheduler
+    start_scheduler(app)
+
     # 3. Handlers Registration
     # Command Handlers
     app.add_handler(CommandHandler(["start", "menu"], start))
@@ -277,6 +282,7 @@ async def main():
     app.add_handler(CommandHandler("lang", lang))
     app.add_handler(CommandHandler(["calendar", "info"], calendar_command))
     app.add_handler(CommandHandler(["view_calendar", "vcal"], calendar_view_command))
+    app.add_handler(CommandHandler(["reminders", "my_reminders"], my_reminders_command))
     app.add_handler(CommandHandler("admin_activity", admin_activity_command))
     app.add_handler(CommandHandler("about", about_command))
     app.add_handler(CommandHandler("api", api_key_command))
@@ -306,8 +312,8 @@ async def main():
     app.add_handler(CallbackQueryHandler(contact_admin_callback, pattern="^contact_admin_request$"))
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
     app.add_handler(CallbackQueryHandler(admin_broadcast_callback, pattern="^bc_report:"))
-    # Calendar view callbacks
-    app.add_handler(CallbackQueryHandler(calendar_view_callback, pattern="^(cal:|cal_months:|cal_ignore)"))
+    # Calendar view & reminder callbacks
+    app.add_handler(CallbackQueryHandler(calendar_view_callback, pattern="^(cal:|cal_months:|cal_day:|cal_ignore|rem_add:|rem_del:|my_reminders)"))
     # Admin activity callbacks
     app.add_handler(CallbackQueryHandler(admin_activity_callback, pattern="^act:"))
     app.add_handler(CallbackQueryHandler(admin_activity_summary_callback, pattern="^act_summary$"))

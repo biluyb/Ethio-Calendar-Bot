@@ -218,9 +218,15 @@ def init_db():
     finally:
         release_connection(conn)
 
-    # Initialize admin activity tracking table
+    # Initialize admin activity tracking table & reminders table
     try:
         from app.db.activity_db import init_activity_table
         init_activity_table()
     except Exception as e:
         print(f"Activity table init warning: {e}")
+
+    try:
+        from app.db.reminder_db import init_reminder_table
+        init_reminder_table()
+    except Exception as e:
+        print(f"Reminder table init warning: {e}")
