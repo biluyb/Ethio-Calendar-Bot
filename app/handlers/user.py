@@ -147,27 +147,65 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         now = datetime.now()
 
-        # Gregorian
-        g_day = now.day
-        g_month = now.month
-        g_year = now.year
+        # Today Details
+        from app.holidays import get_day_type, TYPE_EMOJI
+        from app.handlers.calendar_view import get_evangelist, get_current_eth_date
 
+        g_day, g_month, g_year = now.day, now.month, now.year
         g_day_name = EN_DAYS[now.weekday()]
         g_month_name = EN_MONTHS[g_month - 1]
 
-        # Ethiopian
         e_day, e_month, e_year = greg_to_eth(g_day, g_month, g_year)
         e_day_name = AM_DAYS[now.weekday()]
         e_month_name = AM_MONTHS[e_month - 1]
+        evangelist = get_evangelist(e_year)
 
-        if lang == "en":
-            msg = f"Today \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
-            msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
-        elif lang == "am":
-            msg = f"ዛሬ \n\n🇺🇸 {g_day:02} - {g_month:02} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02}\n"
-            msg += f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
+        hol = get_day_type(e_month, e_day, e_year)
 
-        await update.message.reply_text(msg, reply_markup=get_share_keyboard(lang, context.bot.username, uid=uid))
+        tey, tem, _ = get_current_eth_date()
+
+        if lang == "am":
+            eva_txt = f" (ዘመነ {evangelist['am']})" if evangelist else ""
+            msg = (
+                f"📅 <b>የዛሬ ቀን መረጃ (Today)</b>\n\n"
+                f"🇪🇹 <b>ኢትዮጵያ፦</b> <code>{e_month_name} {e_day} ቀን {e_year} ዓ.ም</code>{eva_txt}\n"
+                f"🇺🇸 <b>ፈረንጅ፦</b> <code>{g_month_name} {g_day}, {g_year} ({g_day_name})</code>\n"
+                f"━━━━━━━━━━━━━━━━━\n"
+            )
+            if hol:
+                emoji = TYPE_EMOJI.get(hol["type"], "🔴")
+                msg += f"\n{emoji} <b>የዛሬ በዓል፦</b> <b>{hol['am']}</b>\n"
+                if hol.get("desc_am"):
+                    msg += f"📖 <i>{hol['desc_am']}</i>\n"
+        else:
+            eva_txt = f" (Year of {evangelist['en']})" if evangelist else ""
+            msg = (
+                f"📅 <b>Today's Date Info</b>\n\n"
+                f"🇪🇹 <b>Ethiopian:</b> <code>{e_month_name} {e_day}, {e_year} E.C.</code>{eva_txt}\n"
+                f"🇺🇸 <b>Gregorian:</b> <code>{g_month_name} {g_day}, {g_year} ({g_day_name})</code>\n"
+                f"━━━━━━━━━━━━━━━━━\n"
+            )
+            if hol:
+                emoji = TYPE_EMOJI.get(hol["type"], "🔴")
+                msg += f"\n{emoji} <b>Today's Holiday:</b> <b>{hol['en']}</b>\n"
+                if hol.get("desc_en"):
+                    msg += f"📖 <i>{hol['desc_en']}</i>\n"
+
+        # Embedded Action Buttons inside Today view
+        if lang == "am":
+            kb = [
+                [InlineKeyboardButton("🗓 ቀን መቁጠሪያ ይክፈቱ (Open Calendar)", callback_data=f"cal:{tey}:{tem}")],
+                [InlineKeyboardButton("📚 ስለ ቀን መቁጠሪያ (Calendar Info)", callback_data="show_calendar_info")],
+                [InlineKeyboardButton("🎂 የዕድሜ ስሌት (Age Calculator)", callback_data="age_mode_start")]
+            ]
+        else:
+            kb = [
+                [InlineKeyboardButton("🗓 Open Interactive Calendar", callback_data=f"cal:{tey}:{tem}")],
+                [InlineKeyboardButton("📚 Calendar History & Info", callback_data="show_calendar_info")],
+                [InlineKeyboardButton("🎂 Age Calculator", callback_data="age_mode_start")]
+            ]
+
+        await update.message.reply_text(msg, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(kb))
     except Exception as e:
         await send_error(update, context, e, "today")
 

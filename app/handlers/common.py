@@ -61,12 +61,10 @@ def get_menu(uid, lang):
     is_admin = is_admin_db(uid) or uid in ADMIN_IDS
     if lang == "am":
         kb = [
+            ["📅 ዛሬ", "🔔 ማስታወሻዎች"],
             ["📅 ከፈረንጅ ወደ ኢትዮጵያ", "📆 ከኢትዮጵያ ወደ ፈረንጅ"],
-            ["📅 ዛሬ", "🎂 የዕድሜ ስሌት"],
-            ["🗓 ቀን መቁጠሪያ ይክፈቱ", "🔔 ማስታወሻዎች"],
-            ["📚 ስነ-ቀን መቁጠሪያ (Calendar)", "🌐 ቋንቋ"],
-            ["🔐 ኤፒአይ (Developer)", "🤝 ጓደኞችን ይጋብዙ"],
-            ["📩 ለአድሚን መልዕክት ለመላክ"]
+            ["🌐 ቋንቋ", "🔐 ኤፒአይ (Developer)"],
+            ["🤝 ጓደኞችን ይጋብዙ", "📩 ለአድሚን መልዕክት ለመላክ"]
         ]
         if is_admin:
             kb.append(["📢 መልዕክት ማስተላለፊያ (Broadcast)"])
@@ -74,12 +72,10 @@ def get_menu(uid, lang):
             kb.append(["📋 የአድሚን ምዝግብ ማስታወሻ"])
     else:
         kb = [
+            ["📅 Today", "🔔 Reminders"],
             ["📅 Gregorian ➜ Ethiopian", "📆 Ethiopian ➜ Gregorian"],
-            ["📅 Today", "🎂 Age Calculator"],
-            ["🗓 Open Calendar", "🔔 Reminders"],
-            ["📚 Calendar Info", "🌐 Language"],
-            ["🔐 API (Developer)", "🤝 Invite Friends"],
-            ["📩 Contact Admin"]
+            ["🌐 Language", "🔐 API (Developer)"],
+            ["🤝 Invite Friends", "📩 Contact Admin"]
         ]
         if is_admin:
             kb.append(["📢 Broadcast Message"])

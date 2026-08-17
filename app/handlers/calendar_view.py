@@ -1,27 +1,29 @@
 """
-Interactive Ethiopian Calendar & Reminder System
+Interactive Ethiopian & Gregorian Dual Calendar with Holiday Descriptions & Reminders
 Provides:
-- 10-year navigation (current year ± 5 years)
-- Pixel-perfect Inline Keyboard grid with interactive day selection
-- Integrated Reminder System: Click any date to add a reminder/memo
+- Dual Mode: Ethiopian Calendar (EC) & Gregorian Calendar (GC) with 1-click Mode Toggle
+- 10-year navigation & 13-month / 12-month inline pickers
+- Pixel-perfect 7-column Inline Keyboard grid
+- Interactive day selection with rich Historical & Cultural Holiday Descriptions
+- Integrated Date Reminder System (Add, View, Delete)
 - Automated background notifications on due date
-- Ethiopian public holidays, closures, and special observances
-- Evangelist cycle and Gregorian date alignment
+- Evangelist cycle & Gregorian/Ethiopian date alignment
 - Full bilingual support (Amharic / English)
 """
 
 import html
+from calendar import monthrange
 from datetime import datetime, date
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import ContextTypes
 
 from app.db import get_lang
 from app.db.reminder_db import add_reminder, get_user_reminders, get_user_day_reminders, get_month_user_reminder_days, delete_reminder
 from app.utils import greg_to_eth, eth_to_greg, is_leap_eth
 from app.holidays import get_month_holidays, get_day_type, TYPE_EMOJI, TYPE_LABEL
-from .common import track_activity, send_error, get_menu
+from .common import track_activity, send_error
 
-# ─── Ethiopian Calendar Constants ────────────────────────────────────────────
+# ─── Calendar Constants ───────────────────────────────────────────────────────
 
 ETH_MONTHS_AM = [
     "መስከረም", "ጥቅምት", "ኅዳር", "ታኅሣሥ",
@@ -33,6 +35,18 @@ ETH_MONTHS_EN = [
     "Meskerem", "Tikimt", "Hidar", "Tahsas",
     "Tir", "Yekatit", "Megabit", "Miyazia",
     "Ginbot", "Sene", "Hamle", "Nehase", "Pagume"
+]
+
+GREG_MONTHS_AM = [
+    "ጃኑዋሪ (Jan)", "ፌብሩዋሪ (Feb)", "ማርች (Mar)", "ኤፕሪል (Apr)",
+    "ሜይ (May)", "ጁን (Jun)", "ጁላይ (Jul)", "ኦገስት (Aug)",
+    "ሴፕቴምበር (Sep)", "ኦክቶበር (Oct)", "ኖቬምበር (Nov)", "ዲሴምበር (Dec)"
+]
+
+GREG_MONTHS_EN = [
+    "January", "February", "March", "April",
+    "May", "June", "July", "August",
+    "September", "October", "November", "December"
 ]
 
 WEEKDAYS_AM = ["ሰኞ", "ማክ", "ረቡ", "ሐሙ", "አርብ", "ቅዳ", "እሁ"]
@@ -52,12 +66,6 @@ def eth_days_in_month(eth_month: int, eth_year: int) -> int:
     return 6 if is_leap_eth(eth_year) else 5
 
 
-def get_weekday_of_eth_day1(eth_month: int, eth_year: int) -> int:
-    """Returns Python weekday (Mon=0, Sun=6) of day 1 of a given Ethiopian month."""
-    gd, gm, gy = eth_to_greg(1, eth_month, eth_year)
-    return date(gy, gm, gd).weekday()
-
-
 def get_evangelist(eth_year: int) -> dict | None:
     """Returns the evangelist cycle name for a given Ethiopian year."""
     amete_alem = eth_year + 5500
@@ -71,12 +79,10 @@ def get_evangelist(eth_year: int) -> dict | None:
     return mapping.get(remainder)
 
 
-# ─── Calendar Builder Functions ─────────────────────────────────────────────
+# ─── Ethiopian Calendar Builder ──────────────────────────────────────────────
 
 def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
-    """
-    Builds the monthly calendar message text AND perfect inline keyboard layout.
-    """
+    """Builds Ethiopian Calendar message text and keyboard."""
     today_ed, today_em, today_ey = get_current_eth_date()
     month_name_am = ETH_MONTHS_AM[eth_month - 1]
     month_name_en = ETH_MONTHS_EN[eth_month - 1]
@@ -87,47 +93,45 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
 
     if lang == "am":
         header = (
-            f"📅 <b>{month_name_am} {eth_year} ዓ.ም</b>\n"
-            f"<i>{era_label_am}</i>\n"
+            f"🇪🇹 <b>የኢትዮጵያ ቀን መቁጠሪያ (EC)</b>\n"
+            f"📅 <b>{month_name_am} {eth_year} ዓ.ም</b> ({era_label_am})\n"
         )
     else:
         header = (
-            f"📅 <b>{month_name_en}, {eth_year} E.C.</b>\n"
-            f"<i>{era_label_en}</i>\n"
+            f"🇪🇹 <b>Ethiopian Calendar (EC)</b>\n"
+            f"📅 <b>{month_name_en}, {eth_year} E.C.</b> ({era_label_en})\n"
         )
 
-    # Gregorian start date
+    # Gregorian equivalence range
     try:
         gd1, gm1, gy1 = eth_to_greg(1, eth_month, eth_year)
-        from .common import EN_MONTHS
-        greg_start = f"{EN_MONTHS[gm1-1]} {gd1}, {gy1}"
+        total_days = eth_days_in_month(eth_month, eth_year)
+        gd2, gm2, gy2 = eth_to_greg(total_days, eth_month, eth_year)
+        
+        m1 = GREG_MONTHS_EN[gm1-1][:3]
+        m2 = GREG_MONTHS_EN[gm2-1][:3]
+        greg_span = f"{m1} {gd1} - {m2} {gd2}, {gy1}" if gy1 == gy2 else f"{m1} {gd1}, {gy1} - {m2} {gd2}, {gy2}"
         if lang == "am":
-            header += f"📆 <i>ፈረንጅ: {greg_start}</i>\n"
+            header += f"📆 <i>ፈረንጅ: {greg_span}</i>\n"
         else:
-            header += f"📆 <i>Starts: {greg_start} (GC)</i>\n"
+            header += f"📆 <i>GC Span: {greg_span}</i>\n"
     except Exception:
         pass
 
     header += "━━━━━━━━━━━━━━━━━\n"
 
-    # Fetch holidays & user reminders for the month
     holidays = get_month_holidays(eth_month, eth_year)
     user_rem_days = get_month_user_reminder_days(user_id, eth_year, eth_month)
 
-    # Monospaced text preview legend
     legend = (
-        "📍 = ዛሬ | 🔴 = በዓል | 🔔 = ማስታወሻ\n<i>ቀን በመጫን ማስታወሻ ማስቀመጥ ይችላሉ!</i>"
+        "📍 = ዛሬ | 🔴 = በዓል | 🔔 = ማስታወሻ\n<i>ቀን በመጫን ማስታወሻ እና የዕለቱን መግለጫ ይመልከቱ!</i>"
         if lang == "am" else
-        "📍 = Today | 🔴 = Holiday | 🔔 = Reminder\n<i>Click any date to add a reminder!</i>"
+        "📍 = Today | 🔴 = Holiday | 🔔 = Reminder\n<i>Click any date for details & holiday history!</i>"
     )
 
-    # Events list below
     event_list = ""
     if holidays:
-        if lang == "am":
-            event_list += "\n📌 <b>የዚህ ወር በዓላት:</b>\n"
-        else:
-            event_list += "\n📌 <b>This Month's Events:</b>\n"
+        event_list += "\n📌 <b>የዚህ ወር በዓላት:</b>\n" if lang == "am" else "\n📌 <b>This Month's Events:</b>\n"
         for day, info in sorted(holidays.items()):
             emoji = TYPE_EMOJI.get(info["type"], "🔴")
             name = info["am"] if lang == "am" else info["en"]
@@ -136,28 +140,28 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
 
     full_text = f"{header}\n{legend}\n{event_list}"
 
-    # Build Perfect Inline Keyboard Grid
     keyboard = []
 
-    # Row 0: Weekday Headers (7 columns)
+    # 0. Mode Switcher Top Button
+    switch_txt = "🔄 ወደ ፈረንጅ ቀን መቁጠሪያ (GC Mode)" if lang == "am" else "🔄 Switch to Gregorian Calendar (GC)"
+    now = datetime.now()
+    keyboard.append([InlineKeyboardButton(switch_txt, callback_data=f"gcal:{now.year}:{now.month}")])
+
+    # 1. Weekday Headers
     wd_row = WEEKDAYS_AM if lang == "am" else WEEKDAYS_EN
-    header_buttons = [InlineKeyboardButton(d, callback_data="cal_ignore") for d in wd_row]
-    keyboard.append(header_buttons)
+    keyboard.append([InlineKeyboardButton(d, callback_data="cal_ignore") for d in wd_row])
 
-    total_days = eth_days_in_month(eth_month, eth_year)
-    start_weekday = get_weekday_of_eth_day1(eth_month, eth_year)
+    # 2. Grid Days
+    gd1, gm1, gy1 = eth_to_greg(1, eth_month, eth_year)
+    start_weekday = date(gy1, gm1, gd1).weekday()
 
-    curr_row = []
-    # Fill leading empty slots
-    for _ in range(start_weekday):
-        curr_row.append(InlineKeyboardButton(" ", callback_data="cal_ignore"))
+    curr_row = [InlineKeyboardButton(" ", callback_data="cal_ignore") for _ in range(start_weekday)]
 
     for d in range(1, total_days + 1):
         is_today = (d == today_ed and eth_month == today_em and eth_year == today_ey)
         has_rem = d in user_rem_days
         holiday = holidays.get(d)
 
-        # Priority badge formatting for button label
         if is_today:
             label = f"📍{d}"
         elif has_rem:
@@ -179,8 +183,7 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
             curr_row.append(InlineKeyboardButton(" ", callback_data="cal_ignore"))
         keyboard.append(curr_row)
 
-    # Navigation controls row
-    today_ed, today_em, today_ey = get_current_eth_date()
+    # 3. Navigation Controls
     min_year = today_ey - 1
     max_year = today_ey + 10
 
@@ -196,10 +199,9 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
 
     if next_year <= max_year:
         nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"cal:{next_year}:{next_month}"))
-
     keyboard.append(nav_row)
 
-    # Quick year jump row
+    # 4. Quick Year Jumps
     year_row = []
     for delta in [-2, -1, 0, 1, 2]:
         yr = eth_year + delta
@@ -208,35 +210,169 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
             year_row.append(InlineKeyboardButton(btn_txt, callback_data=f"cal:{yr}:{eth_month}"))
     keyboard.append(year_row)
 
-    # Bottom action buttons: Today & My Reminders
+    # 5. Bottom Actions
     bottom_row = []
     if not (eth_year == today_ey and eth_month == today_em):
         t_txt = "📍 ዛሬ" if lang == "am" else "📍 Today"
         bottom_row.append(InlineKeyboardButton(t_txt, callback_data=f"cal:{today_ey}:{today_em}"))
 
-    rem_txt = "🔔 የማስታወሻዎች ዝርዝር" if lang == "am" else "🔔 My Reminders"
+    rem_txt = "🔔 ማስታወሻዎች" if lang == "am" else "🔔 Reminders"
     bottom_row.append(InlineKeyboardButton(rem_txt, callback_data="my_reminders"))
     keyboard.append(bottom_row)
 
     return full_text, InlineKeyboardMarkup(keyboard)
 
 
-# ─── Day Details & Reminder View ───────────────────────────────────────────
+# ─── Gregorian Calendar Builder ──────────────────────────────────────────────
+
+def build_greg_calendar_view(greg_year: int, greg_month: int, user_id: int, lang: str):
+    """Builds professional Gregorian Calendar message text and 7-column grid keyboard."""
+    now = datetime.now()
+    month_name_am = GREG_MONTHS_AM[greg_month - 1]
+    month_name_en = GREG_MONTHS_EN[greg_month - 1]
+
+    if lang == "am":
+        header = (
+            f"🌐 <b>የፈረንጅ ቀን መቁጠሪያ (GC)</b>\n"
+            f"📅 <b>{month_name_am} {greg_year}</b>\n"
+        )
+    else:
+        header = (
+            f"🌐 <b>Gregorian Calendar (GC)</b>\n"
+            f"📅 <b>{month_name_en} {greg_year}</b>\n"
+        )
+
+    # Ethiopian equivalence range for this Gregorian month
+    try:
+        _, num_days = monthrange(greg_year, greg_month)
+        ed1, em1, ey1 = greg_to_eth(1, greg_month, greg_year)
+        ed2, em2, ey2 = greg_to_eth(num_days, greg_month, greg_year)
+        
+        m1 = ETH_MONTHS_AM[em1-1] if lang == "am" else ETH_MONTHS_EN[em1-1]
+        m2 = ETH_MONTHS_AM[em2-1] if lang == "am" else ETH_MONTHS_EN[em2-1]
+        eth_span = f"{m1} {ed1} - {m2} {ed2}፣ {ey1}" if ey1 == ey2 else f"{m1} {ed1}፣ {ey1} - {m2} {ed2}፣ {ey2}"
+        if lang == "am":
+            header += f"🇪🇹 <i>የኢትዮጵያ፦ {eth_span}</i>\n"
+        else:
+            header += f"🇪🇹 <i>EC Equivalent: {eth_span}</i>\n"
+    except Exception:
+        num_days = 31
+
+    header += "━━━━━━━━━━━━━━━━━\n"
+
+    legend = (
+        "📍 = ዛሬ | 🔴 = በዓል | 🔔 = ማስታወሻ\n<i>ቀን በመጫን የኢትዮጵያ ቀኑን እና ማስታወሻን ይመልከቱ!</i>"
+        if lang == "am" else
+        "📍 = Today | 🔴 = Holiday | 🔔 = Reminder\n<i>Click any date to see Ethiopian date & holiday history!</i>"
+    )
+
+    # Gather events occurring in this Gregorian month
+    greg_events = []
+    for gd in range(1, num_days + 1):
+        ed, em, ey = greg_to_eth(gd, greg_month, greg_year)
+        hol = get_day_type(em, ed, ey)
+        if hol:
+            greg_events.append((gd, ed, em, ey, hol))
+
+    event_list = ""
+    if greg_events:
+        event_list += "\n📌 <b>የዚህ ወር በዓላት:</b>\n" if lang == "am" else "\n📌 <b>This Month's Events:</b>\n"
+        for gd, ed, em, ey, info in greg_events:
+            emoji = TYPE_EMOJI.get(info["type"], "🔴")
+            hname = info["am"] if lang == "am" else info["en"]
+            mname = ETH_MONTHS_AM[em-1] if lang == "am" else ETH_MONTHS_EN[em-1]
+            event_list += f"{emoji} <b>{GREG_MONTHS_EN[greg_month-1][:3]} {gd}</b> ({mname} {ed}) — {hname}\n"
+
+    full_text = f"{header}\n{legend}\n{event_list}"
+
+    keyboard = []
+
+    # 0. Mode Switcher Top Button
+    switch_txt = "🔄 ወደ ኢትዮጵያ ቀን መቁጠሪያ (EC Mode)" if lang == "am" else "🔄 Switch to Ethiopian Calendar (EC)"
+    tey, tem, _ = get_current_eth_date()
+    keyboard.append([InlineKeyboardButton(switch_txt, callback_data=f"cal:{tey}:{tem}")])
+
+    # 1. Weekday Headers
+    wd_row = WEEKDAYS_AM if lang == "am" else WEEKDAYS_EN
+    keyboard.append([InlineKeyboardButton(d, callback_data="cal_ignore") for d in wd_row])
+
+    # 2. Grid Days
+    start_weekday = date(greg_year, greg_month, 1).weekday()
+    curr_row = [InlineKeyboardButton(" ", callback_data="cal_ignore") for _ in range(start_weekday)]
+
+    for d in range(1, num_days + 1):
+        is_today = (d == now.day and greg_month == now.month and greg_year == now.year)
+        ed, em, ey = greg_to_eth(d, greg_month, greg_year)
+        
+        hol = get_day_type(em, ed, ey)
+        user_rems = get_user_day_reminders(user_id, ey, em, ed)
+
+        if is_today:
+            label = f"📍{d}"
+        elif user_rems:
+            label = f"🔔{d}"
+        elif hol:
+            emoji = TYPE_EMOJI.get(hol["type"], "🔴")
+            label = f"{emoji}{d}"
+        else:
+            label = f"{d:2d}"
+
+        curr_row.append(InlineKeyboardButton(label, callback_data=f"gcal_day:{greg_year}:{greg_month}:{d}"))
+
+        if len(curr_row) == 7:
+            keyboard.append(curr_row)
+            curr_row = []
+
+    if curr_row:
+        while len(curr_row) < 7:
+            curr_row.append(InlineKeyboardButton(" ", callback_data="cal_ignore"))
+        keyboard.append(curr_row)
+
+    # 3. Navigation Controls
+    prev_month, prev_year = (greg_month - 1, greg_year) if greg_month > 1 else (12, greg_year - 1)
+    next_month, next_year = (greg_month + 1, greg_year) if greg_month < 12 else (1, greg_year + 1)
+
+    nav_row = [
+        InlineKeyboardButton("⬅️ Prev", callback_data=f"gcal:{prev_year}:{prev_month}"),
+        InlineKeyboardButton(f"📅 {GREG_MONTHS_EN[greg_month-1][:3]} {greg_year}", callback_data=f"gcal_months:{greg_year}"),
+        InlineKeyboardButton("Next ➡️", callback_data=f"gcal:{next_year}:{next_month}")
+    ]
+    keyboard.append(nav_row)
+
+    # 4. Quick Year Jumps
+    year_row = []
+    for delta in [-2, -1, 0, 1, 2]:
+        yr = greg_year + delta
+        btn_txt = f"•{yr}•" if yr == greg_year else str(yr)
+        year_row.append(InlineKeyboardButton(btn_txt, callback_data=f"gcal:{yr}:{greg_month}"))
+    keyboard.append(year_row)
+
+    # 5. Bottom Actions
+    bottom_row = []
+    if not (greg_year == now.year and greg_month == now.month):
+        t_txt = "📍 Today (GC)" if lang == "en" else "📍 ዛሬ (ፈረንጅ)"
+        bottom_row.append(InlineKeyboardButton(t_txt, callback_data=f"gcal:{now.year}:{now.month}"))
+
+    rem_txt = "🔔 ማስታወሻዎች" if lang == "am" else "🔔 Reminders"
+    bottom_row.append(InlineKeyboardButton(rem_txt, callback_data="my_reminders"))
+    keyboard.append(bottom_row)
+
+    return full_text, InlineKeyboardMarkup(keyboard)
+
+
+# ─── Day Details & Holiday Description View ──────────────────────────────────
 
 def build_day_detail_view(eth_year: int, eth_month: int, eth_day: int, user_id: int, lang: str):
     """
-    Builds the detailed view when a user clicks a specific date.
-    Shows: Ethiopian date, Gregorian equivalent, Holidays, User Reminders, and Add/Delete actions.
+    Builds day detail view with rich Holiday Historical & Cultural Descriptions.
     """
     m_am = ETH_MONTHS_AM[eth_month - 1]
     m_en = ETH_MONTHS_EN[eth_month - 1]
     
-    # Gregorian date conversion
     gd, gm, gy = eth_to_greg(eth_day, eth_month, eth_year)
     from .common import EN_MONTHS
     greg_str = f"{EN_MONTHS[gm-1]} {gd}, {gy}"
 
-    # Day of week
     wd_idx = date(gy, gm, gd).weekday()
     wd_am = WEEKDAYS_AM[wd_idx]
     wd_en = WEEKDAYS_EN[wd_idx]
@@ -254,31 +390,32 @@ def build_day_detail_view(eth_year: int, eth_month: int, eth_day: int, user_id: 
             f"━━━━━━━━━━━━━━━━━\n\n"
         )
 
-    # Holiday check
+    # Holiday check + Description
     holidays = get_month_holidays(eth_month, eth_year)
     holiday = holidays.get(eth_day)
     if holiday:
         emoji = TYPE_EMOJI.get(holiday["type"], "🔴")
         h_name = holiday["am"] if lang == "am" else holiday["en"]
         h_lbl = TYPE_LABEL[lang].get(holiday["type"], "በዓል")
-        text += f"{emoji} <b>{h_lbl}:</b> {h_name}\n\n"
+        desc = holiday["desc_am"] if lang == "am" else holiday["desc_en"]
 
-    # User reminders for this day
+        text += f"{emoji} <b>{h_lbl}:</b> <b>{h_name}</b>\n"
+        if desc:
+            hdr = "📖 <b>ታሪክ እና ትርጉም (Description):</b>\n" if lang == "am" else "📖 <b>Holiday History & Significance:</b>\n"
+            text += f"{hdr}<i>{desc}</i>\n"
+        text += "\n"
+
+    # User reminders
     day_rems = get_user_day_reminders(user_id, eth_year, eth_month, eth_day)
     if day_rems:
-        if lang == "am":
-            text += "🔔 <b>የእርስዎ ማስታወሻዎች:</b>\n"
-        else:
-            text += "🔔 <b>Your Reminders:</b>\n"
+        text += "🔔 <b>የእርስዎ ማስታወሻዎች:</b>\n" if lang == "am" else "🔔 <b>Your Reminders:</b>\n"
         for rem_id, msg, is_trig in day_rems:
             status = " (ተልኳል)" if is_trig and lang == "am" else " (Sent)" if is_trig else ""
             text += f"• <i>{html.escape(msg)}</i>{status}\n"
         text += "\n"
     else:
-        if lang == "am":
-            text += "<i>ለዚህ ቀን ምንም የተመዘገበ ማስታወሻ የለም።</i>\n\n"
-        else:
-            text += "<i>No reminders saved for this date.</i>\n\n"
+        if not holiday:
+            text += "<i>ለዚህ ቀን ምንም የተመዘገበ ማስታወሻ የለም።</i>\n\n" if lang == "am" else "<i>No reminders saved for this date.</i>\n\n"
 
     kb = []
     add_btn_text = "➕ ማስታወሻ ጨምር" if lang == "am" else "➕ Add Reminder"
@@ -295,7 +432,7 @@ def build_day_detail_view(eth_year: int, eth_month: int, eth_day: int, user_id: 
     return text, InlineKeyboardMarkup(kb)
 
 
-# ─── Telegram Handlers ────────────────────────────────────────────────────────
+# ─── Telegram Handlers & Callbacks ───────────────────────────────────────────
 
 async def calendar_view_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Main command handler for /view_calendar, /vcal, or menu button."""
@@ -307,17 +444,13 @@ async def calendar_view_command(update: Update, context: ContextTypes.DEFAULT_TY
         today_ed, today_em, today_ey = get_current_eth_date()
         text, kb = build_calendar_view(today_ey, today_em, uid, lang)
 
-        await update.message.reply_text(
-            text,
-            parse_mode="HTML",
-            reply_markup=kb
-        )
+        await update.message.reply_text(text, parse_mode="HTML", reply_markup=kb)
     except Exception as e:
         await send_error(update, context, e, "calendar_view_command")
 
 
 async def calendar_view_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Callback query router for inline calendar interaction."""
+    """Callback query router for dual inline calendar interaction."""
     try:
         query = update.callback_query
         data = query.data
@@ -329,7 +462,20 @@ async def calendar_view_callback(update: Update, context: ContextTypes.DEFAULT_T
             await query.answer()
             return
 
-        # ── Month selection menu ──
+        # ── Calendar Info Display ──
+        if data == "show_calendar_info":
+            from app.texts import INFO_AM, INFO_EN
+            info_text = INFO_AM if lang == "am" else INFO_EN
+            tey, tem, _ = get_current_eth_date()
+            kb = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🗓 ቀን መቁጠሪያ ይክፈቱ (Open Calendar)" if lang == "am" else "🗓 Open Interactive Calendar", callback_data=f"cal:{tey}:{tem}")],
+                [InlineKeyboardButton("📍 ዛሬ" if lang == "am" else "📍 Today", callback_data=f"cal:{tey}:{tem}")]
+            ])
+            await query.edit_message_text(info_text, parse_mode="HTML", reply_markup=kb)
+            await query.answer()
+            return
+
+        # ── Ethiopian Month Selector Menu ──
         if data.startswith("cal_months:"):
             eth_year = int(data.split(":")[1])
             m_text = f"📆 <b>ወር ምረጡ — {eth_year} ዓ.ም</b>" if lang == "am" else f"📆 <b>Select Month — {eth_year} E.C.</b>"
@@ -353,22 +499,55 @@ async def calendar_view_callback(update: Update, context: ContextTypes.DEFAULT_T
             await query.answer()
             return
 
-        # ── Calendar grid navigation ──
+        # ── Gregorian Month Selector Menu ──
+        if data.startswith("gcal_months:"):
+            greg_year = int(data.split(":")[1])
+            m_text = f"🌐 <b>ወር ምረጡ — {greg_year} (GC)</b>" if lang == "am" else f"🌐 <b>Select Month — {greg_year} GC</b>"
+            months = GREG_MONTHS_AM if lang == "am" else GREG_MONTHS_EN
+            
+            keyboard = []
+            row = []
+            for i, name in enumerate(months, 1):
+                row.append(InlineKeyboardButton(name[:12], callback_data=f"gcal:{greg_year}:{i}"))
+                if len(row) == 3:
+                    keyboard.append(row)
+                    row = []
+            if row:
+                keyboard.append(row)
+
+            now = datetime.now()
+            t_label = "📍 ዛሬ (GC)" if lang == "am" else "📍 Today (GC)"
+            keyboard.append([InlineKeyboardButton(t_label, callback_data=f"gcal:{now.year}:{now.month}")])
+
+            await query.edit_message_text(m_text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+            await query.answer()
+            return
+
+        # ── Ethiopian Calendar Grid View ──
         if data.startswith("cal:"):
             parts = data.split(":")
-            eth_year = int(parts[1])
-            eth_month = int(parts[2])
-
+            eth_year, eth_month = int(parts[1]), int(parts[2])
             text, kb = build_calendar_view(eth_year, eth_month, uid, lang)
             try:
                 await query.edit_message_text(text, parse_mode="HTML", reply_markup=kb)
             except Exception as edit_err:
-                if "Message is not modified" not in str(edit_err):
-                    raise edit_err
+                if "Message is not modified" not in str(edit_err): raise edit_err
             await query.answer()
             return
 
-        # ── Day click details ──
+        # ── Gregorian Calendar Grid View ──
+        if data.startswith("gcal:"):
+            parts = data.split(":")
+            greg_year, greg_month = int(parts[1]), int(parts[2])
+            text, kb = build_greg_calendar_view(greg_year, greg_month, uid, lang)
+            try:
+                await query.edit_message_text(text, parse_mode="HTML", reply_markup=kb)
+            except Exception as edit_err:
+                if "Message is not modified" not in str(edit_err): raise edit_err
+            await query.answer()
+            return
+
+        # ── Ethiopian Day Click View ──
         if data.startswith("cal_day:"):
             parts = data.split(":")
             eth_year, eth_month, eth_day = int(parts[1]), int(parts[2]), int(parts[3])
@@ -377,7 +556,17 @@ async def calendar_view_callback(update: Update, context: ContextTypes.DEFAULT_T
             await query.answer()
             return
 
-        # ── Add reminder prompt ──
+        # ── Gregorian Day Click View ──
+        if data.startswith("gcal_day:"):
+            parts = data.split(":")
+            gy, gm, gd = int(parts[1]), int(parts[2]), int(parts[3])
+            ey, em, ed = greg_to_eth(gd, gm, gy)
+            text, kb = build_day_detail_view(ey, em, ed, uid, lang)
+            await query.edit_message_text(text, parse_mode="HTML", reply_markup=kb)
+            await query.answer()
+            return
+
+        # ── Add Reminder Prompt ──
         if data.startswith("rem_add:"):
             parts = data.split(":")
             eth_year, eth_month, eth_day = int(parts[1]), int(parts[2]), int(parts[3])
@@ -406,7 +595,7 @@ async def calendar_view_callback(update: Update, context: ContextTypes.DEFAULT_T
             await query.answer()
             return
 
-        # ── Delete reminder ──
+        # ── Delete Reminder ──
         if data.startswith("rem_del:"):
             parts = data.split(":")
             rem_id = int(parts[1])
@@ -430,17 +619,13 @@ async def calendar_view_callback(update: Update, context: ContextTypes.DEFAULT_T
 
 
 async def handle_reminder_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Listens for text input when a user is in "awaiting_reminder" state.
-    """
+    """Listens for text input when user is setting a reminder."""
     if "awaiting_reminder" not in context.user_data:
-        return False  # Not handled
+        return False
 
     try:
         rem_info = context.user_data.pop("awaiting_reminder")
-        eth_year = rem_info["year"]
-        eth_month = rem_info["month"]
-        eth_day = rem_info["day"]
+        eth_year, eth_month, eth_day = rem_info["year"], rem_info["month"], rem_info["day"]
         msg_text = update.message.text.strip()
         uid = update.effective_user.id
         lang = get_lang(uid)
@@ -470,7 +655,7 @@ async def handle_reminder_text_input(update: Update, context: ContextTypes.DEFAU
                     f"🔔 The bot will automatically notify you on this date!"
                 )
         else:
-            success_msg = "❌ Error saving reminder. Please try again."
+            success_msg = "❌ Error saving reminder."
 
         btn_txt = "📅 ወደ ቀን መቁጠሪያ" if lang == "am" else "📅 Back to Calendar"
         kb = InlineKeyboardMarkup([[InlineKeyboardButton(btn_txt, callback_data=f"cal_day:{eth_year}:{eth_month}:{eth_day}")]])
