@@ -324,6 +324,10 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         reply_markup = InlineKeyboardMarkup(kb) if kb else None
         await update.message.reply_text(report, parse_mode="HTML", reply_markup=reply_markup)
+        try:
+            from .admin_activity import log_admin
+            log_admin(uid, "/broadcast", f"Sent to {total} targets, {success} ok, {len(blocked_list)} blocked, {len(failed_list)} failed")
+        except Exception: pass
     except Exception as e:
         await send_error(update, context, e, "broadcast_command")
 
@@ -418,6 +422,10 @@ async def perform_admin_dm(update: Update, context: ContextTypes.DEFAULT_TYPE, t
         
         confirm = f"✅ Message sent to {target_name} [<code>{target_uid}</code>]" if lang == "en" else f"✅ መልዕክቱ ለ {target_name} [<code>{target_uid}</code>] ተልኳል።"
         await update.message.reply_text(confirm, parse_mode="HTML")
+        try:
+            from .admin_activity import log_admin
+            log_admin(update.effective_user.id, "/send_msg", f"DM to {target_name}", target_uid)
+        except Exception: pass
         
         # Clear data
         context.user_data.pop("mode", None)
@@ -486,6 +494,10 @@ async def add_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         target_id = int(context.args[0])
         add_admin_db(target_id)
+        try:
+            from .admin_activity import log_admin
+            log_admin(update.effective_user.id, "/addadmin", f"Added admin {target_id}", target_id)
+        except Exception: pass
         await update.message.reply_text(f"✅ User <code>{target_id}</code> added to admins.", parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"❌ Error adding admin: {e}")
@@ -499,6 +511,10 @@ async def del_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         target_id = int(context.args[0])
         remove_admin_db(target_id)
+        try:
+            from .admin_activity import log_admin
+            log_admin(update.effective_user.id, "/deladmin", f"Removed admin {target_id}", target_id)
+        except Exception: pass
         await update.message.reply_text(f"✅ User <code>{target_id}</code> removed from admins.", parse_mode="HTML")
     except Exception as e:
         await update.message.reply_text(f"❌ Error removing admin: {e}")
