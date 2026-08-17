@@ -102,7 +102,7 @@ def build_calendar_text(eth_year: int, eth_month: int, lang: str) -> str:
     header += "  ".join(f"<code>{d}</code>" for d in wd_row) + "\n"
 
     # Get holidays for this month
-    holidays = get_month_holidays(eth_month)
+    holidays = get_month_holidays(eth_month, eth_year)
     total_days = eth_days_in_month(eth_month, eth_year)
     start_weekday = get_weekday_of_eth_day1(eth_month, eth_year)
 
