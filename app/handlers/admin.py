@@ -401,6 +401,9 @@ async def send_msg_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_admin_dm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles the text input for administrative direct messages."""
     uid = update.effective_user.id
+    # Defense in depth: the mode is normally only set by admin-authorized flows.
+    if not is_admin_db(uid) and uid not in ADMIN_IDS:
+        return
     lang = get_lang(uid)
     target_uid = context.user_data.get("target_uid")
     target_name = context.user_data.get("target_name")
@@ -445,6 +448,10 @@ async def groups_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles pagination for the groups list."""
     track_activity(update)
     query = update.callback_query
+    # Admin-only: the group list exposes private group IDs and titles.
+    if not is_admin_db(update.effective_user.id):
+        await query.answer("Unauthorized access.", show_alert=True)
+        return
     data = query.data # g:{page}:{query}
     parts = data.split(":")
     page = int(parts[1])

@@ -3,8 +3,7 @@ Reminder System - Database Layer
 Stores user date reminders and manages triggering status.
 """
 
-from datetime import date
-from .base import get_connection, release_connection, get_eth_now, DATABASE_URL
+from .base import get_connection, release_connection, get_eth_now, get_eth_today, DATABASE_URL
 from app.utils import eth_to_greg, greg_to_eth
 
 
@@ -160,8 +159,8 @@ def delete_reminder(reminder_id: int, user_id: int) -> bool:
 
 
 def get_due_reminders():
-    """Fetches all non-triggered reminders whose greg_date <= today."""
-    today_str = date.today().isoformat()
+    """Fetches all non-triggered reminders whose greg_date <= today (EAT)."""
+    today_str = get_eth_today().isoformat()
     conn = get_connection()
     try:
         c = conn.cursor()

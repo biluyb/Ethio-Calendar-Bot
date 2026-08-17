@@ -16,3 +16,9 @@ bot.db
 README.md
 LICENSE
 requirements.txt.bak
+
+# Secrets — never bake credentials into image layers
+.env
+.env.*
+*.env
+!*.env.example

@@ -149,33 +149,75 @@ def search_groups(query, limit=10, offset=0):
     finally:
         release_connection(conn)
 
-def block_entity_db(entity_id, is_user=True):
-    """Blocks a user or group."""
+def _block_tables(entity_id, is_user):
+    """Returns the table(s) an entity belongs to for block operations.
+
+    Negative IDs are group chat IDs (modern supergroups are -100xxx...);
+    positive IDs are users (or legacy groups, handled when is_user=False).
+    """
+    if entity_id < 0:
+        return ["groups"]
+    return ["users"] if is_user else ["groups"]
+
+
+def _set_blocked(entity_id, tables, blocked):
+    """Upserts is_blocked for the given entity across the given tables.
+
+    An upsert (not a plain UPDATE) is required so that IDs not yet present in
+    the database — e.g. a user who never interacted with the bot — are still
+    blocked. A plain UPDATE on a missing row silently affects 0 rows, leaving
+    the entity unblocked and making /block trivially bypassable.
+    """
     conn = get_connection()
     try:
         c = conn.cursor()
-        table = "users" if is_user else "groups"
-        stmt = f"UPDATE {table} SET is_blocked = TRUE WHERE id = %s" if DATABASE_URL else f"UPDATE {table} SET is_blocked = 1 WHERE id = ?"
-        c.execute(stmt, (entity_id,))
+        pg_val = "TRUE" if blocked else "FALSE"
+        sq_val = 1 if blocked else 0
+        for table in tables:
+            if DATABASE_URL:
+                if table == "users":
+                    c.execute(
+                        "INSERT INTO users (id, is_blocked, joined_at, last_active_at) "
+                        f"VALUES (%s, {pg_val}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) "
+                        f"ON CONFLICT (id) DO UPDATE SET is_blocked = {pg_val}",
+                        (entity_id,),
+                    )
+                else:
+                    c.execute(
+                        "INSERT INTO groups (id, is_blocked, joined_at) "
+                        f"VALUES (%s, {pg_val}, CURRENT_TIMESTAMP) "
+                        f"ON CONFLICT (id) DO UPDATE SET is_blocked = {pg_val}",
+                        (entity_id,),
+                    )
+            else:
+                if table == "users":
+                    c.execute(
+                        "INSERT INTO users (id, is_blocked, joined_at, last_active_at) "
+                        f"VALUES (?, {sq_val}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) "
+                        "ON CONFLICT(id) DO UPDATE SET is_blocked = excluded.is_blocked",
+                        (entity_id,),
+                    )
+                else:
+                    c.execute(
+                        "INSERT INTO groups (id, is_blocked, joined_at) "
+                        f"VALUES (?, {sq_val}, CURRENT_TIMESTAMP) "
+                        "ON CONFLICT(id) DO UPDATE SET is_blocked = excluded.is_blocked",
+                        (entity_id,),
+                    )
         conn.commit()
     except Exception as e:
-        print(f"Error blocking entity {entity_id}: {e}")
+        print(f"Error setting block status for {entity_id}: {e}")
     finally:
         release_connection(conn)
 
+
+def block_entity_db(entity_id, is_user=True):
+    """Blocks a user or group."""
+    _set_blocked(entity_id, _block_tables(entity_id, is_user), blocked=True)
+
 def unblock_entity_db(entity_id, is_user=True):
     """Unblocks a user or group."""
-    conn = get_connection()
-    try:
-        c = conn.cursor()
-        table = "users" if is_user else "groups"
-        stmt = f"UPDATE {table} SET is_blocked = FALSE WHERE id = %s" if DATABASE_URL else f"UPDATE {table} SET is_blocked = 0 WHERE id = ?"
-        c.execute(stmt, (entity_id,))
-        conn.commit()
-    except Exception as e:
-        print(f"Error unblocking entity {entity_id}: {e}")
-    finally:
-        release_connection(conn)
+    _set_blocked(entity_id, _block_tables(entity_id, is_user), blocked=False)
 
 def is_blocked_db(entity_id):
     """Checks if a user or group is blocked."""

@@ -1,10 +1,10 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from .common import track_activity, get_lang, send_error
-from app.db import get_lang
+from .common import track_activity, get_lang, send_error, check_blocked
 
 async def age_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles calendar selection for age calculator."""
+    if await check_blocked(update): return
     try:
         track_activity(update)
         q = update.callback_query
@@ -41,6 +41,7 @@ async def age_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def contact_admin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles contact admin button click."""
+    if await check_blocked(update): return
     track_activity(update)
     q = update.callback_query
     context.user_data["mode"] = "contact_admin"

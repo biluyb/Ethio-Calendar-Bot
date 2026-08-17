@@ -1,5 +1,4 @@
 import html
-from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommandScopeChat
 from telegram.ext import ContextTypes
 from .common import (
@@ -8,8 +7,8 @@ from .common import (
     SUPER_ADMIN_CMDS, ADMIN_CMDS, get_share_keyboard
 )
 from app.db import (
-    get_lang, set_lang, get_user_details, get_top_referrers, get_referrers_count,
-    is_admin_db, register_user
+    set_lang, get_user_details, get_top_referrers, get_referrers_count,
+    is_admin_db, register_user, get_eth_datetime
 )
 from app.utils import greg_to_eth
 from app.texts import INFO_EN, INFO_AM
@@ -137,6 +136,7 @@ async def refresh_user_commands(bot, uid):
         print(f"Failed to refresh commands for {uid}: {e}")
 
 async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await check_blocked(update): return
     try:
         uid = update.effective_user.id
         await update.message.chat.send_action(action="typing")
@@ -145,7 +145,7 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         username = update.effective_user.username or update.effective_user.full_name or str(uid)
         track_activity(update, "Command: /today")
 
-        now = datetime.now()
+        now = get_eth_datetime()
 
         # Today Details
         from app.holidays import get_day_type, TYPE_EMOJI
@@ -220,6 +220,7 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_error(update, context, e, "today")
 
 async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if await check_blocked(update): return
     try:
         uid = update.effective_user.id
 
@@ -238,6 +239,7 @@ async def language(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def calendar_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Provides historical and logical information about the Ethiopian Calendar."""
+    if await check_blocked(update): return
     try:
         uid = update.effective_user.id
         lang = get_lang(uid)
@@ -250,6 +252,7 @@ async def calendar_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Provides information about the bot and developer."""
+    if await check_blocked(update): return
     try:
         uid = update.effective_user.id
         lang = get_lang(uid)
@@ -298,6 +301,7 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generates and sends a unique referral link for the user."""
+    if await check_blocked(update): return
     try:
         uid = update.effective_user.id
         lang = get_lang(uid)
@@ -345,6 +349,7 @@ async def share_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def ranks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Command to view the top referrers leaderboard."""
+    if await check_blocked(update): return
     try:
         await send_ranks_page(update, context, page=0)
     except Exception as e:
@@ -352,6 +357,7 @@ async def ranks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def ranks_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handles pagination for the leaderboard."""
+    if await check_blocked(update): return
     try:
         track_activity(update)
         query = update.callback_query
@@ -418,6 +424,7 @@ async def send_ranks_page(update: Update, context: ContextTypes.DEFAULT_TYPE, pa
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Provides a tailored help guide based on the user's role (User/Admin/Super-Admin)."""
+    if await check_blocked(update): return
     try:
         uid = update.effective_user.id
         lang = get_lang(uid)

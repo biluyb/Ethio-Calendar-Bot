@@ -51,7 +51,8 @@ async def get_api_user(request):
     if not key: return None, None
     
     from app.db import verify_and_track_api_key
-    uid = verify_and_track_api_key(key)
+    # Blocking DB call — run off the event loop so API handlers don't stall
+    uid = await asyncio.to_thread(verify_and_track_api_key, key)
     return uid, key
 
 async def api_convert_handler(request):
@@ -107,7 +108,7 @@ async def api_today_handler(request):
         return standard_response(False, error={"code": "RATE_LIMIT_EXCEEDED", "message": "Rate limit exceeded."}, status=429)
     
     try:
-        now = datetime.now()
+        now = get_eth_datetime()
         from app.utils import greg_to_eth, format_eth, format_greg
         ed, em, ey = greg_to_eth(now.day, now.month, now.year)
         
@@ -145,7 +146,7 @@ async def api_age_handler(request):
             bd, bm, by = eth_to_greg(bd, bm, by)
         
         birth_dt = date(by, bm, bd)
-        today_dt = date.today()
+        today_dt = get_eth_today()
         
         if birth_dt > today_dt:
             return standard_response(False, error={"code": "FUTURE_DATE", "message": "Birth date cannot be in the future."}, status=400)
@@ -169,7 +170,7 @@ from telegram.ext import (
 
 # Configuration & Submodules
 from app.config import BOT_TOKEN, ADMIN_IDS
-from app.db import init_db, add_admin_db, get_admins_db
+from app.db import init_db, add_admin_db, get_admins_db, get_eth_datetime, get_eth_today
 from app.handlers import (
     start, 
     handle, 
@@ -419,7 +420,15 @@ async def main():
             await app.shutdown()
     else:
         # Development: Polling Mode
-        app.run_polling()
+        # Explicitly request update types so my_chat_member (bot block/unblock
+        # tracking via ChatMemberHandler) is delivered — Telegram omits
+        # chat_member-family updates unless they are whitelisted.
+        app.run_polling(allowed_updates=[
+            Update.MESSAGE,
+            Update.EDITED_MESSAGE,
+            Update.CALLBACK_QUERY,
+            Update.MY_CHAT_MEMBER,
+        ])
 
 if __name__ == "__main__":
     try:

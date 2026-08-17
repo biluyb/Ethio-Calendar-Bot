@@ -11,6 +11,19 @@ def get_eth_now():
     """Returns current Ethiopian server time formatted as a string."""
     return datetime.now(EAT).strftime('%Y-%m-%d %H:%M:%S')
 
+def get_eth_datetime():
+    """Returns the current date/time in the Ethiopian timezone (UTC+3) as an aware datetime.
+
+    Use this instead of ``datetime.now()`` anywhere a calendar "today" matters.
+    ``datetime.now()`` returns server-local time (often UTC on hosts like
+    Render), which shows the wrong date for 3 hours a day (00:00–03:00 EAT).
+    """
+    return datetime.now(EAT)
+
+def get_eth_today():
+    """Returns today's date (Ethiopian timezone, UTC+3) as a ``date`` object."""
+    return get_eth_datetime().date()
+
 # Get Database URL from environment (PostgreSQL) or fallback to SQLite
 DATABASE_URL = os.getenv("DATABASE_URL")
 DB_FILE = "bot.db"

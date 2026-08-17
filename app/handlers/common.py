@@ -123,8 +123,19 @@ def track_group(update: Update):
         register_group(chat.id, chat.title)
 
 async def check_blocked(update: Update):
-    if not update or not update.effective_chat: return False
-    return is_blocked_db(update.effective_chat.id)
+    """Returns True if the sender (user or chat) is blocked.
+
+    Checks both the user id and the chat id: the chat id alone misses blocked
+    users acting through callback queries or group chats, which made /block
+    trivially bypassable.
+    """
+    if not update:
+        return False
+    if update.effective_user and is_blocked_db(update.effective_user.id):
+        return True
+    if update.effective_chat and is_blocked_db(update.effective_chat.id):
+        return True
+    return False
 
 def get_share_keyboard(lang, bot_username, uid=None):
     """Returns an inline keyboard with a share button that includes the referral link."""

@@ -11,8 +11,9 @@ from .user import today, share_command, calendar_command, about_command
 from .api import api_key_command, api_stats_command
 from .callbacks import contact_admin_callback
 from app.db import (
-    set_lang, get_lang, is_admin_db, revoke_api_key_db, get_admins_db, 
-    get_user_by_id, get_user_by_username, regenerate_api_key_db, reset_api_usage_db
+    set_lang, is_admin_db, revoke_api_key_db, get_admins_db,
+    get_user_by_id, get_user_by_username, regenerate_api_key_db, reset_api_usage_db,
+    get_eth_datetime
 )
 from app.utils import eth_to_greg, greg_to_eth, calculate_age
 from app.config import ADMIN_IDS
@@ -469,7 +470,7 @@ def format_validation_error(error_str, m, y, lang):
 async def process_age_calc(update: Update, context: ContextTypes.DEFAULT_TYPE, d: int, m: int, y: int, lang: str, mode: str):
     """Calculates age based on birthdate and provides bilingual output."""
     try:
-        now = datetime.now()
+        now = get_eth_datetime().replace(tzinfo=None)
         if mode == "age_calc_gc":
             birth_date = datetime(y, m, d)
             wk_day = birth_date.weekday()
@@ -590,6 +591,9 @@ async def admin_reply_callback(update: Update, context: ContextTypes.DEFAULT_TYP
 async def handle_admin_reply_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Processes the admin's reply and sends it back to the user."""
     admin_uid = update.effective_user.id
+    # Defense in depth: only admins may reply through the contact-admin flow.
+    if not is_admin_db(admin_uid) and admin_uid not in ADMIN_IDS:
+        return
     mode = context.user_data.get("mode", "")
     target_uid = int(mode.replace("rep_", ""))
     reply_text = update.message.text

@@ -13,15 +13,15 @@ Provides:
 
 import html
 from calendar import monthrange
-from datetime import datetime, date
+from datetime import date
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from app.db import get_lang
+from app.db import get_lang, get_eth_datetime
 from app.db.reminder_db import add_reminder, get_user_reminders, get_user_day_reminders, get_month_user_reminder_days, delete_reminder
 from app.utils import greg_to_eth, eth_to_greg, is_leap_eth
 from app.holidays import get_month_holidays, get_day_type, TYPE_EMOJI, TYPE_LABEL
-from .common import track_activity, send_error
+from .common import track_activity, send_error, check_blocked
 
 # ─── Calendar Constants ───────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ WEEKDAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 def get_current_eth_date():
     """Returns today's Ethiopian date as (day, month, year)."""
-    now = datetime.now()
+    now = get_eth_datetime()
     return greg_to_eth(now.day, now.month, now.year)
 
 
@@ -127,7 +127,7 @@ def render_eth_text_calendar(eth_year: int, eth_month: int, user_id: int, lang: 
 
 def render_greg_text_calendar(greg_year: int, greg_month: int, user_id: int, lang: str) -> str:
     """Generates a perfectly aligned monospace text grid for Gregorian Calendar."""
-    now = datetime.now()
+    now = get_eth_datetime()
     _, num_days = monthrange(greg_year, greg_month)
     start_weekday = date(greg_year, greg_month, 1).weekday()
     
@@ -236,7 +236,7 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
 
     # 0. Mode Switcher Top Button
     switch_txt = "🔄 ወደ ፈረንጅ ቀን መቁጠሪያ (GC Mode)" if lang == "am" else "🔄 Switch to Gregorian Calendar (GC)"
-    now = datetime.now()
+    now = get_eth_datetime()
     keyboard.append([InlineKeyboardButton(switch_txt, callback_data=f"gcal:{now.year}:{now.month}")])
 
     # 1. Weekday Headers
@@ -319,7 +319,7 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
 
 def build_greg_calendar_view(greg_year: int, greg_month: int, user_id: int, lang: str):
     """Builds professional Gregorian Calendar message text and 7-column grid keyboard."""
-    now = datetime.now()
+    now = get_eth_datetime()
     month_name_am = GREG_MONTHS_AM[greg_month - 1]
     month_name_en = GREG_MONTHS_EN[greg_month - 1]
 
@@ -531,6 +531,7 @@ def build_day_detail_view(eth_year: int, eth_month: int, eth_day: int, user_id: 
 
 async def calendar_view_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Main command handler for /view_calendar, /vcal, or menu button."""
+    if await check_blocked(update): return
     try:
         uid = update.effective_user.id
         lang = get_lang(uid)
@@ -546,6 +547,7 @@ async def calendar_view_command(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def calendar_view_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Callback query router for dual inline calendar interaction."""
+    if await check_blocked(update): return
     try:
         query = update.callback_query
         data = query.data
@@ -610,7 +612,7 @@ async def calendar_view_callback(update: Update, context: ContextTypes.DEFAULT_T
             if row:
                 keyboard.append(row)
 
-            now = datetime.now()
+            now = get_eth_datetime()
             t_label = "📍 ዛሬ (GC)" if lang == "am" else "📍 Today (GC)"
             keyboard.append([InlineKeyboardButton(t_label, callback_data=f"gcal:{now.year}:{now.month}")])
 
@@ -763,6 +765,7 @@ async def handle_reminder_text_input(update: Update, context: ContextTypes.DEFAU
 
 async def my_reminders_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Command /reminders to list all active reminders."""
+    if await check_blocked(update): return
     try:
         uid = update.effective_user.id
         lang = get_lang(uid)
