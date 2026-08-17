@@ -9,9 +9,26 @@ async def age_mode_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         track_activity(update)
         q = update.callback_query
         mode = q.data.replace("age_mode_", "")
-        context.user_data["mode"] = f"age_calc_{mode}"
         
         lang = get_lang(update.effective_user.id)
+        if mode == "start":
+            if lang == "am":
+                prompt = "<b>🎂 የዕድሜ ስሌት</b>\n\nእባክዎን የልደት ቀንዎ የተመዘገበበትን የቀን አቆጣጠር ይምረጡ፦"
+                keyboard = [[
+                    InlineKeyboardButton("🇺🇸 Gregorian", callback_data="age_mode_gc"),
+                    InlineKeyboardButton("🇪🇹 Ethiopian", callback_data="age_mode_et")
+                ]]
+            else:
+                prompt = "<b>🎂 Age Calculator</b>\n\nSelect the calendar system used for your birthdate:"
+                keyboard = [[
+                    InlineKeyboardButton("🇺🇸 Gregorian", callback_data="age_mode_gc"),
+                    InlineKeyboardButton("🇪🇹 Ethiopian", callback_data="age_mode_et")
+                ]]
+            await q.message.reply_text(prompt, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(keyboard))
+            await q.answer()
+            return
+
+        context.user_data["mode"] = f"age_calc_{mode}"
         if lang == "en":
             msg = "✍️ <b>Birthdate Calendar Selected.</b>\n\nPlease enter your birthdate (DD/MM/YYYY):\n\nExample: <code>21/12/1995</code>"
         else:

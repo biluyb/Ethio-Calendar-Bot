@@ -124,9 +124,9 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
     user_rem_days = get_month_user_reminder_days(user_id, eth_year, eth_month)
 
     legend = (
-        "📍 = ዛሬ | 🔴 = በዓል | 🔔 = ማስታወሻ\n<i>ቀን በመጫን ማስታወሻ እና የዕለቱን መግለጫ ይመልከቱ!</i>"
+        "📍 = ዛሬ | 📌 = ዛሬ ከማስታወሻ ጋር | 🔴 = በዓል | 🔔 = ማስታወሻ\n<i>ቀን በመጫን ማስታወሻ እና የዕለቱን መግለጫ ይመልከቱ!</i>"
         if lang == "am" else
-        "📍 = Today | 🔴 = Holiday | 🔔 = Reminder\n<i>Click any date for details & holiday history!</i>"
+        "📍 = Today | 📌 = Today with Reminder | 🔴 = Holiday | 🔔 = Reminder\n<i>Click any date for details & holiday history!</i>"
     )
 
     event_list = ""
@@ -163,7 +163,7 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
         holiday = holidays.get(d)
 
         if is_today:
-            label = f"📍{d}"
+            label = f"📌{d}" if has_rem else f"📍{d}"
         elif has_rem:
             label = f"🔔{d}"
         elif holiday:
@@ -261,9 +261,9 @@ def build_greg_calendar_view(greg_year: int, greg_month: int, user_id: int, lang
     header += "━━━━━━━━━━━━━━━━━\n"
 
     legend = (
-        "📍 = ዛሬ | 🔴 = በዓል | 🔔 = ማስታወሻ\n<i>ቀን በመጫን የኢትዮጵያ ቀኑን እና ማስታወሻን ይመልከቱ!</i>"
+        "📍 = ዛሬ | 📌 = ዛሬ ከማስታወሻ ጋር | 🔴 = በዓል | 🔔 = ማስታወሻ\n<i>ቀን በመጫን የኢትዮጵያ ቀኑን እና ማስታወሻን ይመልከቱ!</i>"
         if lang == "am" else
-        "📍 = Today | 🔴 = Holiday | 🔔 = Reminder\n<i>Click any date to see Ethiopian date & holiday history!</i>"
+        "📍 = Today | 📌 = Today with Reminder | 🔴 = Holiday | 🔔 = Reminder\n<i>Click any date to see Ethiopian date & holiday history!</i>"
     )
 
     # Gather events occurring in this Gregorian month
@@ -306,10 +306,12 @@ def build_greg_calendar_view(greg_year: int, greg_month: int, user_id: int, lang
         
         hol = get_day_type(em, ed, ey)
         user_rems = get_user_day_reminders(user_id, ey, em, ed)
+        # Check if there is any reminder that is NOT yet triggered
+        has_rem = any(not r[2] for r in user_rems)
 
         if is_today:
-            label = f"📍{d}"
-        elif user_rems:
+            label = f"📌{d}" if has_rem else f"📍{d}"
+        elif has_rem:
             label = f"🔔{d}"
         elif hol:
             emoji = TYPE_EMOJI.get(hol["type"], "🔴")
