@@ -170,7 +170,7 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         greg_formatted = f"🇺🇸 {g_day:02d} - {g_month:02d} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02d}"
         
         if lang == "am":
-            eth_formatted = f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name} - {e_month_name} - {e_day}"
+            eth_formatted = f"🇪🇹{e_day}-{e_month}-{e_year} | {e_day_name}-{e_month_name}-{e_day}"
             eva_txt = f" (ዘመነ {evangelist['am']})" if evangelist else ""
             msg = (
                 f"📅 <b>የዛሬ ቀን መረጃ (Today)</b>\n\n"
@@ -185,14 +185,15 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     msg += f"📖 <i>{hol['desc_am']}</i>\n"
         else:
             from app.handlers.calendar_view import ETH_MONTHS_EN
-            e_month_name_en = ETH_MONTHS_EN[e_month - 1]
-            e_day_name_en = EN_DAYS[now.weekday()]
-            eth_formatted = f"🇪🇹 {e_day} - {e_month} - {e_year} | {e_day_name_en} - {e_month_name_en} - {e_day}"
+            # e_month_name_en = ETH_MONTHS_EN[e_month - 1]
+            # e_day_name_en = EN_DAYS[now.weekday()]
+            eth_formatted = f"🇪🇹{e_day}-{e_month}-{e_year} | {e_day_name}-{e_month_name}-{e_day}"
             eva_txt = f" (Year of {evangelist['en']})" if evangelist else ""
             msg = (
                 f"📅 <b>Today's Date Info</b>\n\n"
                 f"<code>{greg_formatted}</code>\n"
                 f"<code>{eth_formatted}</code>{eva_txt}\n"
+                f"<b>{eva_txt}</b>\n"
                 f"━━━━━━━━━━━━━━━━━\n"
             )
             if hol:
@@ -210,7 +211,7 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
         else:
             kb = [
-                [InlineKeyboardButton("🗓 Open Interactive Calendar", callback_data=f"cal:{tey}:{tem}")],
+                [InlineKeyboardButton("🗓 Open Calendar", callback_data=f"cal:{tey}:{tem}")],
                 [InlineKeyboardButton("📚 Calendar History & Info", callback_data="show_calendar_info")],
                 [InlineKeyboardButton("🎂 Age Calculator", callback_data="age_mode_start")]
             ]
