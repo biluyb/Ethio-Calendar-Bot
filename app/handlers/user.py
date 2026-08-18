@@ -167,18 +167,18 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Build requested format:
         # 🇺🇸 08 - 07 - 2026 | Wednesday, July - 08
         # 🇪🇹 1 - 11 - 2018 | ረቡዕ - ሐምሌ - 1
+        eth_formatted = f"🇪🇹{e_day} - {e_month} - {e_year} | {e_day_name} {e_month_name} {e_day}"
         greg_formatted = f"🇺🇸{g_day:02d} - {g_month:02d} - {g_year} |{g_day_name} {g_month_name} {g_day:02d}"
         eva_txt_am = f"ዘመነ {evangelist['am']}" if evangelist else ""
         eva_txt_en = f"Year of {evangelist['en']}" if evangelist else ""
 
         
         if lang == "am":
-            eth_formatted = f"🇪🇹{e_day} - {e_month} - {e_year} | {e_day_name} {e_month_name} {e_day}"
             msg = (
                 f"📅 <b>የዛሬ ቀን መረጃ (Today)</b>\n\n"
                 f"<code>{eth_formatted}</code>\n"
                 f"<code>{greg_formatted}</code>\n"
-                f"<b>{eva_txt_am}</b> : <b>{eva_txt_en}</b>\n"
+                f"\n<b>{eva_txt_am}</b> : <b>{eva_txt_en}</b>\n"
                 f"━━━━━━━━━━━━━━━━━\n"
             )
             if hol:
@@ -190,12 +190,11 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from app.handlers.calendar_view import ETH_MONTHS_EN
             # e_month_name_en = ETH_MONTHS_EN[e_month - 1]
             # e_day_name_en = EN_DAYS[now.weekday()]
-            eth_formatted = f"🇪🇹{e_day} - {e_month} - {e_year} | {e_day_name} {e_month_name} {e_day}"
             msg = (
                 f"📅 <b>Today's Date Info</b>\n\n"
                 f"<code>{eth_formatted}</code>\n"
                 f"<code>{greg_formatted}</code>\n"
-                f"<b>{eva_txt_en}</b> : <b>{eva_txt_am}</b>\n"
+                f"\n<b>{eva_txt_en}</b> : <b>{eva_txt_am}</b>\n"
                 f"━━━━━━━━━━━━━━━━━\n"
             )
             if hol:
