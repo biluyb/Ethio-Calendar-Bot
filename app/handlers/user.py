@@ -167,10 +167,10 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Build requested format:
         # 🇺🇸 08 - 07 - 2026 | Wednesday, July - 08
         # 🇪🇹 1 - 11 - 2018 | ረቡዕ - ሐምሌ - 1
-        greg_formatted = f"🇺🇸 {g_day:02d} - {g_month:02d} - {g_year} | {g_day_name}, {g_month_name} - {g_day:02d}"
+        greg_formatted = f"🇺🇸{g_day:02d} - {g_month:02d} - {g_year} | {g_day_name}, {g_month_name},{g_day:02d}"
         
         if lang == "am":
-            eth_formatted = f"🇪🇹{e_day}-{e_month}-{e_year} | {e_day_name}-{e_month_name}-{e_day}"
+            eth_formatted = f"🇪🇹{e_day} - {e_month} - {e_year} | {e_day_name}, {e_month_name}, {e_day}"
             eva_txt = f" (ዘመነ {evangelist['am']})" if evangelist else ""
             msg = (
                 f"📅 <b>የዛሬ ቀን መረጃ (Today)</b>\n\n"
