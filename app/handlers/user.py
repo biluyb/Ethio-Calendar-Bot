@@ -171,7 +171,7 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if lang == "am":
             eth_formatted = f"🇪🇹{e_day} - {e_month} - {e_year} | {e_day_name} {e_month_name} {e_day}"
-            eva_txt = f" (ዘመነ {evangelist['am']})" if evangelist else ""
+            eva_txt = f"ዘመነ {evangelist['am']}" if evangelist else ""
             msg = (
                 f"📅 <b>የዛሬ ቀን መረጃ (Today)</b>\n\n"
                 f"<code>{eth_formatted}</code>\n"
@@ -188,12 +188,12 @@ async def today(update: Update, context: ContextTypes.DEFAULT_TYPE):
             from app.handlers.calendar_view import ETH_MONTHS_EN
             # e_month_name_en = ETH_MONTHS_EN[e_month - 1]
             # e_day_name_en = EN_DAYS[now.weekday()]
-            eth_formatted = f"🇪🇹{e_day}- {e_month}- {e_year} | {e_day_name} {e_month_name} {e_day}"
+            eth_formatted = f"🇪🇹{e_day} - {e_month} - {e_year} | {e_day_name} {e_month_name} {e_day}"
             eva_txt = f"Year of {evangelist['en']}" if evangelist else ""
             msg = (
                 f"📅 <b>Today's Date Info</b>\n\n"
-                f"<code>{greg_formatted}</code>\n"
                 f"<code>{eth_formatted}</code>\n"
+                f"<code>{greg_formatted}</code>\n"
                 f"<b>{eva_txt}</b>\n"
                 f"━━━━━━━━━━━━━━━━━\n"
             )
