@@ -131,6 +131,11 @@ async def admin_activity_callback(update: Update, context: ContextTypes.DEFAULT_
         await send_error(update, context, e, "admin_activity_callback")
 
 
+async def admin_activity_summary_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Legacy alias callback router for admin activity summary."""
+    return await admin_activity_callback(update, context)
+
+
 async def send_admin_directory_page(update, context, page: int = 0):
     """
     Renders the Admin Directory view — displays admins as interactive buttons sorted by latest activity date.
