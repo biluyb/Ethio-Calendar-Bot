@@ -1,6 +1,7 @@
 """
 Admin Activity Tracking Handler
-Displays admin activity logs with admin directory selection, pagination, and detailed human-readable activity descriptions.
+Displays admin activity logs with admin directory selection buttons (sorted by latest date),
+pagination, and detailed human-readable activity descriptions.
 """
 import html
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -67,7 +68,7 @@ def get_action_icon(action: str) -> str:
 
 async def admin_activity_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    /admin_activity — Displays the Admin Directory view by default.
+    /admin_activity — Displays the Admin Directory view by default (sorted by latest date).
     """
     uid = update.effective_user.id
     if not is_admin_db(uid) and uid not in ADMIN_IDS:
@@ -132,16 +133,17 @@ async def admin_activity_callback(update: Update, context: ContextTypes.DEFAULT_
 
 async def send_admin_directory_page(update, context, page: int = 0):
     """
-    Renders the Admin Directory view — listing all administrators with action stats and select buttons.
+    Renders the Admin Directory view — displays admins as interactive buttons sorted by latest activity date.
     """
     try:
         uid = update.effective_user.id
         lang = get_lang(uid)
 
-        # Build complete list of all known admins
+        # Fetch activity summary grouped per admin sorted by last_action DESC
         summary_rows = get_admin_activity_summary()
         summary_dict = {row[0]: (row[1], row[2]) for row in summary_rows}
 
+        # Combine all known admins from database, config, and activity log
         all_admin_ids = set(get_admins_db()) | set(ADMIN_IDS) | set(summary_dict.keys())
 
         admin_list = []
@@ -153,56 +155,60 @@ async def send_admin_directory_page(update, context, page: int = 0):
                 "last_act": last_act
             })
 
-        # Sort admins by total actions & last active date (newest first)
-        admin_list.sort(key=lambda x: (x["total_actions"], str(x["last_act"])), reverse=True)
+        # Sort strictly by latest activity date (newest timestamp first)
+        def sort_key(x):
+            la = str(x["last_act"]) if x["last_act"] and x["last_act"] != "N/A" else "0000-00-00"
+            return la
 
-        per_page = 5
+        admin_list.sort(key=sort_key, reverse=True)
+
+        per_page = 6
         total_admins = len(admin_list)
         total_pages = max(1, (total_admins + per_page - 1) // per_page)
-        page = min(page, total_pages - 1)
+        page = min(max(0, page), total_pages - 1)
 
         start_idx = page * per_page
         page_admins = admin_list[start_idx:start_idx + per_page]
 
         if lang == "am":
-            title = "👥 <b>የአድሚን ምዝግብ ማስታወሻ — የአድሚኖች ዝርዝር</b>"
-            subtitle = "<i>እባክዎን እንቅስቃሴውን ለማየት አድሚን ይምረጡ፦</i>\n"
+            title = "👥 <b>የአድሚኖች እንቅስቃሴ ምዝግብ ማስታወሻ</b>"
+            subtitle = "<i>ዝርዝር እንቅስቃሴ ለማየት የአድሚኑን ቁልፍ ይጫኑ (በቅርብ ቀን የተቀናጀ)፦</i>\n"
         else:
-            title = "👥 <b>Admin Activity Log — Admin Directory</b>"
-            subtitle = "<i>Select an administrator to view detailed activity history:</i>\n"
+            title = "👥 <b>Admin Activity Directory</b>"
+            subtitle = "<i>Click an admin button below to view detailed activity log (sorted by latest date):</i>\n"
 
         msg = f"{title}\n{subtitle}"
         msg += f"📄 Page: <b>{page+1}/{total_pages}</b>  (Total Admins: {total_admins})\n"
         msg += "━━━━━━━━━━━━━━━━━\n\n"
 
-        for i, ainfo in enumerate(page_admins, start=start_idx + 1):
-            aid = ainfo["id"]
-            tot = ainfo["total_actions"]
-            last_t = str(ainfo["last_act"])[:16]
-            is_super = " ⭐️" if aid in ADMIN_IDS else ""
-            badge = get_user_badge(aid)
-            msg += f"{i}. 👤 {badge}{is_super}\n"
-            msg += f"    📊 <b>{tot}</b> actions | 🕐 Last: {last_t}\n\n"
-
         keyboard = []
 
-        # Per-admin selection buttons
+        # Each admin is rendered as a dedicated interactive button sorted by recent date
         for ainfo in page_admins:
             aid = ainfo["id"]
             tot = ainfo["total_actions"]
+            last_t = str(ainfo["last_act"])[:16] if ainfo["last_act"] != "N/A" else "No activity"
+
             u = get_user_by_id(aid)
-            label_name = (u[2] if u and u[2] else (f"@{u[1]}" if u and u[1] else f"ID {aid}"))
-            btn_text = f"👤 {label_name[:16]} ({tot})"
+            name = (u[2] if u and u[2] else (f"@{u[1]}" if u and u[1] else f"Admin {aid}"))
+            is_super = " ⭐️" if aid in ADMIN_IDS else ""
+
+            badge = get_user_badge(aid)
+            msg += f"👤 {badge}{is_super}\n   └>> 📊 <b>{tot}</b> actions | 🕐 Last: <code>{last_t}</code>\n\n"
+
+            # Clean button label with admin name, action count, and latest activity date
+            btn_text = f"👤 {name[:14]} | {tot} act | {last_t}"
             keyboard.append([InlineKeyboardButton(btn_text, callback_data=f"act:log:{aid}:0")])
 
-        # Master Log button
-        all_text = "🌐 ሁሉንም አድሚኖች ይመልከቱ (All Log)" if lang == "am" else "🌐 Master Log (All Admins Combined)"
+        # Combined Master Log button
+        all_text = "🌐 የሁሉም አድሚኖች እንቅስቃሴ (Master Log)" if lang == "am" else "🌐 All Admins Combined Master Log"
         keyboard.append([InlineKeyboardButton(all_text, callback_data="act:log:all:0")])
 
         # Directory pagination row
         nav = []
         if page > 0:
             nav.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"act:dir:{page-1}"))
+        nav.append(InlineKeyboardButton(f"🔄 {page+1}/{total_pages}", callback_data=f"act:dir:{page}"))
         if page < total_pages - 1:
             nav.append(InlineKeyboardButton("Next ➡️", callback_data=f"act:dir:{page+1}"))
         if nav:
@@ -221,7 +227,7 @@ async def send_admin_directory_page(update, context, page: int = 0):
 
 async def send_activity_log_page(update, context, admin_id_param="all", page: int = 0):
     """
-    Renders the detailed activity log list for a specific admin or all admins.
+    Renders detailed activity logs for a specific admin or all admins, sorted strictly by latest date.
     """
     try:
         uid = update.effective_user.id
@@ -230,10 +236,10 @@ async def send_activity_log_page(update, context, admin_id_param="all", page: in
         is_all = str(admin_id_param) in ["all", "0", "None"]
         filter_admin = None if is_all else int(admin_id_param)
 
-        per_page = 10
+        per_page = 8
         total = get_admin_activity_count(filter_admin)
         total_pages = max(1, (total + per_page - 1) // per_page)
-        page = min(page, total_pages - 1)
+        page = min(max(0, page), total_pages - 1)
         offset = page * per_page
 
         rows = get_admin_activity(filter_admin, limit=per_page, offset=offset)
@@ -244,12 +250,14 @@ async def send_activity_log_page(update, context, admin_id_param="all", page: in
             header_target = get_user_badge(filter_admin)
 
         if lang == "am":
-            title = f"📋 <b>የአድሚን እንቅስቃሴ፦</b> {header_target}"
+            title = f"📋 <b>የአድሚን እንቅስቃሴ ዝርዝር፦</b> {header_target}"
+            order_info = "<i>(ከአዳዲስ ወደ ቆዩ ቀናት የተደረደሩ)</i>\n"
         else:
-            title = f"📋 <b>Admin Activity Log:</b> {header_target}"
+            title = f"📋 <b>Detailed Activity Log:</b> {header_target}"
+            order_info = "<i>(Sorted by latest date first)</i>\n"
 
-        msg = f"{title}\n"
-        msg += f"📄 Page: <b>{page+1}/{total_pages}</b>  (Total: {total} logged actions)\n"
+        msg = f"{title}\n{order_info}"
+        msg += f"📄 Page: <b>{page+1}/{total_pages}</b>  (Total: {total} activities)\n"
         msg += "━━━━━━━━━━━━━━━━━\n\n"
 
         if not rows:
@@ -257,11 +265,11 @@ async def send_activity_log_page(update, context, admin_id_param="all", page: in
         else:
             for row in rows:
                 row_id, admin_id, action, detail, target_id, performed_at = row
-                time_str = str(performed_at)[:16]
+                time_str = str(performed_at)[:19]
                 icon = get_action_icon(action)
 
                 clean_action = html.escape(action[:60])
-                clean_detail = html.escape((detail or "")[:200])
+                clean_detail = html.escape((detail or "")[:250])
 
                 msg += f"{icon} <b>{clean_action}</b>\n"
 
@@ -292,7 +300,7 @@ async def send_activity_log_page(update, context, admin_id_param="all", page: in
         if nav:
             keyboard.append(nav)
 
-        back_txt = "👥 የአድሚኖች ዝርዝር (Admins List)" if lang == "am" else "👥 Admins Directory"
+        back_txt = "👥 የአድሚኖች ዝርዝር (Admins Directory)" if lang == "am" else "👥 Admins Directory"
         keyboard.append([InlineKeyboardButton(back_txt, callback_data="act:dir:0")])
 
         reply_markup = InlineKeyboardMarkup(keyboard)
