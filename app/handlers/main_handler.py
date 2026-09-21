@@ -617,6 +617,11 @@ async def handle_admin_reply_to_user(update: Update, context: ContextTypes.DEFAU
         if "mode" in context.user_data:
             del context.user_data["mode"]
 
+        try:
+            from .admin_activity import log_admin
+            log_admin(admin_uid, "Reply to User", f"Replied: {reply_text[:150]}", target_uid)
+        except Exception: pass
+
         # ── Broadcast thread copy to ALL other admins ──────────────────────
         esc_admin_name = html.escape(admin_user.full_name or "Admin")
         esc_admin_uname = html.escape(admin_user.username or "N/A")

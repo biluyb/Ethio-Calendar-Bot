@@ -47,7 +47,11 @@ def init_activity_table():
 
 
 def log_admin_action(admin_id: int, action: str, detail: str = None, target_id: int = None):
-    """Logs a single admin action."""
+    """Logs a single admin action. Ignores viewing activity logs to avoid clutter."""
+    if action and ("/admin_activity" in action or action == "admin_activity"):
+        return
+    if detail and "Viewed activity log" in detail:
+        return
     conn = get_connection()
     try:
         c = conn.cursor()
@@ -69,33 +73,27 @@ def log_admin_action(admin_id: int, action: str, detail: str = None, target_id: 
         release_connection(conn)
 
 
-def get_admin_activity(admin_id: int = None, limit: int = 50, offset: int = 0):
-    """Fetches paginated admin activity logs. If admin_id is None, returns all admins."""
+def get_admin_activity(admin_id=None, limit: int = 15, offset: int = 0):
+    """Fetches paginated admin activity logs sorted by recent date. Excludes view logs clutter."""
     conn = get_connection()
     try:
         c = conn.cursor()
-        if admin_id:
-            if DATABASE_URL:
-                c.execute(
-                    "SELECT id, admin_id, action, detail, target_id, performed_at FROM admin_activity WHERE admin_id=%s ORDER BY performed_at DESC LIMIT %s OFFSET %s",
-                    (admin_id, limit, offset)
-                )
-            else:
-                c.execute(
-                    "SELECT id, admin_id, action, detail, target_id, performed_at FROM admin_activity WHERE admin_id=? ORDER BY performed_at DESC LIMIT ? OFFSET ?",
-                    (admin_id, limit, offset)
-                )
-        else:
-            if DATABASE_URL:
-                c.execute(
-                    "SELECT id, admin_id, action, detail, target_id, performed_at FROM admin_activity ORDER BY performed_at DESC LIMIT %s OFFSET %s",
-                    (limit, offset)
-                )
-            else:
-                c.execute(
-                    "SELECT id, admin_id, action, detail, target_id, performed_at FROM admin_activity ORDER BY performed_at DESC LIMIT ? OFFSET ?",
-                    (limit, offset)
-                )
+        where_clauses = [
+            "action NOT LIKE '%admin_activity%'",
+            "(detail IS NULL OR detail NOT LIKE '%Viewed activity log%')"
+        ]
+        params = []
+
+        if admin_id and str(admin_id) not in ["0", "all", "None"]:
+            where_clauses.append("admin_id = %s" if DATABASE_URL else "admin_id = ?")
+            params.append(int(admin_id))
+
+        where_sql = " WHERE " + " AND ".join(where_clauses)
+        query = f"SELECT id, admin_id, action, detail, target_id, performed_at FROM admin_activity{where_sql} ORDER BY performed_at DESC, id DESC "
+        query += "LIMIT %s OFFSET %s" if DATABASE_URL else "LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        c.execute(query, tuple(params))
         return c.fetchall()
     except Exception as e:
         print(f"Error fetching admin activity: {e}")
@@ -104,18 +102,25 @@ def get_admin_activity(admin_id: int = None, limit: int = 50, offset: int = 0):
         release_connection(conn)
 
 
-def get_admin_activity_count(admin_id: int = None) -> int:
-    """Returns the total count of logged admin activities."""
+def get_admin_activity_count(admin_id=None) -> int:
+    """Returns total count of logged admin activities (excluding view logs)."""
     conn = get_connection()
     try:
         c = conn.cursor()
-        if admin_id:
-            if DATABASE_URL:
-                c.execute("SELECT COUNT(*) FROM admin_activity WHERE admin_id=%s", (admin_id,))
-            else:
-                c.execute("SELECT COUNT(*) FROM admin_activity WHERE admin_id=?", (admin_id,))
-        else:
-            c.execute("SELECT COUNT(*) FROM admin_activity")
+        where_clauses = [
+            "action NOT LIKE '%admin_activity%'",
+            "(detail IS NULL OR detail NOT LIKE '%Viewed activity log%')"
+        ]
+        params = []
+
+        if admin_id and str(admin_id) not in ["0", "all", "None"]:
+            where_clauses.append("admin_id = %s" if DATABASE_URL else "admin_id = ?")
+            params.append(int(admin_id))
+
+        where_sql = " WHERE " + " AND ".join(where_clauses)
+        query = f"SELECT COUNT(*) FROM admin_activity{where_sql}"
+
+        c.execute(query, tuple(params))
         return c.fetchone()[0]
     except Exception as e:
         print(f"Error counting admin activity: {e}")
@@ -125,17 +130,19 @@ def get_admin_activity_count(admin_id: int = None) -> int:
 
 
 def get_admin_activity_summary():
-    """Returns a summary of activity per admin (for dashboard view)."""
+    """Returns summary of activity per admin sorted by most recent activity date."""
     conn = get_connection()
     try:
         c = conn.cursor()
-        c.execute("""
+        query = """
             SELECT admin_id, COUNT(*) as total_actions,
                    MAX(performed_at) as last_action
             FROM admin_activity
+            WHERE action NOT LIKE '%admin_activity%' AND (detail IS NULL OR detail NOT LIKE '%Viewed activity log%')
             GROUP BY admin_id
-            ORDER BY total_actions DESC
-        """)
+            ORDER BY last_action DESC
+        """
+        c.execute(query)
         return c.fetchall()
     except Exception as e:
         print(f"Error getting activity summary: {e}")
