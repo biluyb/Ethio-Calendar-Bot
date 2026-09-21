@@ -588,29 +588,62 @@ async def admin_reply_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer()
 
 async def handle_admin_reply_to_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Processes the admin's reply and sends it back to the user."""
+    """Processes the admin's reply and sends it back to the user.
+    Also broadcasts a thread copy to all other admins so the full
+    conversation remains visible to every admin.
+    """
     admin_uid = update.effective_user.id
+    admin_user = update.effective_user
     mode = context.user_data.get("mode", "")
     target_uid = int(mode.replace("rep_", ""))
     reply_text = update.message.text
-    
-    admin_info = "📨 <b>Message from Admin</b>\n\n"
-    final_msg = f"{admin_info}{reply_text}"
-    
+
+    admin_msg_to_user = f"📨 <b>Message from Admin</b>\n\n{html.escape(reply_text)}"
+
     try:
+        # ── Send reply to the original user ───────────────────────────────
         await context.bot.send_message(
             chat_id=target_uid,
-            text=final_msg,
+            text=admin_msg_to_user,
             parse_mode="HTML"
         )
-        
-        await update.message.reply_text(f"✅ Reply sent to user <code>{target_uid}</code>", parse_mode="HTML")
-        
+
+        # ── Confirm to the replying admin ──────────────────────────────────
+        await update.message.reply_text(
+            f"✅ Reply sent to user <code>{target_uid}</code>",
+            parse_mode="HTML"
+        )
+
         if "mode" in context.user_data:
             del context.user_data["mode"]
-            
+
+        # ── Broadcast thread copy to ALL other admins ──────────────────────
+        esc_admin_name = html.escape(admin_user.full_name or "Admin")
+        esc_admin_uname = html.escape(admin_user.username or "N/A")
+        thread_copy = (
+            f"💬 <b>Admin Reply Thread</b>\n"
+            f"👤 <b>Replying Admin:</b> {esc_admin_name} (@{esc_admin_uname})\n"
+            f"🆔 <b>Admin ID:</b> <code>{admin_uid}</code>\n"
+            f"📤 <b>Replied to User:</b> <code>{target_uid}</code>\n"
+            f"━━━━━━━━━━━━━━━━━\n"
+            f"📝 <b>Message sent:</b>\n{html.escape(reply_text[:1000])}"
+        )
+        admins = set(get_admins_db()) | set(ADMIN_IDS)
+        for other_admin_id in admins:
+            if other_admin_id == admin_uid:
+                continue  # skip the admin who just replied
+            try:
+                await context.bot.send_message(
+                    chat_id=other_admin_id,
+                    text=thread_copy,
+                    parse_mode="HTML"
+                )
+            except Exception:
+                pass
+
     except Exception as e:
         await send_error(update, context, e, "handle_admin_reply_to_user")
+
 
 async def unknown_command(update, context):
     """Fallback handler for unrecognized commands."""

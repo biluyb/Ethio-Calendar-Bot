@@ -215,9 +215,9 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
     user_rem_days = get_month_user_reminder_days(user_id, eth_year, eth_month)
 
     legend = (
-        "📍 = ዛሬ | 📌 = ዛሬ ከማስታወሻ ጋር | 🔴 = በዓል | 🔔 = ማስታወሻ\n<i>ቀን በመጫን ማስታወሻ እና የዕለቱን መግለጫ ይመልከቱ!</i>"
+        " 🔔 = ማስታወሻ\n<i>ቀን በመጫን ማስታወሻ እና የዕለቱን መግለጫ ይመልከቱ!</i>"
         if lang == "am" else
-        "📍 = Today | 📌 = Today with Reminder | 🔴 = Holiday | 🔔 = Reminder\n<i>Click any date for details & holiday history!</i>"
+        " 🔔 = Reminder\n<i>Click any date for details & holiday history!</i>"
     )
 
     event_list = ""
@@ -233,83 +233,66 @@ def build_calendar_view(eth_year: int, eth_month: int, user_id: int, lang: str):
     full_text = f"{header}\n{text_grid}\n\n{legend}\n{event_list}"
 
     keyboard = []
-
-    # 0. Mode Switcher Top Button
-    switch_txt = "🔄 ወደ ፈረንጅ ቀን መቁጠሪያ (GC Mode)" if lang == "am" else "🔄 Switch to Gregorian Calendar (GC)"
     now = datetime.now()
+
+    # ── Row 1: Mode Switch ──────────────────────────────────────────────────────
+    switch_txt = "🔄 ፈረንጅ ቀን" if lang == "am" else "🔄 Gregorian"
     keyboard.append([InlineKeyboardButton(switch_txt, callback_data=f"gcal:{now.year}:{now.month}")])
 
-    # 1. Weekday Headers
-    wd_row = WEEKDAYS_AM if lang == "am" else WEEKDAYS_EN
-    keyboard.append([InlineKeyboardButton(d, callback_data="cal_ignore") for d in wd_row])
-
-    # 2. Grid Days
-    gd1, gm1, gy1 = eth_to_greg(1, eth_month, eth_year)
-    start_weekday = date(gy1, gm1, gd1).weekday()
-
-    curr_row = [InlineKeyboardButton("  ", callback_data="cal_ignore") for _ in range(start_weekday)]
-
-    for d in range(1, total_days + 1):
-        is_today = (d == today_ed and eth_month == today_em and eth_year == today_ey)
-        has_rem = d in user_rem_days
-        holiday = holidays.get(d)
-
-        if is_today:
-            label = f"📌{d:02d}" if has_rem else f"📍{d:02d}"
-        elif has_rem:
-            label = f"🔔{d:02d}"
-        elif holiday:
-            emoji = TYPE_EMOJI.get(holiday["type"], "🔴")
-            label = f"{emoji}{d:02d}"
-        else:
-            label = f"{d:02d}"
-
-        curr_row.append(InlineKeyboardButton(label, callback_data=f"cal_day:{eth_year}:{eth_month}:{d}"))
-
-        if len(curr_row) == 7:
-            keyboard.append(curr_row)
-            curr_row = []
-
-    if curr_row:
-        while len(curr_row) < 7:
-            curr_row.append(InlineKeyboardButton("  ", callback_data="cal_ignore"))
-        keyboard.append(curr_row)
-
-    # 3. Navigation Controls
+    # ── Row 2: Navigation (◀ | Month Year | ▶) ──────────────────────────────────
     min_year = today_ey - 1
     max_year = today_ey + 10
-
     prev_month, prev_year = (eth_month - 1, eth_year) if eth_month > 1 else (13, eth_year - 1)
     next_month, next_year = (eth_month + 1, eth_year) if eth_month < 13 else (1, eth_year + 1)
-
     nav_row = []
     if prev_year >= min_year:
-        nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"cal:{prev_year}:{prev_month}"))
-    
+        nav_row.append(InlineKeyboardButton("⬅️", callback_data=f"cal:{prev_year}:{prev_month}"))
     m_label = month_name_am if lang == "am" else month_name_en
     nav_row.append(InlineKeyboardButton(f"📅 {m_label} {eth_year}", callback_data=f"cal_months:{eth_year}"))
-
     if next_year <= max_year:
-        nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"cal:{next_year}:{next_month}"))
+        nav_row.append(InlineKeyboardButton("➡️", callback_data=f"cal:{next_year}:{next_month}"))
     keyboard.append(nav_row)
 
-    # 4. Quick Year Jumps
+    # ── Row 3: Quick Year Jumps ─────────────────────────────────────────────────
     year_row = []
     for delta in [-2, -1, 0, 1, 2]:
         yr = eth_year + delta
         if min_year <= yr <= max_year:
-            btn_txt = f"•{yr}•" if yr == eth_year else str(yr)
+            btn_txt = f"[{yr}]" if yr == eth_year else str(yr)
             year_row.append(InlineKeyboardButton(btn_txt, callback_data=f"cal:{yr}:{eth_month}"))
-    keyboard.append(year_row)
+    if year_row:
+        keyboard.append(year_row)
 
-    # 5. Bottom Actions
+    # ── Rows 4+: Compact Day Picker (5 per row, smart badges) ──────────────────
+    day_row: list = []
+    for d in range(1, total_days + 1):
+        is_today = (d == today_ed and eth_month == today_em and eth_year == today_ey)
+        has_rem  = d in user_rem_days
+        holiday  = holidays.get(d)
+        if is_today:
+            lbl = f"📌{d}" if has_rem else f"📍{d}"
+        elif has_rem:
+            lbl = f"🔔{d}"
+        elif holiday:
+            lbl = f"{TYPE_EMOJI.get(holiday['type'], '🔴')}{d}"
+        else:
+            lbl = str(d)
+        day_row.append(InlineKeyboardButton(lbl, callback_data=f"cal_day:{eth_year}:{eth_month}:{d}"))
+        if len(day_row) == 5:
+            keyboard.append(day_row)
+            day_row = []
+    if day_row:
+        keyboard.append(day_row)
+
+    # ── Last Row: Today shortcut + Reminders ────────────────────────────────────
     bottom_row = []
     if not (eth_year == today_ey and eth_month == today_em):
-        t_txt = "📍 ዛሬ" if lang == "am" else "📍 Today"
-        bottom_row.append(InlineKeyboardButton(t_txt, callback_data=f"cal:{today_ey}:{today_em}"))
-
-    rem_txt = "🔔 ማስታወሻዎች" if lang == "am" else "🔔 Reminders"
-    bottom_row.append(InlineKeyboardButton(rem_txt, callback_data="my_reminders"))
+        bottom_row.append(InlineKeyboardButton(
+            "📍 ዛሬ" if lang == "am" else "📍 Today",
+            callback_data=f"cal:{today_ey}:{today_em}"))
+    bottom_row.append(InlineKeyboardButton(
+        "🔔 ማስታወሻዎች" if lang == "am" else "🔔 Reminders",
+        callback_data="my_reminders"))
     keyboard.append(bottom_row)
 
     return full_text, InlineKeyboardMarkup(keyboard)
@@ -379,77 +362,63 @@ def build_greg_calendar_view(greg_year: int, greg_month: int, user_id: int, lang
     full_text = f"{header}\n{text_grid}\n\n{legend}\n{event_list}"
 
     keyboard = []
-
-    # 0. Mode Switcher Top Button
-    switch_txt = "🔄 ወደ ኢትዮጵያ ቀን መቁጠሪያ (EC Mode)" if lang == "am" else "🔄 Switch to Ethiopian Calendar (EC)"
     tey, tem, _ = get_current_eth_date()
+
+    # ── Row 1: Mode Switch ──────────────────────────────────────────────────────
+    switch_txt = "🔄 ኢትዮጵያ ቀን" if lang == "am" else "🔄 Ethiopian"
     keyboard.append([InlineKeyboardButton(switch_txt, callback_data=f"cal:{tey}:{tem}")])
 
-    # 1. Weekday Headers
-    wd_row = WEEKDAYS_AM if lang == "am" else WEEKDAYS_EN
-    keyboard.append([InlineKeyboardButton(d, callback_data="cal_ignore") for d in wd_row])
-
-    # 2. Grid Days
-    start_weekday = date(greg_year, greg_month, 1).weekday()
-    curr_row = [InlineKeyboardButton("  ", callback_data="cal_ignore") for _ in range(start_weekday)]
-
-    for d in range(1, num_days + 1):
-        is_today = (d == now.day and greg_month == now.month and greg_year == now.year)
-        ed, em, ey = greg_to_eth(d, greg_month, greg_year)
-        
-        hol = get_day_type(em, ed, ey)
-        user_rems = get_user_day_reminders(user_id, ey, em, ed)
-        # Check if there is any reminder that is NOT yet triggered
-        has_rem = any(not r[2] for r in user_rems)
-
-        if is_today:
-            label = f"📌{d:02d}" if has_rem else f"📍{d:02d}"
-        elif has_rem:
-            label = f"🔔{d:02d}"
-        elif hol:
-            emoji = TYPE_EMOJI.get(hol["type"], "🔴")
-            label = f"{emoji}{d:02d}"
-        else:
-            label = f"{d:02d}"
-
-        curr_row.append(InlineKeyboardButton(label, callback_data=f"gcal_day:{greg_year}:{greg_month}:{d}"))
-
-        if len(curr_row) == 7:
-            keyboard.append(curr_row)
-            curr_row = []
-
-    if curr_row:
-        while len(curr_row) < 7:
-            curr_row.append(InlineKeyboardButton("  ", callback_data="cal_ignore"))
-        keyboard.append(curr_row)
-
-    # 3. Navigation Controls
+    # ── Row 2: Navigation (◀ | Month Year | ▶) ──────────────────────────────────
     prev_month, prev_year = (greg_month - 1, greg_year) if greg_month > 1 else (12, greg_year - 1)
     next_month, next_year = (greg_month + 1, greg_year) if greg_month < 12 else (1, greg_year + 1)
-
+    month_lbl = month_name_am[:9] if lang == "am" else month_name_en[:9]
     nav_row = [
-        InlineKeyboardButton("⬅️ Prev", callback_data=f"gcal:{prev_year}:{prev_month}"),
-        InlineKeyboardButton(f"📅 {GREG_MONTHS_EN[greg_month-1][:3]} {greg_year}", callback_data=f"gcal_months:{greg_year}"),
-        InlineKeyboardButton("Next ➡️", callback_data=f"gcal:{next_year}:{next_month}")
+        InlineKeyboardButton("⬅️", callback_data=f"gcal:{prev_year}:{prev_month}"),
+        InlineKeyboardButton(f"📅 {month_lbl} {greg_year}", callback_data=f"gcal_months:{greg_year}"),
+        InlineKeyboardButton("➡️", callback_data=f"gcal:{next_year}:{next_month}")
     ]
     keyboard.append(nav_row)
 
-    # 4. Quick Year Jumps
-    year_row = []
-    for delta in [-2, -1, 0, 1, 2]:
-        yr = greg_year + delta
-        btn_txt = f"•{yr}•" if yr == greg_year else str(yr)
-        year_row.append(InlineKeyboardButton(btn_txt, callback_data=f"gcal:{yr}:{greg_month}"))
+    # ── Row 3: Quick Year Jumps ─────────────────────────────────────────────────
+    year_row = [
+        InlineKeyboardButton(f"[{greg_year + d}]" if d == 0 else str(greg_year + d),
+                             callback_data=f"gcal:{greg_year + d}:{greg_month}")
+        for d in [-2, -1, 0, 1, 2]
+    ]
     keyboard.append(year_row)
 
-    # 5. Bottom Actions
+    # ── Rows 4+: Compact Day Picker (5 per row, smart badges) ──────────────────
+    day_row: list = []
+    for d in range(1, num_days + 1):
+        is_today = (d == now.day and greg_month == now.month and greg_year == now.year)
+        ed, em, ey = greg_to_eth(d, greg_month, greg_year)
+        hol = get_day_type(em, ed, ey)
+        user_rems = get_user_day_reminders(user_id, ey, em, ed)
+        has_rem = any(not r[2] for r in user_rems)
+        if is_today:
+            lbl = f"📌{d}" if has_rem else f"📍{d}"
+        elif has_rem:
+            lbl = f"🔔{d}"
+        elif hol:
+            lbl = f"{TYPE_EMOJI.get(hol['type'], '🔴')}{d}"
+        else:
+            lbl = str(d)
+        day_row.append(InlineKeyboardButton(lbl, callback_data=f"gcal_day:{greg_year}:{greg_month}:{d}"))
+        if len(day_row) == 5:
+            keyboard.append(day_row)
+            day_row = []
+    if day_row:
+        keyboard.append(day_row)
+
+    # ── Last Row: Today shortcut + Reminders ────────────────────────────────────
     bottom_row = []
     if not (greg_year == now.year and greg_month == now.month):
-        t_txt = "📍 Today (GC)" if lang == "en" else "📍 ዛሬ (ፈረንጅ)"
-        bottom_row.append(InlineKeyboardButton(t_txt, callback_data=f"gcal:{now.year}:{now.month}"))
-
-    rem_txt = "🔔 ማስታወሻዎች" if lang == "am" else "🔔 Reminders"
-    bottom_row.append(InlineKeyboardButton(rem_txt, callback_data="my_reminders"))
+        bottom_row.append(InlineKeyboardButton(
+            "📍 ዛሬ (GC)" if lang == "am" else "📍 Today (GC)",
+            callback_data=f"gcal:{now.year}:{now.month}"))
+    bottom_row.append(InlineKeyboardButton(
+        "🔔 ማስታወሻዎች" if lang == "am" else "🔔 Reminders",
+        callback_data="my_reminders"))
     keyboard.append(bottom_row)
 
     return full_text, InlineKeyboardMarkup(keyboard)
