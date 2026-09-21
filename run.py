@@ -313,7 +313,7 @@ async def main():
     app.add_handler(CallbackQueryHandler(admin_reply_callback, pattern="^admin_reply_"))
     app.add_handler(CallbackQueryHandler(admin_broadcast_callback, pattern="^bc_report:"))
     # Calendar view & reminder callbacks (EC & GC dual mode)
-    app.add_handler(CallbackQueryHandler(calendar_view_callback, pattern="^(cal:|cal_months:|cal_day:|cal_ignore|gcal:|gcal_months:|gcal_day:|rem_add:|rem_del:|my_reminders|show_calendar_info)"))
+    app.add_handler(CallbackQueryHandler(calendar_view_callback, pattern="^(cal:|cal_months:|cal_day:|cal_ignore|gcal:|gcal_months:|gcal_day:|rem_add:|rem_del:|my_reminders|show_calendar_info|cal_info_lang:)"))
     # Admin activity callbacks
     app.add_handler(CallbackQueryHandler(admin_activity_callback, pattern="^act:"))
     app.add_handler(CallbackQueryHandler(admin_activity_summary_callback, pattern="^act_summary$"))

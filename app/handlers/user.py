@@ -246,9 +246,21 @@ async def calendar_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         track_activity(update, "/calendar")
 
         text = INFO_AM if lang == "am" else INFO_EN
-        await update.message.reply_text(text, parse_mode="HTML", reply_markup=get_share_keyboard(lang, context.bot.username, uid=uid))
+
+        # Language toggle + open calendar buttons
+        from app.handlers.calendar_view import get_current_eth_date as _get_eth
+        tey, tem, _ = _get_eth()
+        kb = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🇪🇹 አማርኛ", callback_data="cal_info_lang:am"),
+                InlineKeyboardButton("🇺🇸 English", callback_data="cal_info_lang:en"),
+            ],
+            [InlineKeyboardButton("🗓 " + ("ቀን መቁጠሪያ ይክፈቱ" if lang == "am" else "Open Calendar"), callback_data=f"cal:{tey}:{tem}")],
+        ])
+        await update.message.reply_text(text, parse_mode="HTML", reply_markup=kb)
     except Exception as e:
         await send_error(update, context, e, "calendar_command")
+
 
 async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Provides information about the bot and developer."""

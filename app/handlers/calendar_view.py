@@ -532,12 +532,33 @@ async def calendar_view_callback(update: Update, context: ContextTypes.DEFAULT_T
             info_text = INFO_AM if lang == "am" else INFO_EN
             tey, tem, _ = get_current_eth_date()
             kb = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🗓 ቀን መቁጠሪያ ይክፈቱ (Open Calendar)" if lang == "am" else "🗓 Open Interactive Calendar", callback_data=f"cal:{tey}:{tem}")],
-                [InlineKeyboardButton("📍 ዛሬ" if lang == "am" else "📍 Today", callback_data=f"cal:{tey}:{tem}")]
+                [
+                    InlineKeyboardButton("🇪🇹 አማርኛ", callback_data="cal_info_lang:am"),
+                    InlineKeyboardButton("🇺🇸 English", callback_data="cal_info_lang:en"),
+                ],
+                [InlineKeyboardButton("🗓 " + ("ቀን መቁጠሪያ ይክፈቱ" if lang == "am" else "Open Calendar"), callback_data=f"cal:{tey}:{tem}")],
             ])
             await query.edit_message_text(info_text, parse_mode="HTML", reply_markup=kb)
             await query.answer()
             return
+
+        # ── Calendar Info Language Toggle (view-only, does not change global lang) ──
+        if data.startswith("cal_info_lang:"):
+            from app.texts import INFO_AM, INFO_EN
+            view_lang = data.split(":")[1]   # "am" or "en"
+            info_text = INFO_AM if view_lang == "am" else INFO_EN
+            tey, tem, _ = get_current_eth_date()
+            kb = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("🇪🇹 አማርኛ", callback_data="cal_info_lang:am"),
+                    InlineKeyboardButton("🇺🇸 English", callback_data="cal_info_lang:en"),
+                ],
+                [InlineKeyboardButton("🗓 " + ("ቀን መቁጠሪያ ይክፈቱ" if view_lang == "am" else "Open Calendar"), callback_data=f"cal:{tey}:{tem}")],
+            ])
+            await query.edit_message_text(info_text, parse_mode="HTML", reply_markup=kb)
+            await query.answer("✅ Language switched!" if view_lang == "en" else "✅ ቋንቋ ተቀይሯል!")
+            return
+
 
         # ── Ethiopian Month Selector Menu ──
         if data.startswith("cal_months:"):
