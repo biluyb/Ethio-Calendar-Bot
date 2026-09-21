@@ -120,9 +120,9 @@ def render_eth_text_calendar(eth_year: int, eth_month: int, user_id: int, lang: 
         curr_week += ["   "] * (7 - len(curr_week))
         lines.append(f"<code>{'  '.join(curr_week)}</code>")
         
-    legend = "(. = ዛሬ | * = ማስታወሻ | ! = በዓል)" if lang == "am" else "(. = Today | * = Reminder | ! = Holiday)"
-    lines.append(f"<code>{legend}</code>")
-    return "\n".join(lines)
+    grid_str = "\n".join(lines)
+    legend = ". = ዛሬ\n* = ማስታወሻ\n! = በዓል" if lang == "am" else ". = Today\n* = Reminder\n! = Holiday"
+    return f"{grid_str}\n\n{legend}"
 
 
 def render_greg_text_calendar(greg_year: int, greg_month: int, user_id: int, lang: str) -> str:
@@ -165,9 +165,9 @@ def render_greg_text_calendar(greg_year: int, greg_month: int, user_id: int, lan
         curr_week += ["   "] * (7 - len(curr_week))
         lines.append(f"<code>{'  '.join(curr_week)}</code>")
         
-    legend = "(. = ዛሬ | * = ማስታወሻ | ! = በዓል)" if lang == "am" else "(. = Today | * = Reminder | ! = Holiday)"
-    lines.append(f"<code>{legend}</code>")
-    return "\n".join(lines)
+    grid_str = "\n".join(lines)
+    legend = ". = ዛሬ\n* = ማስታወሻ\n! = በዓል" if lang == "am" else ". = Today\n* = Reminder\n! = Holiday"
+    return f"{grid_str}\n\n{legend}"
 
 
 # ─── Ethiopian Calendar Builder ──────────────────────────────────────────────

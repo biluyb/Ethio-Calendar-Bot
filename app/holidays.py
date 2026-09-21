@@ -100,15 +100,9 @@ FIXED_ETHIOPIAN_HOLIDAYS = {
     (1, 17):  {"en": "Finding of the True Cross (Meskel)", "am": "መስቀል", "type": "holiday", "key": "meskel"},
 
     # ══ ኅዳር / Hidar ══
-    (3, 20):  {"en": "Ethiopian National Unity Day", "am": "የብሔር ብሔረሰቦች ቀን", "type": "holiday", "key": "national_unity"},
     (3, 21):  {"en": "Hidar Tsion (Celebration of Mary)", "am": "ሕዳር ጽዮን", "type": "special", "key": "hidar_tsion"},
 
-    # ══ ታኅሣሥ / Tahsas ══
-    (4, 28):  {"en": "Ethiopian Christmas Eve (Leap Year)", "am": "የገና ዋዜማ (ዘመነ ሉቃስ)", "type": "closure", "key": "gena_eve"},
-    (4, 29):  {"en": "Ethiopian Christmas / Gena", "am": "ገና / ልደት", "type": "holiday", "key": "gena"},
-
     # ══ ጥር / Tir ══
-    (5, 1):   {"en": "Ethiopian Christmas Day (Tir 1)", "am": "ልደት (ጥር 1)", "type": "holiday", "key": "gena"},
     (5, 11):  {"en": "Ethiopian Epiphany (Timkat)", "am": "ጥምቀት", "type": "holiday", "key": "timkat"},
     (5, 12):  {"en": "Epiphany 2nd Day (Kana ZeGalila)", "am": "ቃና ዘገሊላ (ጥምቀት 2ኛ ቀን)", "type": "special", "key": "kana_galila"},
 
@@ -225,6 +219,30 @@ def get_month_holidays(eth_month: int, eth_year: int = None) -> dict:
             info_copy["desc_am"] = get_holiday_description(info, "am")
             info_copy["desc_en"] = get_holiday_description(info, "en")
             holidays[d] = info_copy
+
+    # Dynamic Tahsas (Month 4) Christmas (Gena) Calculation:
+    if eth_month == 4:
+        is_leap_year = (eth_year % 4 == 3) if eth_year else False
+        if is_leap_year:
+            # Leap Year (Zemeni Lukas): Eve on Tahsas 27, Gena on Tahsas 28
+            eve_info = {"en": "Ethiopian Christmas Eve (Leap Year)", "am": "የገና ዋዜማ (ዘመነ ሉቃስ)", "type": "closure", "key": "gena_eve"}
+            gena_info = {"en": "Ethiopian Christmas / Gena (Leap Year)", "am": "ገና / ልደት (ዘመነ ሉቃስ)", "type": "holiday", "key": "gena"}
+            eve_info["desc_am"] = get_holiday_description(eve_info, "am")
+            eve_info["desc_en"] = get_holiday_description(eve_info, "en")
+            gena_info["desc_am"] = get_holiday_description(gena_info, "am")
+            gena_info["desc_en"] = get_holiday_description(gena_info, "en")
+            holidays[27] = eve_info
+            holidays[28] = gena_info
+        else:
+            # Regular Year: Eve on Tahsas 28, Gena on Tahsas 29
+            eve_info = {"en": "Ethiopian Christmas Eve", "am": "የገና ዋዜማ", "type": "closure", "key": "gena_eve"}
+            gena_info = {"en": "Ethiopian Christmas / Gena", "am": "ገና / ልደት", "type": "holiday", "key": "gena"}
+            eve_info["desc_am"] = get_holiday_description(eve_info, "am")
+            eve_info["desc_en"] = get_holiday_description(eve_info, "en")
+            gena_info["desc_am"] = get_holiday_description(gena_info, "am")
+            gena_info["desc_en"] = get_holiday_description(gena_info, "en")
+            holidays[28] = eve_info
+            holidays[29] = gena_info
 
     # 2. Fixed Gregorian Holiday: May 1 (Workers' Day)
     if eth_year:
